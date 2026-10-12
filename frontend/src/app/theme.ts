@@ -6,7 +6,7 @@ import { createTheme } from '@mui/material/styles';
  * tokens through the theme and never write raw values.
  */
 
-/** Brand colours. Yellow is an accent and only ever sits behind dark text. */
+/** Brand colours. Yellow is an accent: never text, never behind white. */
 const BLUE = '#0058A3';
 const BLUE_DARK = '#00447F';
 const YELLOW = '#FFDB00';

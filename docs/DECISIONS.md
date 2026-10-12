@@ -323,6 +323,8 @@ trade-off that was accepted. New entries are appended as the work advances.
 - **Trade-off.** One source of truth, so back, forward, reload and shared
   links work without extra code. The search box needs a small piece of
   local state for the text being typed.
+- **Update (phase 11).** The sort order is a fourth value in the query
+  string (`sort`), and choosing one adds a history entry (D-043).
 
 ### D-026 The search box follows the URL during render, not in an effect
 
@@ -365,6 +367,11 @@ trade-off that was accepted. New entries are appended as the work advances.
   header. Stars and text never use it.
 - **Alternatives.** Yellow stars; yellow for the selected filter.
 - **Trade-off.** Less yellow on screen, and every use passes WCAG AA.
+- **Update (phase 12).** The brand mark became a drawing in yellow on the
+  blue header (D-047), so "only a background" is no longer exact. The
+  rule that holds is: yellow is never text and never sits behind white
+  text. It is a background for near-black text (the badge) or a graphic
+  on the blue header (the mark, the focus ring), where it has 5.26:1.
 
 ### D-030 Motion library for entrances, CSS for hover
 
@@ -500,6 +507,10 @@ trade-off that was accepted. New entries are appended as the work advances.
 - **Trade-off.** On a phone the buttons scroll sideways. A sidebar would
   be the natural next step with more than one filter; with a single
   filter it would be mostly empty.
+- **Update (phases 11 and 12).** The toolbar is now the one described in
+  D-048: there is no visible "Category" label (it is the accessible name
+  of the group), the result count follows the buttons, and the order
+  select sits at the right end.
 
 ### D-040 A menu for the language, no native controls
 
@@ -664,7 +675,8 @@ trade-off that was accepted. New entries are appended as the work advances.
 - **Decision.** After the page query, one query reads the specifications
   of those products, and they are attached in memory.
 - **Alternatives.** A join in the page query; one query per product.
-- **Trade-off.** Two queries per request instead of one. A join would
+- **Trade-off.** Three queries per list request instead of two (the
+  count, the page and now the specifications). A join would
   repeat each product once per specification and break `LIMIT`; a query
   per product grows with the page size.
 

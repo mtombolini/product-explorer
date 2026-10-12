@@ -12,12 +12,12 @@ flowchart LR
             nginx["Nginx<br/>serves the React build<br/>proxies /api and /images"]
         end
         subgraph backend["backend container"]
-            seed["Seed command<br/>imports when the table is empty,<br/>then loads the bundled translations"]
+            seed["Seed command<br/>imports when the table is empty,<br/>then loads the bundled translations<br/>and specifications"]
             api["FastAPI<br/>api → services → repositories"]
             images[("Image files<br/>volume product-images")]
         end
         subgraph db["db container"]
-            postgres[("PostgreSQL<br/>products, product_translations<br/>volume db-data")]
+            postgres[("PostgreSQL<br/>products, product_translations,<br/>product_specifications<br/>volume db-data")]
         end
     end
 
@@ -64,6 +64,7 @@ sequenceDiagram
         end
     end
     S->>D: upsert the bundled translations (no network)
+    S->>D: replace the bundled specifications (no network)
     E->>E: start uvicorn (even if the import failed)
 ```
 
@@ -89,6 +90,7 @@ sequenceDiagram
         A->>A: route validates input, service applies the rules
         A->>D: repository runs the filtered, paginated query
         D-->>A: rows + total
+        A->>D: one query for the specifications of those rows
         A-->>N: JSON page (or the error envelope)
         N-->>X: response
         X->>X: store products by id, ids by query key
@@ -104,10 +106,10 @@ sequenceDiagram
 | Layer | Folder | Responsibility |
 | --- | --- | --- |
 | API | `api/` | HTTP: parameters, validation, status codes, error envelope, request id |
-| Services | `services/` | Business rules: pagination maths, filters, not found, the import workflow, the translation loader |
+| Services | `services/` | Business rules: pagination maths, filters, not found, the import workflow, the translation and specification loaders |
 | Repositories | `repositories/` | The only code that touches the database session or the image files |
 | Clients | `clients/` | Calls to Fake Store API |
-| Models and schemas | `models/`, `schemas/` | Tables, languages and sort orders; shapes of requests, responses, imported records and translations |
+| Models and schemas | `models/`, `schemas/` | Tables, languages and sort orders; shapes of requests, responses, imported records, translations and specifications |
 | Core | `core/` | Settings, database session, logging |
 | Commands | `commands/` | The seed command |
 
