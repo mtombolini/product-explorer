@@ -36,5 +36,6 @@ class FakeStoreProduct(BaseModel):
     price: Decimal = Field(ge=0, le=MAX_PRICE)
     category: str = Field(min_length=1, max_length=100, pattern=NO_NUL_PATTERN)
     description: str = Field(default="", pattern=NO_NUL_PATTERN)
-    image: str | None = None
+    # Stored as products.image_source_url, a text column.
+    image: str | None = Field(default=None, pattern=NO_NUL_PATTERN)
     rating: FakeStoreRating | None = None

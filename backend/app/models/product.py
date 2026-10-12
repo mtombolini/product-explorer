@@ -42,6 +42,9 @@ class Product(Base):
     category: Mapped[str] = mapped_column(String(100), index=True)
     # File name inside IMAGES_DIR. NULL means "show the placeholder".
     image_path: Mapped[str | None] = mapped_column(String(255))
+    # The image URL exactly as Fake Store sent it. Internal: the API
+    # serves the stored file and never exposes this address.
+    image_source_url: Mapped[str | None] = mapped_column(Text)
     rating_rate: Mapped[Decimal | None] = mapped_column(Numeric(2, 1))
     rating_count: Mapped[int | None] = mapped_column(Integer)
     created_at: Mapped[datetime] = mapped_column(
