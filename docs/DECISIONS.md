@@ -388,10 +388,68 @@ trade-off that was accepted. New entries are appended as the work advances.
 
 ### D-032 One JavaScript bundle
 
-- **Context.** The production build is a single file of about 600 kB
-  (190 kB compressed) and Vite warns about its size.
+- **Context.** The production build is a single file of about 790 kB
+  (250 kB compressed) and Vite warns about its size. An unminified build
+  shows where it goes: React DOM, MUI, the router and the motion library
+  are the four largest parts.
 - **Decision.** Leave it as one bundle for this version.
 - **Alternatives.** Split by route with lazy loading.
 - **Trade-off.** A slower first load than necessary, in exchange for no
   loading states between two small pages. It is listed in
   `FUTURE_IMPROVEMENTS.md`.
+
+## Phase 9: interface languages
+
+### D-033 i18next for the interface copy
+
+- **Context.** The candidate asked for the interface in English and
+  Spanish, open to more languages. The specification had left
+  internationalisation out of scope.
+- **Decision.** `i18next` with `react-i18next`. One TypeScript file per
+  language; English defines the shape and the other languages are typed
+  against it, so a missing key does not compile.
+- **Alternatives.** A hand-written dictionary and context; JSON files
+  loaded on demand.
+- **Trade-off.** Two dependencies. In exchange, plural rules,
+  interpolation and re-rendering on language change are solved by the
+  library most React developers already know. The messages are bundled,
+  which is right for two languages and would become lazy loading with
+  many.
+
+### D-034 English by default, no language detection
+
+- **Context.** Detecting the browser language is the usual behaviour, but
+  the documentation, the screenshots and the evaluation are in English.
+- **Decision.** The first visit is always in English. The user's choice
+  is stored in `localStorage` and used from then on.
+- **Alternatives.** Detect from `navigator.language`; put the language in
+  the URL.
+- **Trade-off.** A Spanish-speaking visitor has to choose once. Every
+  reviewer sees the same thing on first load, and the required routes
+  `/products` and `/product/:id` stay as the statement writes them.
+
+### D-035 The API returns codes, the interface chooses the words
+
+- **Context.** The frontend showed the English `message` of the error
+  envelope to the user.
+- **Decision.** The store keeps the error `code`. The interface maps it to
+  a translated sentence (`i18n/errorDescription.ts`). The `message` of the
+  API stays in English, for developers and logs.
+- **Alternatives.** Translate on the server from `Accept-Language`.
+- **Trade-off.** The server stays language-neutral and cacheable, and no
+  text reaches the user without going through the translations. Detailed
+  server messages are no longer shown, only two user-facing sentences.
+
+### D-036 Catalogue content is not translated
+
+- **Context.** Fake Store has titles, descriptions and categories in
+  English only.
+- **Decision.** Titles and descriptions are shown as they are and marked
+  with `lang="en"`, so a screen reader pronounces them correctly inside a
+  Spanish page. The four known category names are translated in the
+  frontend; an unknown category is shown as it comes.
+- **Alternatives.** Machine-translate at import time; leave categories
+  untranslated too.
+- **Trade-off.** A Spanish page with English product text. Translating
+  content properly needs per-language data in the database and a language
+  parameter in the API, which is listed in `FUTURE_IMPROVEMENTS.md`.

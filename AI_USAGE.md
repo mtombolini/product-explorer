@@ -315,7 +315,7 @@ Representative excerpts from the master prompt:
   - In `frontend/`: `npm run lint` (no output), `npm run format:check`
     ("All matched files use Prettier code style!"), `npm run typecheck`
     (no output), `npm test` ("38 passed"), `npm run build` (succeeds, with
-    Vite's warning about the 604 kB bundle, see D-032).
+    Vite's warning about the bundle size, see D-032).
   - `docker compose --profile test run --rm --build frontend-test`:
     "38 passed". `npm run lint` in the same container: exit code 0.
   - `docker compose up --build -d --wait`: three services healthy;
@@ -402,6 +402,71 @@ Representative excerpts from the master prompt:
       products, and the log showed "Import skipped".
   - Not verified: the 347 seconds that the first `up` took are not a
     meaningful timing, because the machine slept during the build.
+
+## Phase 9: interface languages
+
+- **Prompt or workflow.** After reading the result, the candidate asked for
+  the interface in English and Spanish, open to more languages. The main
+  agent implemented it directly: current library versions were read from
+  the registry, the copy was moved into message files and every component
+  was changed to read from them.
+- **Accepted.**
+  - `i18next` and `react-i18next`, one typed message file per language, a
+    language select in the header, the choice stored in the browser.
+  - Whole-sentence messages with plural forms, `Intl` formatting of prices
+    and ratings, `<html lang>` kept in step, catalogue text marked with
+    `lang="en"`.
+  - The store keeps the API error code instead of the English message, and
+    the interface translates it (D-035).
+  - Nine new tests: switching language, plurals, translated states, equal
+    keys in both languages, formats, an unsupported stored language.
+- **Rejected or changed.**
+  - Detecting the browser language was rejected: a first visit is always in
+    English (D-034).
+  - Building the result summary by joining pieces ("N products" + "for" +
+    "in") was replaced by one whole sentence per combination, so a
+    language can order the words its own way.
+  - Showing the server's English error message to the user was removed
+    (D-035).
+  - The browser check found a real defect that predates this phase: after
+    scrolling one page and then loading another address in the same tab,
+    the new page started at the old scroll position. The router keys the
+    first history entry of every load as "default". The layout now gives
+    that entry a key made of its address.
+  - The bundle size written down earlier (604 kB) was measured before the
+    motion library was added and was never re-measured. It is corrected
+    everywhere: 786 kB, 249 kB compressed, after this phase. An unminified
+    build attributes about 73 kB of source to `i18next` and 10 kB to
+    `react-i18next`; the motion library is roughly four times that.
+  - A first guess that MUI's `Select` caused the growth was wrong: the
+    size did not change with `NativeSelect`. The lighter component was
+    kept anyway.
+- **Verification.**
+  - In `frontend/`: `npm run lint`, `npm run typecheck` and
+    `npm run format:check` clean; `npm test`: "47 passed";
+    `npm run build` succeeds.
+  - `docker compose up --build -d --wait`: three services healthy.
+  - Headless Chrome at 360, 768 and 1280 px, switching to Spanish with the
+    real select: `<html lang>` became `es`, the title became
+    "Productos | Product Explorer", the summary read "20 productos", the
+    stored value was `es`, and there was no horizontal overflow. After
+    loading another address the page was still in Spanish and the product
+    heading carried `lang="en"`.
+  - Screenshots of the Spanish catalogue (top and scrolled) and product
+    page at the three widths were looked at: the header fits on a phone in
+    both its regular and compact forms.
+  - After the scroll fix and a rebuild, in headless Chrome: loading
+    another address in the same tab started at scroll position 0, and
+    loading the same address again restored 484 px. Opening a product and
+    going back (page control and browser button) still made no request and
+    restored the position. The language select has the role `combobox`
+    and the name "Language".
+  - Lighthouse 13.5.0, accessibility, with the language select in the
+    header: 100 on `/products` and `/product/1`, no failed audit. Both
+    runs were in English, the default; Lighthouse was not run with the
+    interface in Spanish.
+  - Not verified: the Spanish wording by a second reader, and languages
+    with more plural forms than English and Spanish.
 
 ## Human review
 

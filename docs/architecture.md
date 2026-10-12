@@ -118,5 +118,6 @@ sequenceDiagram
 | `app/` | Store, typed hooks, routes, theme, motion values |
 | `features/products/` | The slice (state, thunks, cache rules), URL state, product components |
 | `pages/` | One component per route; loads data in `useEffect` and picks the state to show |
+| `i18n/` | Interface languages: setup, one message file per language, category names |
 | `components/` | Layout shell and shared pieces |
 | `test/` | Test setup, the in-memory API and the render helper |

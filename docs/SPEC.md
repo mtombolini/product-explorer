@@ -163,9 +163,10 @@ not blocked; all of them are cheap to change.
 
 ## 6. Out of scope
 
-Authentication, write endpoints, cart or checkout, sorting, internationalisation,
-a deployed demo, end-to-end browser tests in the repository, server-side
-rendering, and any service beyond the three containers.
+Authentication, write endpoints, cart or checkout, sorting, translated
+catalogue content, a deployed demo, end-to-end browser tests in the
+repository, server-side rendering, and any service beyond the three
+containers.
 
 ## 7. Design contract
 
@@ -498,7 +499,8 @@ When the database cannot be reached: 503 with `status` and `database` set to
   `aria-live="polite"` region, `aria-current` on pagination, focus moved to
   the page heading on route change. Target: Lighthouse accessibility of 95
   or more.
-- Copy: plain English, short sentences, no marketing tone.
+- Copy: plain language, short sentences, no marketing tone, in every
+  interface language (section 7.12).
 
 ### 7.10 Testing plan
 
@@ -562,8 +564,34 @@ Versions were read from the package registries on the day the work started.
 | Frontend dev | typescript-eslint | 8.71.1 |
 | Frontend dev | eslint-plugin-jsx-a11y | 6.10.2 |
 | Frontend dev | prettier | 3.9.10 |
+| Frontend | i18next | 26.4.4 |
+| Frontend | react-i18next | 17.0.16 |
 | Images | postgres | 17-alpine |
 | Images | nginx | 1.30-alpine |
+
+### 7.12 Interface languages
+
+Added after the first version, at the candidate's request. The statement
+does not ask for it.
+
+- The interface is available in English and Spanish. English is the
+  default. The user changes it with a select in the header and the choice
+  is stored in the browser for the next visit. The browser language is not
+  detected automatically (see `docs/DECISIONS.md`).
+- All interface copy lives in one file per language under
+  `frontend/src/i18n/locales/`. English defines the shape; a missing key
+  in another language is a type error. Adding a language is one file plus
+  two lines.
+- Plural forms and word order are handled by the message files, not by
+  string concatenation. Prices and ratings are formatted with `Intl` for
+  the chosen language.
+- The API stays language-neutral: it returns stable error codes, and the
+  interface chooses the wording.
+- `<html lang>` follows the chosen language. Catalogue text (titles and
+  descriptions) is not translated, because the source has one language; it
+  is marked with `lang="en"`. The four known category names are translated
+  in the frontend, and any other category is shown as it comes.
+- The language is not part of the URL.
 
 ## 8. Phases and exit criteria
 
@@ -578,3 +606,4 @@ Versions were read from the package registries on the day the work started.
 | 6 | Detail page, navigation back, scroll restoration, tests | Back keeps state without a new request; tests pass |
 | 7 | Motion, responsive review, accessibility audit | Checked at 360, 768 and 1280 px; Lighthouse accessibility reported |
 | 8 | README, diagram, `AI_USAGE.md`, `FUTURE_IMPROVEMENTS.md`, CI | Final check from a clean clone against the statement |
+| 9 | Interface in English and Spanish (section 7.12) | Both languages verified in a browser; tests pass |

@@ -7,7 +7,7 @@ to our own REST API, which serves data that was imported once from
 
 | | |
 | --- | --- |
-| Frontend | React 19, TypeScript, Vite, React Router, Redux Toolkit, MUI |
+| Frontend | React 19, TypeScript, Vite, React Router, Redux Toolkit, MUI, i18next |
 | Backend | Python 3.13, FastAPI, SQLAlchemy 2, Alembic, Pydantic |
 | Database | PostgreSQL 17 |
 | Runtime | Docker Compose: `frontend` (Nginx), `backend`, `db` |
@@ -148,6 +148,7 @@ in [docs/architecture.md](docs/architecture.md).
         ├── app/                        store, routes, theme, hooks
         ├── api/                        fetch client and endpoint functions
         ├── features/products/          slice, URL state, product components
+        ├── i18n/                       interface languages (English, Spanish)
         ├── pages/                      one component per route
         ├── components/                 layout shell and shared pieces
         └── test/                       test setup and in-memory API
@@ -284,7 +285,7 @@ No local toolchain is needed: both suites run in containers.
 # Backend: 60 tests (pytest) against PostgreSQL, in a database ending in _test
 docker compose --profile test run --rm --build backend-test
 
-# Frontend: 38 tests (Vitest + React Testing Library)
+# Frontend: 47 tests (Vitest + React Testing Library)
 docker compose --profile test run --rm --build frontend-test
 ```
 
@@ -310,6 +311,7 @@ HTTP transport with `httpx.MockTransport`, and the frontend replaces
 | Frontend, flows | Search after a pause and category filter (requests, URL, announced count); pagination; opening a product and going back with no new request; direct visit fetches once |
 | Frontend, states | Error with retry, filtered empty state with "Clear filters", empty catalogue, page past the end, product not found, malformed id, unknown route |
 | Frontend, units | API client errors, URL parsing, cache rules of the slice |
+| Frontend, languages | Switching to Spanish and back, plurals, translated states, same keys in every language, price and rating formats |
 
 ## Development workflow
 
@@ -373,6 +375,30 @@ empty state, with no failed audit.
 Yellow is only used as a background (brand mark, badge, focus ring on
 blue), never as text and never behind white text.
 
+## Languages
+
+The interface is available in **English and Spanish**. English is the
+default; the select in the header changes it and the choice is remembered
+in the browser.
+
+- All interface copy is in `frontend/src/i18n/locales/`, one file per
+  language. English defines the shape, so a missing translation is a
+  compile error.
+- Plurals and word order come from the message files ("1 product",
+  "2 productos"), and prices and ratings are formatted with `Intl`
+  for the chosen language (`$109.95` and `109,95 US$`).
+- The API is language-neutral: it returns stable error codes and the
+  interface chooses the wording.
+- `<html lang>` follows the chosen language.
+
+To add a language: copy `locales/en.ts` to a new file and translate it,
+add the language to `SUPPORTED_LANGUAGES` in `i18n/languages.ts` and to
+`resources` in `i18n/i18n.ts`.
+
+Catalogue content is **not** translated: titles and descriptions come from
+Fake Store in English only and are marked with `lang="en"`. The four known
+category names are translated in the frontend.
+
 ## Assumptions
 
 - **No authentication.** The catalogue is public and read-only.
@@ -399,8 +425,9 @@ The full list, with the open questions and the defaults taken, is in
   wildcard, which does not use an index and would be slow on a large table.
 - Prices travel as JSON numbers. That is fine for display, not for money
   arithmetic.
-- The frontend ships as one JavaScript bundle of about 600 kB (190 kB
-  compressed).
+- The frontend ships as one JavaScript bundle of about 790 kB (250 kB
+  compressed). React, MUI, the router and the motion library account for
+  most of it.
 - The import is manual after the first start and never deletes products.
 - The first start needs internet access; an offline first start gives an
   empty catalogue until the seed command is run.
@@ -408,6 +435,9 @@ The full list, with the open questions and the defaults taken, is in
   development values and must be replaced outside a local machine.
 - No end-to-end browser tests are part of the repository. The browser
   checks described in `AI_USAGE.md` were run with throwaway scripts.
+- Product titles and descriptions are shown in English in every interface
+  language, and the browser language is not detected: a first visit is in
+  English.
 - Tested in Chrome only. No screen reader session was run.
 - The CI workflow was written and linted but has not run on GitHub yet.
 
