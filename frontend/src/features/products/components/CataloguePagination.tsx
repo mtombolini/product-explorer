@@ -38,6 +38,7 @@ export function CataloguePagination({
       aria-label={t('pagination.label')}
       getItemAriaLabel={itemLabel}
       color="primary"
+      shape="rounded"
       // Fewer neighbours, so the row fits a 360px screen.
       siblingCount={0}
       sx={{ display: 'flex', justifyContent: 'center', mt: 5 }}

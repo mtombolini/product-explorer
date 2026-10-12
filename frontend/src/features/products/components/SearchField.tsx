@@ -101,7 +101,7 @@ export function SearchField() {
         placeholder={t('search.label')}
         fullWidth
         size="small"
-        sx={{ bgcolor: 'background.paper', borderRadius: 999 }}
+        sx={{ bgcolor: 'background.paper', borderRadius: 1 }}
         slotProps={{
           htmlInput: {
             'aria-label': t('search.label'),

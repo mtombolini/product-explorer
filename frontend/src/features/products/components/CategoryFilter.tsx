@@ -1,5 +1,5 @@
-import Box from '@mui/material/Box';
-import Chip from '@mui/material/Chip';
+import ToggleButton from '@mui/material/ToggleButton';
+import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 import { useTranslation } from 'react-i18next';
 
 import { categoryName } from '../../../i18n/categoryNames';
@@ -9,17 +9,22 @@ interface CategoryFilterProps {
   /** The chosen category, or an empty string for "All". */
   selected: string;
   onSelect: (category: string) => void;
+  /** The id of the visible label of the group. */
+  labelledBy: string;
 }
 
 /**
- * The category filter: one chip per category plus "All". Exactly one is
- * pressed at a time. Each chip is a button, so it works with Tab, Enter
- * and Space, and tells screen readers whether it is pressed.
+ * The category filter: a row of joined buttons, one per category plus
+ * "All", with exactly one pressed. Each is a real button that tells
+ * screen readers whether it is pressed. MUI's group is one Tab stop: the
+ * arrow keys, Home and End move between the buttons, and Enter or Space
+ * presses the focused one.
  */
 export function CategoryFilter({
   categories,
   selected,
   onSelect,
+  labelledBy,
 }: CategoryFilterProps) {
   const { t, i18n } = useTranslation();
 
@@ -32,35 +37,20 @@ export function CategoryFilter({
   ];
 
   return (
-    <Box
-      role="group"
-      aria-label={t('filter.label')}
-      sx={{
-        display: 'flex',
-        gap: 1,
-        // Small screens: one row that scrolls sideways. Wider: wrap.
-        flexWrap: { xs: 'nowrap', md: 'wrap' },
-        overflowX: { xs: 'auto', md: 'visible' },
-        // Room for the focus ring, which the scroll box would cut off.
-        p: 0.5,
-        m: -0.5,
+    <ToggleButtonGroup
+      exclusive
+      value={selected}
+      aria-labelledby={labelledBy}
+      onChange={(_event, value: string | null) => {
+        // Clicking the pressed button gives null: one stays pressed.
+        if (value !== null) onSelect(value);
       }}
     >
-      {options.map((option) => {
-        const isSelected = option.value === selected;
-        return (
-          <Chip
-            key={option.value}
-            label={option.label}
-            clickable
-            aria-pressed={isSelected}
-            color={isSelected ? 'primary' : 'default'}
-            variant={isSelected ? 'filled' : 'outlined'}
-            onClick={() => onSelect(option.value)}
-            sx={{ flexShrink: 0 }}
-          />
-        );
-      })}
-    </Box>
+      {options.map((option) => (
+        <ToggleButton key={option.value} value={option.value}>
+          {option.label}
+        </ToggleButton>
+      ))}
+    </ToggleButtonGroup>
   );
 }
