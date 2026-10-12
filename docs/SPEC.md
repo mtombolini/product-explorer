@@ -305,7 +305,9 @@ Table `product_specifications` (key facts of a product, per language):
 
 The primary key is (`product_id`, `language`, `position`).
 
-Every change of the schema is its own explicit Alembic migration.
+Every change of the schema is its own explicit Alembic migration. The last
+one enables the PostgreSQL extension `unaccent`, which the search uses to
+ignore accents.
 
 ### 7.5 Import strategy
 
@@ -401,7 +403,7 @@ ones, otherwise an empty list. `specifications_language` says which.
 | --- | --- | --- | --- |
 | `page` | integer | 1 | 1 to 1,000,000 |
 | `page_size` | integer | 12 | 1 to 48 |
-| `search` | string | none | At most 100 characters. Trimmed; blank means no search. Case-insensitive substring match on title or description; `%` and `_` are matched literally |
+| `search` | string | none | At most 100 characters. Trimmed; blank means no search. Substring match on title or description that ignores case and accents; `%` and `_` are matched literally |
 | `category` | string | none | At most 100 characters. Trimmed; blank means no filter. Exact match |
 | `sort` | string | none | `price_asc` or `price_desc`. Any other value, including an empty one, is a 422 |
 | `lang` | string | `en` | `en` or `es`. Any other value is a 422. Titles and descriptions come back in this language when the catalogue has them, and `search` reads the text of this language |
