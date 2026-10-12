@@ -51,9 +51,14 @@ def prepare_database() -> None:
 
 @pytest.fixture(autouse=True)
 def empty_products_table() -> None:
-    """Before each test: remove every product and restart the ids."""
+    """Before each test: remove every product and restart the ids.
+
+    CASCADE also empties product_translations, which references it.
+    """
     with engine.begin() as connection:
-        connection.execute(text("TRUNCATE TABLE products RESTART IDENTITY"))
+        connection.execute(
+            text("TRUNCATE TABLE products RESTART IDENTITY CASCADE")
+        )
 
 
 @pytest.fixture
