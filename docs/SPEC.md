@@ -42,8 +42,9 @@ section 4.
 
 ## 2. Requirements checklist
 
-Status values: `planned`, `done`, `partial`. The column "Verified by" names
-the check that proves the requirement.
+Every requirement below is implemented, except DL-5 (the optional deployed
+demo). The column "Verified by" names the check that proves each one; the
+results of those checks are recorded phase by phase in `AI_USAGE.md`.
 
 ### 2.1 Functional requirements (statement section 1)
 
