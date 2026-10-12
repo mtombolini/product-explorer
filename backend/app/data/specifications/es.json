@@ -59,7 +59,7 @@
   ],
   "11": [
     {"label": "Capacidad", "value": "256 GB"},
-    {"label": "Interfaz", "value": "SATA III, 2,5 pulgadas"},
+    {"label": "Interfaz", "value": "SATA III"},
     {"label": "Memoria", "value": "3D NAND con caché SLC"},
     {"label": "Grosor", "value": "7 mm"},
     {"label": "Compatible con", "value": "TRIM, recolección de basura, RAID y ECC"}
@@ -120,7 +120,7 @@
     {"label": "Mangas", "value": "Cortas"},
     {"label": "Cuello", "value": "En V"},
     {"label": "Cuidado", "value": "Lavable a máquina"},
-    {"label": "Característica", "value": "Absorbe la humedad"}
+    {"label": "Característica", "value": "Aleja la humedad"}
   ],
   "20": [
     {"label": "Material", "value": "95 % algodón, 5 % elastano"},
