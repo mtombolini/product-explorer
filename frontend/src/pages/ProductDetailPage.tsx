@@ -102,7 +102,10 @@ function ProductView({ product }: ProductViewProps) {
         alignItems: 'start',
       }}
     >
-      <ProductImage src={product.image_url} alt={product.title} eager />
+      {/* The text alternative is the product name, in English too. */}
+      <Box lang={CATALOGUE_LANGUAGE}>
+        <ProductImage src={product.image_url} alt={product.title} eager />
+      </Box>
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
         <Typography color="text.secondary">
           {categoryName(product.category, i18n.language)}
