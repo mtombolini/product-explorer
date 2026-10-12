@@ -1,0 +1,109 @@
+# Continuous integration: lint, tests and builds on every push to main and
+# on every pull request. The three jobs run in parallel.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# The workflow only reads the repository.
+permissions:
+  contents: read
+
+# A new push to the same branch cancels the run that is still going.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend (lint and tests)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    # The tests run against PostgreSQL, like the application.
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: product_explorer
+          POSTGRES_PASSWORD: product_explorer
+          POSTGRES_DB: product_explorer
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U product_explorer"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    env:
+      # The name ends in _test: the test suite refuses any other database
+      # and creates this one itself.
+      DATABASE_URL: postgresql+psycopg://product_explorer:product_explorer@localhost:5432/product_explorer_test
+      IMAGES_DIR: /tmp/product-images
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: backend/requirements-dev.txt
+      - name: Install dependencies
+        run: pip install -r requirements-dev.txt
+      - name: Lint (ruff, PEP 8 at 79 characters)
+        run: ruff check .
+      - name: Check formatting
+        run: ruff format --check .
+      - name: Tests
+        run: pytest
+
+  frontend:
+    name: Frontend (lint, types, tests and build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      - name: Lint
+        run: npm run lint
+      - name: Check formatting
+        run: npm run format:check
+      - name: Type check
+        run: npm run typecheck
+      - name: Tests
+        run: npm test
+      - name: Build
+        run: npm run build
+
+  docker:
+    name: Docker Compose (build and start)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Build the images
+        run: docker compose build
+      - name: Start the stack and wait until it is healthy
+        run: docker compose up -d --wait
+      - name: Check the API and the application through Nginx
+        # The API must be up whether or not Fake Store answered the
+        # import, so this step does not depend on a third party.
+        run: |
+          curl --fail --silent --show-error http://localhost:8000/health
+          curl --fail --silent --show-error http://localhost:8080/api/categories
+          curl --fail --silent --show-error --output /dev/null http://localhost:8080/
+      - name: Show the logs if something failed
+        if: failure()
+        run: docker compose logs
+      - name: Stop the stack
+        if: always()
+        run: docker compose down -v
