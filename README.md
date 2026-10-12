@@ -136,7 +136,7 @@ in [docs/architecture.md](docs/architecture.md).
 │   │   ├── services/                   business rules and the import workflow
 │   │   ├── repositories/               database queries and image files
 │   │   ├── clients/                    Fake Store HTTP client
-│   │   ├── models/  schemas/           table model; request and response shapes
+│   │   ├── models/  schemas/           table model and sort orders; request and response shapes
 │   │   ├── core/                       settings, database session, logging
 │   │   └── commands/seed.py            the import command
 │   └── tests/
@@ -175,6 +175,7 @@ at <http://localhost:8000/docs>.
 | `page_size` | integer | 12 | 1 to 48 |
 | `search` | string | none | At most 100 characters. Case-insensitive match in title or description. `%` and `_` are literal |
 | `category` | string | none | At most 100 characters. Trimmed; blank means no filter. Exact match |
+| `sort` | string | none | `price_asc` or `price_desc`. Without it the list is ordered by id |
 
 ```bash
 curl "http://localhost:8080/api/products?search=cotton&category=women%27s%20clothing&page=1"
@@ -282,10 +283,10 @@ docker compose exec backend python -m app.commands.seed
 No local toolchain is needed: both suites run in containers.
 
 ```bash
-# Backend: 62 tests (pytest) against PostgreSQL, in a database ending in _test
+# Backend: 71 tests (pytest) against PostgreSQL, in a database ending in _test
 docker compose --profile test run --rm --build backend-test
 
-# Frontend: 51 tests (Vitest + React Testing Library)
+# Frontend: 60 tests (Vitest + React Testing Library)
 docker compose --profile test run --rm --build frontend-test
 ```
 
@@ -306,9 +307,9 @@ HTTP transport with `httpx.MockTransport`, and the frontend replaces
 | Suite | What is covered |
 | --- | --- |
 | Backend, import | Idempotency (two runs, same rows), update in place, invalid records skipped, failed image keeps the placeholder, three failures stop the downloads, source unavailable leaves the table untouched, retries |
-| Backend, API | Pagination metadata and edge pages, category filter, search (case, title or description, `%` and `_`), every validation rule (422), 404, 405, 500 without internals, request id, health with and without products and with the database down |
+| Backend, API | Pagination metadata and edge pages, category filter, search (case, title or description, `%` and `_`), order by price (both directions, ties, sorted pages), every validation rule (422), 404, 405, 500 without internals, request id, health with and without products and with the database down |
 | Backend, service | Pagination maths and filter clean-up with an in-memory repository, no database |
-| Frontend, flows | Search after a pause and category filter (requests, URL, announced count); pagination; opening a product and going back with no new request; direct visit fetches once |
+| Frontend, flows | Search after a pause and category filter (requests, URL, announced count); sort by price (order, URL, cache); pagination; opening a product and going back with no new request; direct visit fetches once |
 | Frontend, states | Error with retry, filtered empty state with "Clear filters", empty catalogue, page past the end, product not found, malformed id, unknown route |
 | Frontend, units | API client errors, URL parsing, cache rules of the slice |
 | Frontend, languages | Switching to Spanish and back, plurals, translated states, same keys in every language, price and rating formats |
@@ -412,7 +413,8 @@ category names are translated in the frontend.
 - **Currency.** Fake Store prices have no currency; they are shown as US
   dollars.
 - **Search** matches title and description. **Category** is the single
-  filter. Sorting is intentionally left out of this version.
+  filter. The list can be **sorted by price**; products with the same
+  price keep the order of their ids.
 - **Images** belong to the catalogue data, so they are imported and served
   from our backend like the rest.
 - **Cache lifetime.** Data fetched by the frontend is kept until the page

@@ -106,7 +106,7 @@ sequenceDiagram
 | Services | `services/` | Business rules: pagination maths, filters, not found, the import workflow |
 | Repositories | `repositories/` | The only code that touches the database session or the image files |
 | Clients | `clients/` | Calls to Fake Store API |
-| Models and schemas | `models/`, `schemas/` | Table definition; shapes of requests, responses and imported records |
+| Models and schemas | `models/`, `schemas/` | Table definition and sort orders; shapes of requests, responses and imported records |
 | Core | `core/` | Settings, database session, logging |
 | Commands | `commands/` | The seed command |
 
