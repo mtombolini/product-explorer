@@ -41,7 +41,7 @@ describe('product page: navigation without refetching', () => {
     expect(router.state.location.search).toBe('?page=2');
     expect(api.requests.sort()).toEqual([
       '/api/categories',
-      '/api/products?page=2&page_size=12',
+      '/api/products?page=2&page_size=12&lang=en',
     ]);
   });
 
@@ -77,7 +77,7 @@ describe('product page: direct visit', () => {
     expect(
       await screen.findByRole('heading', { level: 1, name: 'Item 03' }),
     ).toBeInTheDocument();
-    expect(api.requests).toEqual(['/api/products/3']);
+    expect(api.requests).toEqual(['/api/products/3?lang=en']);
     // No history to go back to: the way back is a link to the catalogue.
     expect(
       screen.getByRole('link', { name: 'Back to products' }),

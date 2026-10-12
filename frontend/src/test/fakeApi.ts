@@ -9,6 +9,7 @@ export function makeProduct(id: number, overrides: Partial<Product> = {}) {
     id,
     title: `Product ${id}`,
     description: `Description of product ${id}`,
+    language: 'en',
     price: 10 + id,
     category: 'electronics',
     image_url: null,
@@ -18,6 +19,12 @@ export function makeProduct(id: number, overrides: Partial<Product> = {}) {
   };
   return product;
 }
+
+/** Translated text of some products: language -> product id -> text. */
+export type FakeTranslations = Record<
+  string,
+  Record<number, { title: string; description: string }>
+>;
 
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -35,10 +42,14 @@ function errorResponse(status: number, code: string, message: string) {
  * tests are fast, deterministic and never touch the network.
  *
  * It answers the three endpoints the application uses, with the same
- * search, category and pagination rules as the backend, and records the
+ * search, category, order, pagination and language rules as the backend
+ * (a product without a translation comes back in English), and records the
  * address of every request so a test can assert what was (not) fetched.
  */
-export function installFakeApi(products: Product[]) {
+export function installFakeApi(
+  products: Product[],
+  translations: FakeTranslations = {},
+) {
   const api = {
     /** Path and query of every request received, in order. */
     requests: [] as string[],
@@ -50,9 +61,16 @@ export function installFakeApi(products: Product[]) {
     },
   };
 
+  /** The product with its text in the asked language, when there is one. */
+  function localise(product: Product, language: string): Product {
+    const translation = translations[language]?.[product.id];
+    return translation ? { ...product, ...translation, language } : product;
+  }
+
   function handle(input: RequestInfo | URL): Response {
     const url = new URL(String(input), 'http://localhost');
     api.requests.push(url.pathname + url.search);
+    const language = url.searchParams.get('lang') ?? 'en';
 
     if (api.isBroken) {
       return errorResponse(500, 'internal_error', 'An unexpected error.');
@@ -67,11 +85,13 @@ export function installFakeApi(products: Product[]) {
       const search = (url.searchParams.get('search') ?? '').toLowerCase();
       const category = url.searchParams.get('category') ?? '';
       const page = Number(url.searchParams.get('page') ?? 1);
-      const matching = products.filter(
-        (product) =>
-          (!search || product.title.toLowerCase().includes(search)) &&
-          (!category || product.category === category),
-      );
+      const matching = products
+        .map((product) => localise(product, language))
+        .filter(
+          (product) =>
+            (!search || product.title.toLowerCase().includes(search)) &&
+            (!category || product.category === category),
+        );
       // Like the backend: by price when asked, and always by id last.
       const sort = url.searchParams.get('sort');
       const direction = sort === 'price_desc' ? -1 : 1;
@@ -91,7 +111,7 @@ export function installFakeApi(products: Product[]) {
     const match = /^\/api\/products\/(\d+)$/.exec(url.pathname);
     const product = match && products.find((p) => p.id === Number(match[1]));
     if (product) {
-      return jsonResponse(product);
+      return jsonResponse(localise(product, language));
     }
     return errorResponse(404, 'product_not_found', 'Product was not found.');
   }

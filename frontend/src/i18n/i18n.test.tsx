@@ -182,3 +182,72 @@ describe('language menu', () => {
     ).toHaveAttribute('aria-expanded', 'false');
   });
 });
+
+describe('catalogue text in the chosen language', () => {
+  // Only the first product has a Spanish translation.
+  const translations = {
+    es: {
+      1: { title: 'Camisa de algodón', description: 'Descripción en español' },
+    },
+  };
+
+  it('asks for the list again in Spanish and shows the translated text', async () => {
+    const api = installFakeApi(catalogue, translations);
+    const { user } = renderApp('/products');
+    await screen.findByRole('heading', { name: 'Cotton shirt' });
+
+    await chooseLanguage(user, 'Español');
+
+    expect(
+      await screen.findByRole('heading', { name: 'Camisa de algodón' }),
+    ).toHaveAttribute('lang', 'es');
+    expect(
+      screen.queryByRole('heading', { name: 'Cotton shirt' }),
+    ).not.toBeInTheDocument();
+    // A product without a translation keeps its text and says so.
+    expect(screen.getByRole('heading', { name: 'Gold ring' })).toHaveAttribute(
+      'lang',
+      'en',
+    );
+    // One request per language; the categories are not asked again.
+    expect(api.requestsTo('/api/products')).toEqual([
+      '/api/products?page=1&page_size=12&lang=en',
+      '/api/products?page=1&page_size=12&lang=es',
+    ]);
+    expect(api.requestsTo('/api/categories')).toHaveLength(1);
+  });
+
+  it('starts in the remembered language without asking in English first', async () => {
+    const api = installFakeApi(catalogue, translations);
+    await i18n.changeLanguage('es');
+    renderApp('/product/1');
+
+    expect(
+      await screen.findByRole('heading', {
+        level: 1,
+        name: 'Camisa de algodón',
+      }),
+    ).toHaveAttribute('lang', 'es');
+    expect(screen.getByText('Descripción en español')).toBeInTheDocument();
+    expect(api.requests).toEqual(['/api/products/1?lang=es']);
+  });
+
+  it('reloads the open product when the language changes', async () => {
+    const api = installFakeApi(catalogue, translations);
+    const { user } = renderApp('/product/1');
+    await screen.findByRole('heading', { level: 1, name: 'Cotton shirt' });
+
+    await chooseLanguage(user, 'Español');
+
+    expect(
+      await screen.findByRole('heading', {
+        level: 1,
+        name: 'Camisa de algodón',
+      }),
+    ).toBeInTheDocument();
+    expect(api.requests).toEqual([
+      '/api/products/1?lang=en',
+      '/api/products/1?lang=es',
+    ]);
+  });
+});

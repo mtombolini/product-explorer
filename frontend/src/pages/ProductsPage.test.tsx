@@ -49,7 +49,7 @@ describe('catalogue: search and filter flow', () => {
     );
     expect(screen.getByText('2 products for "shirt"')).toBeInTheDocument();
     expect(api.requests.filter((url) => url.includes('search='))).toEqual([
-      '/api/products?page=1&page_size=12&search=shirt',
+      '/api/products?page=1&page_size=12&search=shirt&lang=en',
     ]);
     expect(currentAddress(router)).toBe('/products?search=shirt');
 
@@ -67,7 +67,7 @@ describe('catalogue: search and filter flow', () => {
       screen.getByText('1 product for "shirt" in Men\'s clothing'),
     ).toBeInTheDocument();
     expect(api.requests).toContain(
-      '/api/products?page=1&page_size=12&search=shirt&category=men%27s+clothing',
+      '/api/products?page=1&page_size=12&search=shirt&category=men%27s+clothing&lang=en',
     );
     expect(currentAddress(router)).toBe(
       '/products?search=shirt&category=men%27s+clothing',
@@ -159,8 +159,8 @@ describe('catalogue: pagination and cache', () => {
     ).toBeInTheDocument();
 
     expect(api.requestsTo('/api/products')).toEqual([
-      '/api/products?page=1&page_size=12',
-      '/api/products?page=2&page_size=12',
+      '/api/products?page=1&page_size=12&lang=en',
+      '/api/products?page=2&page_size=12&lang=en',
     ]);
     expect(api.requestsTo('/api/categories')).toHaveLength(1);
   });
@@ -215,9 +215,9 @@ describe('catalogue: sort by price', () => {
     );
     expect(currentAddress(router)).toBe('/products');
     expect(api.requestsTo('/api/products')).toEqual([
-      '/api/products?page=1&page_size=12',
-      '/api/products?page=1&page_size=12&sort=price_asc',
-      '/api/products?page=1&page_size=12&sort=price_desc',
+      '/api/products?page=1&page_size=12&lang=en',
+      '/api/products?page=1&page_size=12&sort=price_asc&lang=en',
+      '/api/products?page=1&page_size=12&sort=price_desc&lang=en',
     ]);
   });
 
@@ -258,7 +258,7 @@ describe('catalogue: sort by price', () => {
     );
     await waitFor(() =>
       expect(api.requests).toContain(
-        '/api/products?page=1&page_size=12&search=e&sort=price_desc',
+        '/api/products?page=1&page_size=12&search=e&sort=price_desc&lang=en',
       ),
     );
   });
@@ -270,7 +270,7 @@ describe('catalogue: sort by price', () => {
     await screen.findByRole('heading', { name: 'Middle' });
     expect(shownTitles()).toEqual(['Middle', 'Cheap', 'Expensive']);
     expect(api.requestsTo('/api/products')).toEqual([
-      '/api/products?page=1&page_size=12',
+      '/api/products?page=1&page_size=12&lang=en',
     ]);
   });
 });

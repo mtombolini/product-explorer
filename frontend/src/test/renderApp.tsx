@@ -9,13 +9,14 @@ import { RouterProvider } from 'react-router/dom';
 import { routes } from '../app/routes';
 import { createStore } from '../app/store';
 import { theme } from '../app/theme';
+import { i18n } from '../i18n/i18n';
 
 /**
  * Render the whole application at a given address, with a fresh store,
  * the real routes and the real theme. Navigation happens in memory.
  */
 export function renderApp(initialPath = '/products') {
-  const store = createStore();
+  const store = createStore(i18n.resolvedLanguage);
   const router = createMemoryRouter(routes, { initialEntries: [initialPath] });
 
   render(
