@@ -15,6 +15,8 @@ export function makeProduct(id: number, overrides: Partial<Product> = {}) {
     image_url: null,
     rating_rate: 4.1,
     rating_count: 25,
+    specifications: [],
+    specifications_language: 'en',
     ...overrides,
   };
   return product;
