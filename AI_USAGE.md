@@ -64,3 +64,66 @@ Representative excerpts from the master prompt:
     payload shape used in the specification, and all 20 images downloadable.
   - `docker compose version` and `docker-compose --version` both answered
     with Compose v2.
+
+## Phase 1: infrastructure skeleton
+
+- **Prompt or workflow.** A builder sub-agent received the phase scope from
+  `docs/SPEC.md` (sections 7.2, 7.3 and 8): "Build only the skeleton that
+  proves the three containers are wired together", with the instruction to
+  verify from a clean state and report the real output.
+- **Accepted.**
+  - The backend skeleton: application factory, a temporary `/api/hello`, a
+    minimal `/health`, the image on `python:3.13-slim` running as a
+    non-root user, and the `ruff` and `pytest` configuration.
+  - The Nginx configuration (single-page application fallback, proxy for
+    `/api/` and `/images/`, request-time DNS resolution, `X-Request-ID`,
+    security headers, gzip, cache rules) and a static placeholder page.
+  - `docker-compose.yml` with three services, health checks and start
+    order through health conditions, and `.env.example`.
+- **Rejected or changed.**
+  - A plain `proxy_pass http://backend:8000` was rejected: Nginx would keep
+    the IP address it resolved at start-up (D-009).
+  - Installing `curl` in the backend image only for the health check was
+    rejected in favour of a Python one-liner (D-012).
+  - Repeating the security headers in every location was replaced with
+    `add_header_inherit merge` (D-013).
+  - A Content-Security-Policy header was left out until the real frontend
+    build exists.
+  - The first version of the rebuild check was not conclusive: the
+    recreated backend received the same IP address as before. The check
+    was repeated with a temporary container holding the old address, so
+    that the backend came back on a different one.
+- **Verification.**
+  - `uvx ruff@0.17.0 check backend/`: "All checks passed!".
+    `uvx ruff@0.17.0 format --check backend/`: "5 files already formatted".
+  - `docker compose config` with no `.env` file: exit code 0, with the
+    default `DATABASE_URL`, the API on `127.0.0.1:8000`, the frontend on
+    8080 and no published database port.
+  - `docker compose down -v` followed by
+    `docker compose up --build -d --wait`: exit code 0, `db`, `backend`
+    and `frontend` reported healthy.
+  - `docker-compose up -d` (hyphenated name): exit code 0, three services
+    running and healthy.
+  - `curl http://localhost:8080/`: 200, the placeholder page, with
+    `Cache-Control: no-cache` and the three security headers.
+  - `curl http://localhost:8080/api/hello`: 200,
+    `{"message":"Hello from the Product Explorer API"}`.
+  - `curl http://127.0.0.1:8000/health`: 200, `{"status":"ok"}`.
+  - `curl http://localhost:8080/products/3`: 200 `text/html` (fallback);
+    `curl http://localhost:8080/assets/missing.js`: 404.
+  - Backend removed: `/api/hello` through the frontend answered 502.
+    Backend rebuilt and started again on a different address (172.29.0.3
+    before, 172.29.0.5 after): the first request through the frontend
+    answered 200, and the start time of the frontend container had not
+    changed.
+  - Inside the containers: the backend runs as user `app` with fastapi
+    0.143.0 and uvicorn 0.54.0; Nginx reports version 1.30.5.
+  - Not verified with a live request: the `X-Request-ID` value received by
+    the backend (it does not read the header yet; only the loaded Nginx
+    configuration was checked with `nginx -T`) and gzip (the responses of
+    this phase are smaller than the 1024 byte threshold).
+  - Environment note: on the development machine the Docker credential
+    helper (`docker-credential-desktop`) did not answer, which blocked
+    image pulls. The Docker commands above were run with `DOCKER_CONFIG`
+    pointing to a temporary client configuration without a credential
+    store. Nothing in the repository depends on it.
