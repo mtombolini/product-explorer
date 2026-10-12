@@ -1,5 +1,6 @@
 import ToggleButton from '@mui/material/ToggleButton';
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
+import { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { categoryName } from '../../../i18n/categoryNames';
@@ -18,7 +19,8 @@ interface CategoryFilterProps {
  * "All", with exactly one pressed. Each is a real button that tells
  * screen readers whether it is pressed. MUI's group is one Tab stop: the
  * arrow keys, Home and End move between the buttons, and Enter or Space
- * presses the focused one.
+ * presses the focused one. The row can be wider than a phone screen and
+ * then scrolls sideways, so the pressed button is brought into view.
  */
 export function CategoryFilter({
   categories,
@@ -27,6 +29,16 @@ export function CategoryFilter({
   label,
 }: CategoryFilterProps) {
   const { t, i18n } = useTranslation();
+  const groupRef = useRef<HTMLDivElement>(null);
+
+  // A category that comes from the address (a link, a reload) can be a
+  // button outside the visible part of the row. The categories are in
+  // the list because the buttons only exist once they have loaded.
+  useEffect(() => {
+    groupRef.current
+      ?.querySelector('[aria-pressed="true"]')
+      ?.scrollIntoView({ inline: 'nearest', block: 'nearest' });
+  }, [selected, categories]);
 
   const options = [
     { value: '', label: t('filter.all') },
@@ -38,6 +50,7 @@ export function CategoryFilter({
 
   return (
     <ToggleButtonGroup
+      ref={groupRef}
       exclusive
       value={selected}
       aria-label={label}

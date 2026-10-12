@@ -128,6 +128,18 @@ describe('catalogue: search and filter flow', () => {
       screen.queryByRole('heading', { name: 'Cotton shirt' }),
     ).not.toBeInTheDocument();
   });
+
+  it('brings the category of the address into view', async () => {
+    installFakeApi(catalogue);
+    const scrollIntoView = vi.spyOn(Element.prototype, 'scrollIntoView');
+    renderApp('/products?category=jewelery');
+
+    const pressed = await screen.findByRole('button', { name: 'Jewelery' });
+    expect(pressed).toHaveAttribute('aria-pressed', 'true');
+    // The row of buttons can be wider than a phone screen.
+    expect(scrollIntoView.mock.contexts).toContain(pressed);
+    scrollIntoView.mockRestore();
+  });
 });
 
 describe('catalogue: pagination and cache', () => {
