@@ -98,6 +98,14 @@ export const theme = createTheme({
         input: { '&::placeholder': { color: INK_SOFT, opacity: 1 } },
       },
     },
+    MuiOutlinedInput: {
+      styleOverrides: {
+        root: { minHeight: TOUCH_TARGET, borderRadius: 999 },
+        // 23px of text plus this padding makes the field itself 44px
+        // tall, not only the box around it.
+        input: { paddingBlock: 10.5 },
+      },
+    },
     MuiSkeleton: {
       // A light sweep across the placeholder instead of a pulse.
       defaultProps: { animation: 'wave' },
@@ -138,11 +146,6 @@ export const theme = createTheme({
           borderRadius: 999,
           fontSize: '1rem',
         },
-      },
-    },
-    MuiOutlinedInput: {
-      styleOverrides: {
-        root: { minHeight: TOUCH_TARGET, borderRadius: 999 },
       },
     },
     MuiLink: {
