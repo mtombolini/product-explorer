@@ -9,7 +9,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-const firstPage = { search: '', category: '', page: 1 };
+const firstPage = { search: '', category: '', sort: '', page: 1 } as const;
 
 describe('products slice: caching', () => {
   it('stores a page by query key and its products by id', async () => {

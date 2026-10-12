@@ -58,6 +58,9 @@ describe('language switcher', () => {
       screen.getByRole('textbox', { name: 'Buscar productos' }),
     ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Todas' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('combobox', { name: /^Ordenar por/ }),
+    ).toHaveTextContent('Orden predeterminado');
     expect(screen.getByRole('button', { name: 'Joyería' })).toBeInTheDocument();
     expect(
       screen.getByRole('button', { name: 'Idioma: Español' }),

@@ -72,9 +72,15 @@ export function installFakeApi(products: Product[]) {
           (!search || product.title.toLowerCase().includes(search)) &&
           (!category || product.category === category),
       );
+      // Like the backend: by price when asked, and always by id last.
+      const sort = url.searchParams.get('sort');
+      const direction = sort === 'price_desc' ? -1 : 1;
+      const ordered = [...matching].sort((a, b) =>
+        sort ? direction * (a.price - b.price) || a.id - b.id : a.id - b.id,
+      );
       const start = (page - 1) * PAGE_SIZE;
       return jsonResponse({
-        items: matching.slice(start, start + PAGE_SIZE),
+        items: ordered.slice(start, start + PAGE_SIZE),
         total: matching.length,
         page,
         page_size: PAGE_SIZE,

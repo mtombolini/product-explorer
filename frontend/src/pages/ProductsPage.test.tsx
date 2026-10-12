@@ -1,4 +1,4 @@
-import { screen, waitFor } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { installFakeApi, makeProduct } from '../test/fakeApi';
@@ -163,6 +163,115 @@ describe('catalogue: pagination and cache', () => {
       '/api/products?page=2&page_size=12',
     ]);
     expect(api.requestsTo('/api/categories')).toHaveLength(1);
+  });
+});
+
+/** The product titles of the grid, in the order they are shown. */
+function shownTitles(): (string | null)[] {
+  const grid = screen.getByRole('list', { name: 'Products' });
+  return within(grid)
+    .getAllByRole('heading')
+    .map((heading) => heading.textContent);
+}
+
+/** Open the "Sort by" select and pick an option by its name. */
+async function chooseOrder(
+  user: ReturnType<typeof renderApp>['user'],
+  name: string,
+): Promise<void> {
+  await user.click(screen.getByRole('combobox', { name: /^Sort by/ }));
+  await user.click(await screen.findByRole('option', { name }));
+}
+
+describe('catalogue: sort by price', () => {
+  const byPrice = [
+    makeProduct(1, { title: 'Middle', price: 20 }),
+    makeProduct(2, { title: 'Cheap', price: 5 }),
+    makeProduct(3, { title: 'Expensive', price: 100 }),
+  ];
+
+  it('orders the list, updates the address and caches each order', async () => {
+    const api = installFakeApi(byPrice);
+    const { user, router } = renderApp('/products');
+    await screen.findByRole('heading', { name: 'Middle' });
+    expect(shownTitles()).toEqual(['Middle', 'Cheap', 'Expensive']);
+
+    await chooseOrder(user, 'Price: low to high');
+    await waitFor(() =>
+      expect(shownTitles()).toEqual(['Cheap', 'Middle', 'Expensive']),
+    );
+    expect(currentAddress(router)).toBe('/products?sort=price_asc');
+
+    await chooseOrder(user, 'Price: high to low');
+    await waitFor(() =>
+      expect(shownTitles()).toEqual(['Expensive', 'Middle', 'Cheap']),
+    );
+    expect(currentAddress(router)).toBe('/products?sort=price_desc');
+
+    // Back to the default order: it is still in the store.
+    await chooseOrder(user, 'Default order');
+    await waitFor(() =>
+      expect(shownTitles()).toEqual(['Middle', 'Cheap', 'Expensive']),
+    );
+    expect(currentAddress(router)).toBe('/products');
+    expect(api.requestsTo('/api/products')).toEqual([
+      '/api/products?page=1&page_size=12',
+      '/api/products?page=1&page_size=12&sort=price_asc',
+      '/api/products?page=1&page_size=12&sort=price_desc',
+    ]);
+  });
+
+  it('goes back to page 1 and keeps the search and the category', async () => {
+    installFakeApi(twoPages);
+    const { user, router } = renderApp(
+      '/products?search=item&category=electronics&page=2',
+    );
+    await screen.findByRole('heading', { name: 'Item 13' });
+
+    await chooseOrder(user, 'Price: high to low');
+
+    // The most expensive of the 20 is the last one created.
+    expect(
+      await screen.findByRole('heading', { name: 'Item 20' }),
+    ).toBeInTheDocument();
+    expect(currentAddress(router)).toBe(
+      '/products?search=item&category=electronics&sort=price_desc',
+    );
+  });
+
+  it('restores the order from the address and keeps it while searching', async () => {
+    const api = installFakeApi(byPrice);
+    const { user, router } = renderApp('/products?sort=price_desc');
+
+    await screen.findByRole('heading', { name: 'Middle' });
+    expect(shownTitles()).toEqual(['Expensive', 'Middle', 'Cheap']);
+    expect(
+      screen.getByRole('combobox', { name: /^Sort by/ }),
+    ).toHaveTextContent('Price: high to low');
+
+    await user.type(
+      screen.getByRole('textbox', { name: 'Search products' }),
+      'e',
+    );
+    await waitFor(() =>
+      expect(currentAddress(router)).toBe('/products?search=e&sort=price_desc'),
+    );
+    await waitFor(() =>
+      expect(api.requests).toContain(
+        '/api/products?page=1&page_size=12&search=e&sort=price_desc',
+      ),
+    );
+  });
+
+  it('ignores an order the application does not know', async () => {
+    const api = installFakeApi(byPrice);
+    renderApp('/products?sort=cheapest');
+
+    await screen.findByRole('heading', { name: 'Middle' });
+    expect(shownTitles()).toEqual(['Middle', 'Cheap', 'Expensive']);
+    expect(api.requestsTo('/api/products')).toEqual([
+      '/api/products?page=1&page_size=12',
+    ]);
   });
 });
 
