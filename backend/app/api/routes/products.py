@@ -15,6 +15,8 @@ MAX_PAGE_SIZE = 48
 MAX_PAGE = 1_000_000
 MAX_PRODUCT_ID = 2_147_483_647
 MAX_FILTER_LENGTH = 100
+# PostgreSQL text cannot hold the NUL character: reject it as bad input.
+NO_NUL_PATTERN = r"^[^\x00]*$"
 
 router = APIRouter(prefix="/api/products", tags=["products"])
 
@@ -36,6 +38,7 @@ def list_products(
         str | None,
         Query(
             max_length=MAX_FILTER_LENGTH,
+            pattern=NO_NUL_PATTERN,
             description="Text to find in the title or the description, "
             "ignoring case. Blank means no search.",
         ),
@@ -44,6 +47,7 @@ def list_products(
         str | None,
         Query(
             max_length=MAX_FILTER_LENGTH,
+            pattern=NO_NUL_PATTERN,
             description="Exact category name, as returned by /api/categories.",
         ),
     ] = None,
