@@ -2,7 +2,8 @@
 # Start sequence of the backend container:
 #   1. apply the database migrations
 #   2. import the catalogue when the products table is empty, then load
-#      the bundled translations (every start, no network)
+#      the bundled translations and specifications (every start, no
+#      network)
 #   3. start the API
 set -e
 

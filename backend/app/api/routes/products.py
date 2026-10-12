@@ -19,8 +19,8 @@ MAX_FILTER_LENGTH = 100
 # PostgreSQL text cannot hold the NUL character: reject it as bad input.
 NO_NUL_PATTERN = r"^[^\x00]*$"
 LANG_DESCRIPTION = (
-    "Language of the title and the description. A product without a "
-    "translation is returned in the source language."
+    "Language of the title, the description and the specifications. A "
+    "product without that text is returned in the source language."
 )
 
 router = APIRouter(prefix="/api/products", tags=["products"])

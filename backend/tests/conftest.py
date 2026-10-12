@@ -53,7 +53,8 @@ def prepare_database() -> None:
 def empty_products_table() -> None:
     """Before each test: remove every product and restart the ids.
 
-    CASCADE also empties product_translations, which references it.
+    CASCADE also empties product_translations and
+    product_specifications, which reference it.
     """
     with engine.begin() as connection:
         connection.execute(

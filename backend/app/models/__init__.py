@@ -4,6 +4,7 @@ from app.models.language import SOURCE_LANGUAGE, Language
 from app.models.localized_product import LocalizedProduct
 from app.models.product import Product
 from app.models.product_sort import ProductSort
+from app.models.product_specification import ProductSpecification
 from app.models.product_translation import ProductTranslation
 
 __all__ = [
@@ -12,5 +13,6 @@ __all__ = [
     "LocalizedProduct",
     "Product",
     "ProductSort",
+    "ProductSpecification",
     "ProductTranslation",
 ]

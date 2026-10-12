@@ -1,16 +1,26 @@
-"""Data access of the products and their translations."""
+"""Data access of the products, translations and specifications."""
 
 from typing import Any
 
-from sqlalchemy import ColumnElement, and_, func, or_, select, update
+from sqlalchemy import (
+    ColumnElement,
+    and_,
+    delete,
+    func,
+    or_,
+    select,
+    update,
+)
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
 from app.models import (
+    SOURCE_LANGUAGE,
     Language,
     LocalizedProduct,
     Product,
     ProductSort,
+    ProductSpecification,
     ProductTranslation,
 )
 
@@ -51,7 +61,8 @@ class ProductRepository:
         """Return one page of products and the total that match.
 
         Each product comes with its translation into ``language``, or
-        with None when it has none. ``search`` is matched anywhere in
+        with None when it has none, and with its specifications (see
+        ``_specifications_by_product``). ``search`` is matched anywhere in
         the title or the description of that language, ignoring case,
         and in the original text of a product without a translation.
         ``category`` must match exactly. Without ``sort`` products are
@@ -105,18 +116,29 @@ class ProductRepository:
             .limit(limit)
             .offset(offset)
         )
+        rows = self._session.execute(page_statement).all()
+        # One more query for the whole page, not one per product.
+        specifications = self._specifications_by_product(
+            [product.id for product, _ in rows], language
+        )
         products = [
-            LocalizedProduct(product=product, translation=translation)
-            for product, translation in self._session.execute(page_statement)
+            LocalizedProduct(
+                product=product,
+                translation=translation,
+                specifications=specifications.get(product.id, []),
+            )
+            for product, translation in rows
         ]
         return products, total
 
     def get_by_id(
         self, product_id: int, language: Language
     ) -> LocalizedProduct | None:
-        """Return one product with its translation into ``language``.
+        """Return one product with its text in ``language``.
 
-        Return None when the id does not exist.
+        It comes with its translation and its specifications, like the
+        products of ``list_page``. Return None when the id does not
+        exist.
         """
         statement = (
             select(Product, ProductTranslation)
@@ -127,7 +149,53 @@ class ProductRepository:
         if row is None:
             return None
         product, translation = row
-        return LocalizedProduct(product=product, translation=translation)
+        specifications = self._specifications_by_product(
+            [product.id], language
+        )
+        return LocalizedProduct(
+            product=product,
+            translation=translation,
+            specifications=specifications.get(product.id, []),
+        )
+
+    def _specifications_by_product(
+        self, product_ids: list[int], language: Language
+    ) -> dict[int, list[ProductSpecification]]:
+        """Return the specifications of the given products, by product id.
+
+        One query reads the lines in ``language`` and in the source
+        language. For each product the lines in ``language`` are kept
+        when it has any, otherwise the ones in the source language. A
+        product without specifications is not in the result.
+        """
+        if not product_ids:
+            return {}
+        statement = (
+            select(ProductSpecification)
+            .where(
+                ProductSpecification.product_id.in_(product_ids),
+                ProductSpecification.language.in_(
+                    {language.value, SOURCE_LANGUAGE.value}
+                ),
+            )
+            .order_by(
+                ProductSpecification.product_id,
+                ProductSpecification.position,
+            )
+        )
+        requested: dict[int, list[ProductSpecification]] = {}
+        source: dict[int, list[ProductSpecification]] = {}
+        for specification in self._session.scalars(statement):
+            if specification.language == language.value:
+                lists = requested
+            else:
+                lists = source
+            lists.setdefault(specification.product_id, []).append(
+                specification
+            )
+        # The union keeps the right-hand value for a repeated key: the
+        # requested language wins over the source language.
+        return source | requested
 
     def list_categories(self) -> list[str]:
         """Return the distinct categories, sorted by name."""
@@ -200,6 +268,29 @@ class ProductRepository:
             },
         )
         self._session.execute(statement)
+        self._session.commit()
+
+    def replace_specifications(
+        self, language: Language, rows: list[dict[str, Any]]
+    ) -> None:
+        """Replace the specifications of some products in one language.
+
+        Each row is a dictionary with ``product_id``, ``language``,
+        ``position``, ``label`` and ``value``. For every product in the
+        rows, its old lines in ``language`` are deleted and the new ones
+        inserted, in one transaction, so a shorter list leaves no old
+        line behind. The other products are not touched.
+        """
+        if not rows:
+            return
+        product_ids = {row["product_id"] for row in rows}
+        self._session.execute(
+            delete(ProductSpecification).where(
+                ProductSpecification.language == language.value,
+                ProductSpecification.product_id.in_(product_ids),
+            )
+        )
+        self._session.execute(insert(ProductSpecification).values(rows))
         self._session.commit()
 
 

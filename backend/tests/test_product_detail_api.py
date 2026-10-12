@@ -37,6 +37,8 @@ def test_product_is_returned_with_the_public_fields_only(
         "image_url": "/images/77.png",
         "rating_rate": 3.9,
         "rating_count": 120,
+        "specifications": [],
+        "specifications_language": "en",
     }
 
 

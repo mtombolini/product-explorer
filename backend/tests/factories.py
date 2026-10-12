@@ -1,4 +1,4 @@
-"""Create product and translation rows for the API tests."""
+"""Create product, translation and specification rows for the tests."""
 
 from decimal import Decimal
 from typing import Any
@@ -6,7 +6,12 @@ from typing import Any
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.models import Language, Product, ProductTranslation
+from app.models import (
+    Language,
+    Product,
+    ProductSpecification,
+    ProductTranslation,
+)
 
 
 def create_product(session: Session, **overrides: Any) -> Product:
@@ -55,4 +60,27 @@ def create_translation(
         description=description,
     )
     session.add(translation)
+    session.commit()
+
+
+def create_specifications(
+    session: Session,
+    product: Product,
+    items: list[tuple[str, str]],
+    language: Language = Language.ES,
+) -> None:
+    """Insert the specification list of one product in one language.
+
+    ``items`` are (label, value) pairs in display order.
+    """
+    for position, (label, value) in enumerate(items, start=1):
+        session.add(
+            ProductSpecification(
+                product_id=product.id,
+                language=language.value,
+                position=position,
+                label=label,
+                value=value,
+            )
+        )
     session.commit()

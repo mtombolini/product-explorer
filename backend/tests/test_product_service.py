@@ -116,7 +116,9 @@ def test_language_is_passed_to_the_repository() -> None:
 def test_get_product_returns_the_product() -> None:
     """An existing product is passed through, in the language asked."""
     product = LocalizedProduct(
-        product=Product(id=5, title="Backpack"), translation=None
+        product=Product(id=5, title="Backpack"),
+        translation=None,
+        specifications=[],
     )
     repository = FakeProductRepository(product=product)
 

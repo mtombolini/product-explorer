@@ -8,6 +8,13 @@ from app.models import SOURCE_LANGUAGE, Language, LocalizedProduct
 IMAGES_URL_PREFIX = "/images"
 
 
+class SpecificationResponse(BaseModel):
+    """One line of the specifications of a product: "label: value"."""
+
+    label: str
+    value: str
+
+
 class ProductResponse(BaseModel):
     """One product as the API returns it.
 
@@ -30,13 +37,24 @@ class ProductResponse(BaseModel):
     )
     rating_rate: float | None
     rating_count: int | None
+    specifications: list[SpecificationResponse] = Field(
+        description="Short list of label and value pairs, in display "
+        "order. Empty when the product has none."
+    )
+    specifications_language: Language = Field(
+        description="Language of the specifications: the requested one, "
+        "or the source language when the product has none in it."
+    )
 
     @classmethod
     def from_product(cls, localized: LocalizedProduct) -> "ProductResponse":
-        """Build the response from a product and its translation.
+        """Build the response from a product and its localized parts.
 
         The translated text is used when there is one, otherwise the
         original, and ``language`` says which of the two was returned.
+        The specifications arrive already chosen (see
+        ``LocalizedProduct``): ``specifications_language`` is the
+        language of those lines, read from the first one.
         """
         product = localized.product
         translation = localized.translation
@@ -48,6 +66,10 @@ class ProductResponse(BaseModel):
             title = translation.title
             description = translation.description
             language = Language(translation.language)
+        specifications = localized.specifications
+        specifications_language = SOURCE_LANGUAGE
+        if specifications:
+            specifications_language = Language(specifications[0].language)
         image_url = None
         if product.image_path:
             image_url = f"{IMAGES_URL_PREFIX}/{product.image_path}"
@@ -61,6 +83,11 @@ class ProductResponse(BaseModel):
             image_url=image_url,
             rating_rate=product.rating_rate,
             rating_count=product.rating_count,
+            specifications=[
+                SpecificationResponse(label=item.label, value=item.value)
+                for item in specifications
+            ],
+            specifications_language=specifications_language,
         )
 
 
