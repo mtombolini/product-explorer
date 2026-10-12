@@ -1,7 +1,7 @@
 // Calls the API through the Nginx proxy and shows the answer on the page.
 const output = document.getElementById("api-response");
 
-fetch("/api/hello")
+fetch("/api/categories")
   .then((response) => {
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}`);
