@@ -62,6 +62,12 @@ export function ProductsPage() {
   const isLoading = page === undefined || page.status === 'loading';
   const hasFilters = query.search !== '' || query.category !== '';
 
+  /** Ask again for the page and for the categories, if they failed. */
+  function retry(): void {
+    dispatch(fetchProductPage({ query }));
+    dispatch(fetchCategories());
+  }
+
   function renderContent() {
     if (isLoading) {
       return <ProductGridSkeleton />;
@@ -73,7 +79,7 @@ export function ProductsPage() {
           title={t('catalogue.errorTitle')}
           description={errorDescription(page.errorCode, t)}
           actionLabel={t('actions.tryAgain')}
-          onAction={() => dispatch(fetchProductPage({ query }))}
+          onAction={retry}
         />
       );
     }
@@ -151,7 +157,10 @@ export function ProductsPage() {
           selected={query.category}
           onSelect={setCategory}
         />
-        <ResultSummary total={isLoading ? null : page.total} query={query} />
+        {/* A failed request has no total to announce. */}
+        {page?.status !== 'failed' && (
+          <ResultSummary total={isLoading ? null : page.total} query={query} />
+        )}
       </Box>
       {renderContent()}
     </>

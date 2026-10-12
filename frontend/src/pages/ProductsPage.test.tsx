@@ -184,6 +184,25 @@ describe('catalogue: states', () => {
     ).toBeInTheDocument();
   });
 
+  it('announces no count after a failure and reloads the categories', async () => {
+    const api = installFakeApi(catalogue);
+    api.isBroken = true;
+    const { user } = renderApp('/products');
+
+    await screen.findByText('The products could not be loaded');
+    expect(screen.queryByText('0 products')).not.toBeInTheDocument();
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+
+    api.isBroken = false;
+    await user.click(screen.getByRole('button', { name: 'Try again' }));
+
+    // The category request had failed too: the retry repeats it.
+    expect(
+      await screen.findByRole('button', { name: 'Jewelery' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('3 products')).toBeInTheDocument();
+  });
+
   it('offers to clear the filters when nothing matches', async () => {
     installFakeApi(catalogue);
     const { user, router } = renderApp('/products?search=zzz');
