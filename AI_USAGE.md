@@ -351,3 +351,60 @@ Representative excerpts from the master prompt:
   - Not verified: a real screen reader session, the behaviour under
     `prefers-reduced-motion` in a browser (the rule is in the theme and
     the tests run with motion disabled), and browsers other than Chrome.
+
+## Phase 8: documentation, CI and final check
+
+- **Prompt or workflow.** Written by the main agent from the code as it is,
+  not from the plan: the README, `docs/architecture.md`,
+  `FUTURE_IMPROVEMENTS.md` and the GitHub Actions workflow. Then a final
+  check from a clean clone against the statement's "final check before
+  submission".
+- **Accepted.** The four documents and the workflow with three jobs
+  (backend, frontend, Docker Compose).
+- **Rejected or changed.**
+  - The first example response in the README was written from memory and
+    showed a product that does not match the example query. It was
+    replaced with the real answer of the running API.
+  - The specification still said that any `image/*` type is accepted; it
+    now names the four accepted types.
+  - The "Tools" section of this file described a review by independent
+    sub-agents that was planned but never ran. It was rewritten to say
+    what actually happened.
+  - A self-review of the frontend removed an unused re-export, a
+    duplicated import and a duplicated constant.
+  - One frontend test run out of eight reported "1 failed, 37 passed". The
+    run overlapped with the development machine going to sleep; the
+    affected tests wait up to one second of real time for the interface to
+    update. Seven other runs, six of them consecutive, passed 38 of 38.
+    The failing test was not identified, so this remains an open
+    observation rather than a closed one.
+- **Verification.**
+  - `actionlint` 1.7.12 on `.github/workflows/ci.yml`: no findings. The
+    workflow has **not** run on GitHub: nothing was pushed.
+  - Clean clone into an empty directory, no `.env` file, working stack
+    stopped and its volumes deleted first:
+    - `docker-compose up --build -d --wait`: exit code 0, three services
+      healthy.
+    - `/` and `/product/1` answered 200 `text/html`; `/health` answered
+      `catalogue_seeded` true with 20 products; `/api/products` returned
+      12 items, total 20, 2 pages; `/images/1.png` answered 200
+      `image/png`.
+    - In the database: 20 rows, 20 with an image path. In the volume: 20
+      files.
+    - `python -m app.commands.seed` again: fetched 20, imported 20, and
+      still 20 rows with ids 1 to 20.
+    - `backend-test`: "60 passed". `frontend-test`: "38 passed".
+      `ruff check`, `ruff format --check`, `npm run lint`,
+      `npm run typecheck` and `npm run format:check` in the containers:
+      all clean.
+    - Backend restarted with `FAKESTORE_BASE_URL` pointing to an
+      unreachable address: healthy, `/api/products` still returned 20
+      products, and the log showed "Import skipped".
+  - Not verified: the 347 seconds that the first `up` took are not a
+    meaningful timing, because the machine slept during the build.
+
+## Human review
+
+This section is for the candidate's own notes: what was read, questioned,
+tested by hand or changed after the agent's run. It was empty when the
+agent made its last commit.
