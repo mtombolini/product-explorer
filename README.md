@@ -346,8 +346,11 @@ from the browser's network panel and search for it in the backend logs.
 
 - Landmarks (`header`, `main`, `footer`, a `search` form), one `h1` per
   page, a skip link as the first focusable element.
-- Every control has a name, a visible 3 px focus ring and a touch target of
-  at least 44 px. Everything works with the keyboard alone.
+- Every control has a name and a visible 3 px focus ring. Controls are 36
+  to 40 px tall with a mouse and at least 44 px on touch screens.
+  Everything works with the keyboard alone: the category buttons are one
+  Tab stop and the arrow keys move between them, and the language menu
+  opens with Enter and closes with Escape.
 - After a change of page, focus moves to the new page's heading. The result
   count is a polite live region. The current page of the pagination has
   `aria-current`.
@@ -355,8 +358,9 @@ from the browser's network panel and search for it in the backend logs.
 - Motion is short (150 to 300 ms). Under `prefers-reduced-motion`
   movement is removed; a short fade remains.
 - The grid has 1 column below 480 px, 2 from 480 px, 3 from 768 px and 4
-  from 1200 px. The header becomes compact after scrolling and the filters
-  stay in view on desktop.
+  from 1200 px. The header is fixed and becomes shorter after scrolling
+  without moving the page. On desktop a toolbar with the category filter
+  and the result count stays in view under it.
 
 **Measured** on the Docker stack with Lighthouse 13.5.0 (accessibility
 category, headless Chrome): **100** on `/products`, `/product/1` and the
@@ -378,7 +382,7 @@ blue), never as text and never behind white text.
 ## Languages
 
 The interface is available in **English and Spanish**. English is the
-default; the select in the header changes it and the choice is remembered
+default; the menu in the header changes it and the choice is remembered
 in the browser.
 
 - All interface copy is in `frontend/src/i18n/locales/`, one file per
