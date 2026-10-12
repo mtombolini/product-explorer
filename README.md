@@ -314,7 +314,7 @@ No local toolchain is needed: both suites run in containers.
 # Backend: 119 tests (pytest) against PostgreSQL, in a database ending in _test
 docker compose --profile test run --rm --build backend-test
 
-# Frontend: 69 tests (Vitest + React Testing Library)
+# Frontend: 71 tests (Vitest + React Testing Library)
 docker compose --profile test run --rm --build frontend-test
 ```
 

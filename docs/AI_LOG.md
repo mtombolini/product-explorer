@@ -772,3 +772,83 @@ during the work, one section at a time.
     reader other than the reviewer sub-agent, and the frontend of this
     phase by independent reviewers.
 
+
+## Final review
+
+- **Prompt or workflow.** Four read-only reviewers examined everything
+  changed since the first independent review, each with one concern: the
+  frontend state and the language handling, the interface in a browser,
+  the translated catalogue and the specifications including their text,
+  and the documents. A triage step tried to reproduce each finding,
+  merged the duplicates and passed the confirmed ones to a fixer. The 21
+  findings raised became 8 confirmed ones; the other 13 were duplicates
+  merged into those 8 (9) or were rejected (4).
+- **Accepted.** The eight confirmed findings, one commit each:
+  - The catalogue toolbar was wider than a phone screen and a category
+    from the address could be off screen:
+    `fix(frontend): keep the catalogue toolbar inside a phone screen`.
+  - After English, Spanish and English again, a late failed answer to
+    the first request replaced a loaded page:
+    `fix(frontend): ignore late answers by request id, not by language`
+    (update note in D-046).
+  - The steps to add a language did not say the backend `Language` enum
+    is required: `docs: say a new language also needs the backend enum
+    value`.
+  - Documents left behind by phases 10 to 13 (D-025, D-029, D-039,
+    D-051, SPEC sections 7.5, 7.9 and 8, the diagrams and layer tables):
+    `docs: catch up with sorting, the toolbar, the logo and
+    specifications`.
+  - Two stale comments (`categoryNames.ts`, `CatalogueToolbar.tsx`):
+    `docs(frontend): correct two comments left behind by later phases`.
+  - Search does not ignore accents and no document said so:
+    `docs: note that search does not ignore accents`.
+  - Small errors in the Spanish text of products 16 and 19 and in the
+    "Interface" row of product 11:
+    `fix(backend): correct catalogue text of products 11, 16 and 19`.
+  - `AI_USAGE.md` omitted the stopped review and contradicted itself
+    about sorting: corrected in the commit that adds this section.
+- **Rejected or changed.**
+  - "The Spanish of the catalogue is peninsular, not neutral": a matter
+    of taste. No document promises neutral Spanish, and the text is
+    correct and consistent.
+  - "Spanish titles add words the source does not have": taste. "Anillo"
+    and "Camiseta" make truncated source titles understandable.
+  - "Two labels for the same fact in the specifications (Size and
+    Sizing, Liner and Lining, Fabric and Material)": taste. Only the
+    "Interface" value of product 11 was changed, and the 90 rows stay.
+  - "Product 16: sweater became sudadera": not wrong, the hooded part of
+    that jacket is a sweatshirt.
+  - Changed by the fixer: the effect that brings the pressed category
+    into view also depends on the category list, because on a link or a
+    reload the buttons do not exist until the categories have loaded.
+    The `theme.ts` comment "only ever sits behind dark text" was
+    corrected together with D-029.
+- **Verification.**
+  - The new slice test was run against a guard that lets every answer
+    through: it failed with "expected { status: 'failed', ... } to match
+    object { status: 'succeeded', ids: [ 1 ] }", and passes with the
+    request id.
+  - `docker compose --profile test run --rm --build backend-test`:
+    "119 passed"; `ruff check .`: "All checks passed!";
+    `ruff format --check .`: "65 files already formatted".
+  - In `frontend/`: `npm run lint`, `npm run typecheck` and
+    `npm run format:check` clean; `npm test`: "71 passed" in 6 files
+    (two more than before: the round trip of languages and the category
+    brought into view).
+  - `docker compose up --build -d --wait`: three healthy containers.
+    `/api/products?sort=price_asc&lang=es` through Nginx returned
+    total 20, starting with products 19 (7.95), 18 (9.85) and 7 (9.99),
+    in Spanish; `/` returned 200 and the HTML of the application.
+    `/api/products?lang=es&search=algodon` returned total 0 and
+    `search=algodón` total 4. `/api/products/19?lang=es` returned the
+    title with "que aleja la humedad" and `/api/products/11` the
+    "Interface" value "SATA III".
+  - In headless Chrome (the triage script, run again after the rebuild)
+    at 360, 390, 480, 600 and 1280 px, in both languages, on the plain
+    list, with a category and with search, category and order: the
+    document was never wider than the window, and with "women's
+    clothing" in the address the pressed button ended inside the
+    window (at 360 px in Spanish, from x 198 to 338). The 360 px
+    screenshot in Spanish was looked at.
+  - Not verified: these fixes by another reviewer, and the toolbar on a
+    real phone or in a browser other than Chrome.
