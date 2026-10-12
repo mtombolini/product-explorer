@@ -9,8 +9,8 @@ interface CategoryFilterProps {
   /** The chosen category, or an empty string for "All". */
   selected: string;
   onSelect: (category: string) => void;
-  /** The id of the visible label of the group. */
-  labelledBy: string;
+  /** The accessible name of the group, for example "Category". */
+  label: string;
 }
 
 /**
@@ -24,7 +24,7 @@ export function CategoryFilter({
   categories,
   selected,
   onSelect,
-  labelledBy,
+  label,
 }: CategoryFilterProps) {
   const { t, i18n } = useTranslation();
 
@@ -40,7 +40,7 @@ export function CategoryFilter({
     <ToggleButtonGroup
       exclusive
       value={selected}
-      aria-labelledby={labelledBy}
+      aria-label={label}
       onChange={(_event, value: string | null) => {
         // Clicking the pressed button gives null: one stays pressed.
         if (value !== null) onSelect(value);
