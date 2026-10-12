@@ -32,10 +32,17 @@ import { categoryName } from '../i18n/categoryNames';
 import { errorDescription } from '../i18n/errorDescription';
 import { CATALOGUE_LANGUAGE } from '../i18n/languages';
 
-/** "12" -> 12. Anything that is not a positive whole number -> null. */
+/** The largest product id, the same limit as the API. */
+const MAX_PRODUCT_ID = 2_147_483_647;
+
+/**
+ * "12" -> 12. Anything that is not a positive whole number the API
+ * accepts -> null.
+ */
 function parseProductId(value: string | undefined): number | null {
   if (value === undefined || !/^[1-9]\d{0,9}$/.test(value)) return null;
-  return Number(value);
+  const id = Number(value);
+  return id > MAX_PRODUCT_ID ? null : id;
 }
 
 /** True when the user arrived here by clicking a card in the catalogue. */

@@ -96,18 +96,22 @@ describe('product page: direct visit', () => {
     ).toBeInTheDocument();
   });
 
-  it('shows not found for a malformed id without calling the API', async () => {
-    const api = installFakeApi(twoPages);
-    renderApp('/product/abc');
+  // The second id is a number, but larger than any id the API accepts.
+  it.each(['/product/abc', '/product/9999999999'])(
+    'shows not found for the malformed id in %s without calling the API',
+    async (address) => {
+      const api = installFakeApi(twoPages);
+      renderApp(address);
 
-    expect(
-      await screen.findByRole('heading', {
-        level: 1,
-        name: 'Product not found',
-      }),
-    ).toBeInTheDocument();
-    expect(api.requests).toEqual([]);
-  });
+      expect(
+        await screen.findByRole('heading', {
+          level: 1,
+          name: 'Product not found',
+        }),
+      ).toBeInTheDocument();
+      expect(api.requests).toEqual([]);
+    },
+  );
 
   it('shows an error with a retry that works', async () => {
     const api = installFakeApi(twoPages);
