@@ -13,7 +13,7 @@ solution that is complete and easy to explain.
 | Search | `ILIKE '%term%'` on title and description. Simple and correct, but it scans the table and has no ranking or typo tolerance |
 | Data | Prices are exposed as JSON numbers and have no currency. The list returns full products, which would be heavy for a large catalogue |
 | Images | Stored on a local volume in their original size and format (PNG files of 100 to 460 kB) and served by the API process |
-| Frontend | One JavaScript bundle of about 600 kB. The cache lives until reload and has no expiry. No sorting |
+| Frontend | One JavaScript bundle of about 790 kB (250 kB compressed). The cache lives until reload and has no expiry. No sorting. The interface is translated (English, Spanish) but the catalogue content is not, and the browser language is not detected |
 | Testing | No end-to-end browser tests in the repository. Accessibility was audited with Lighthouse and scripts, not with a screen reader. Chrome only |
 | Security | Local default credentials in the Compose file, no TLS, no rate limiting, no Content-Security-Policy |
 | Observability | Structured logs and request ids, but no metrics, traces or alerts |
@@ -34,10 +34,10 @@ Complexity is a rough estimate: S (hours), M (days), L (a week or more).
 | 6 | Scheduled import with a run log and soft deletion | The catalogue stays current and every run can be audited | M | Deciding what "removed at the source" means for products that are referenced elsewhere |
 | 7 | Search with PostgreSQL full-text or trigram indexes | Fast and ranked search on a large catalogue | M | A migration and a change in the repository only. Result order changes, so tests and expectations move |
 | 8 | Images in object storage behind a CDN, resized and converted to WebP or AVIF | Much smaller pages and no image traffic through the API | M | The image URL is already produced by the API, so the frontend does not change. Adds a processing step to the import |
-| 9 | Code splitting by route and a cache lifetime in the store | Faster first load, and data that refreshes without a reload | S | Loading states between routes. An expiry rule must not bring back the refetching the cache avoids |
+| 9 | Smaller bundle (code splitting by route, the motion library's lazy feature set) and a cache lifetime in the store | Faster first load, and data that refreshes without a reload | S | Loading states between routes. An expiry rule must not bring back the refetching the cache avoids |
 | 10 | Rate limiting and response caching (ETag or short `Cache-Control`) on the API | Protects the database from abuse and repeated identical requests | S to M | Cache invalidation after an import |
 | 11 | Money as integer minor units with a currency code | Correct arithmetic once there is a basket or tax | M | A data migration and a contract change for every client |
-| 12 | Internationalisation and right-to-left layout | Needed for other markets | L | Touches every string and the formatting helpers |
+| 12 | Translated catalogue content, language detection and right-to-left layout | The interface is translated but product titles, descriptions and categories are not. Needed for a real multi-market catalogue | L | Needs translations stored per product and a language parameter in the API; the cache key must then include the language |
 
 ## 3. Suggested order
 
@@ -64,7 +64,7 @@ what the user sees.
    the difference.
 10. Images in object storage (item 8).
 11. Money model (item 11), together with the first feature that needs it.
-12. Internationalisation (item 12).
+12. Translated catalogue content (item 12).
 
 ## 4. Trade-offs worth stating
 
