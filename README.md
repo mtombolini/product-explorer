@@ -452,9 +452,13 @@ description below it.
 
 To add an interface language: copy `locales/en.ts` to a new file and
 translate it, add the language to `SUPPORTED_LANGUAGES` in
-`i18n/languages.ts` and to `resources` in `i18n/i18n.ts`. To translate the
-catalogue into it: add the value to the `Language` enum in the backend and
-a file next to `es.json`.
+`i18n/languages.ts` and to `resources` in `i18n/i18n.ts`, and add its code
+to the `Language` enum in the backend
+(`backend/app/models/language.py`). The backend step is required: the
+frontend sends the language with every request, and the API answers 422
+to a `lang` it does not know. Translating the catalogue is optional: a
+file next to `translations/es.json` and one next to
+`specifications/es.json`; without them the text comes back in English.
 
 ## Assumptions
 

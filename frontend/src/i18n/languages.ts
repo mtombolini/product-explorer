@@ -1,7 +1,9 @@
 /**
  * The languages of the interface. To add one: write its messages in
  * `locales/`, add it here and register it in `i18n.ts`. The type system
- * reports any message that is missing.
+ * reports any message that is missing. The code must also be added to
+ * the `Language` enum of the backend: it is sent as `lang` with every
+ * request, and the API answers 422 to a value it does not know.
  */
 export const SUPPORTED_LANGUAGES = [
   // Each name is written in its own language, as the user expects it.

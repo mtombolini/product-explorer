@@ -663,7 +663,10 @@ does not ask for it.
 - All interface copy lives in one file per language under
   `frontend/src/i18n/locales/`. English defines the shape; a missing key
   in another language is a type error. Adding a language is one file plus
-  two lines.
+  two lines in the frontend and one value in the backend `Language` enum:
+  the interface sends its language as `lang`, and the API answers 422 to
+  a value it does not know. The translation and specification files of
+  the new language are optional (the text falls back to English).
 - Plural forms and word order are handled by the message files, not by
   string concatenation. Prices and ratings are formatted with `Intl` for
   the chosen language.
