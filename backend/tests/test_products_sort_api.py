@@ -3,8 +3,10 @@
 from decimal import Decimal
 
 from fastapi.testclient import TestClient
+from sqlalchemy import update
 from sqlalchemy.orm import Session
 
+from app.models import Product
 from tests.factories import create_product
 
 
@@ -48,13 +50,30 @@ def test_without_sort_products_are_ordered_by_id(
     assert _titles(client) == ["First", "Second"]
 
 
+def _move_to_the_end_of_the_table(session: Session, product_id: int) -> None:
+    """Rewrite one row, so PostgreSQL stores it after all the others.
+
+    An UPDATE writes a new version of the row at the end of the table.
+    Rows read without an ORDER BY then no longer come in id order, as
+    they happen to do right after being inserted, and a test of the
+    order cannot pass by accident.
+    """
+    session.execute(
+        update(Product)
+        .where(Product.id == product_id)
+        .values(rating_count=Product.rating_count + 1)
+    )
+    session.commit()
+
+
 def test_equal_prices_keep_the_order_of_their_ids(
     client: TestClient, session: Session
 ) -> None:
     """The id breaks ties, in both directions, so pages are stable."""
-    create_product(session, title="A", price=Decimal("10.00"))
+    first = create_product(session, title="A", price=Decimal("10.00"))
     create_product(session, title="B", price=Decimal("10.00"))
     create_product(session, title="C", price=Decimal("5.00"))
+    _move_to_the_end_of_the_table(session, first.id)
 
     assert _titles(client, sort="price_asc") == ["C", "A", "B"]
     assert _titles(client, sort="price_desc") == ["A", "B", "C"]
@@ -66,6 +85,10 @@ def test_sorted_pages_do_not_repeat_or_skip_products(
     """Paging through a sorted list shows every product exactly once."""
     for price in ("3.00", "1.00", "3.00", "2.00", "1.00"):
         create_product(session, title=f"Price {price}", price=Decimal(price))
+    # Ids 1 and 2 are the first of their prices: without the id as the
+    # last sort key they would now come after ids 3 and 5.
+    _move_to_the_end_of_the_table(session, 1)
+    _move_to_the_end_of_the_table(session, 2)
 
     seen: list[int] = []
     for page in (1, 2, 3):
