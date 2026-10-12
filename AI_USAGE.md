@@ -29,13 +29,15 @@ command that was run and its real result, is in
    controls, a header that does not move the page, sorting by price,
    product text that follows the language, a logo, and specifications
    next to the description.
-5. Independent AI reviewers examined the first complete version (seven
-   reviewers) and, later, the backend of the translated catalogue and of
-   the specifications (two each).
-   Confirmed findings were fixed. The interface changes made after the
-   first review (toolbar, header, logo, sorting and language in the
-   frontend) were checked by the main agent in a browser, not by
-   independent reviewers.
+5. Independent AI reviewers examined the work four times: the first
+   complete version (seven reviewers); the interface refinements and the
+   sorting, in a review that was stopped after three of its four
+   reviewers had answered and whose eight findings were handled; the
+   backend of the translated catalogue and of the specifications (two
+   reviewers each); and a final review of everything changed since the
+   first one (four reviewers: frontend state and language, the interface
+   in a browser, the catalogue text, the documents). Confirmed findings
+   were fixed.
 
 The master prompt asked the agent to stop for approval after each phase.
 In this run the phases were executed in sequence, so the candidate's
@@ -84,8 +86,8 @@ To each reviewer:
   the catalogue state in the URL.
 - The code of each phase, once its checks passed.
 - Eight findings of the first independent review, after duplicates among
-  the 43 that were raised had been merged, and two from the review of the
-  translation backend.
+  the 43 that were raised had been merged, two from the review of the
+  translation backend, and eight from the final review.
 - Spanish titles and descriptions for the 20 products, and a short list
   of specifications for each in both languages, written by the model from
   what Fake Store says and stored as catalogue data.
@@ -129,7 +131,7 @@ A selection; the log has all of them.
 - **Static checks.** `ruff` and `pycodestyle` at 79 characters for Python;
   ESLint with accessibility rules, strict TypeScript and Prettier for the
   frontend.
-- **Tests.** 119 backend tests against PostgreSQL and 69 frontend tests,
+- **Tests.** 119 backend tests against PostgreSQL and 71 frontend tests,
   both run in containers. None calls the real Fake Store API.
 - **A clean clone.** With no `.env` file, `docker-compose up` gave three
   healthy containers, 20 products and 20 images. The import was run again
@@ -150,8 +152,8 @@ A selection; the log has all of them.
 - No screen reader session, and no browser other than Chrome.
 - The Spanish copy, the translated product text and the specifications
   were not read by a second person.
-- The interface changes made after the first independent review were not
-  reviewed independently.
+- The fixes of the final review were checked by the agent that made
+  them (tests and a browser), not by another reviewer.
 - One frontend test run failed once while the development machine was
   going to sleep, and the failing test was not identified. Every later
   run passed.
