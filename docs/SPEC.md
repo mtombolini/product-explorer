@@ -294,8 +294,8 @@ Steps of one import run (`CatalogueImportService`):
    `INSERT ... ON CONFLICT (external_id) DO UPDATE`. Running the import twice
    leaves the same rows. `image_path` is not touched by the upsert.
 4. **Images.** For each product whose image is not stored yet, the image is
-   downloaded with `GET`, checked (same host as the source, `image/*` content
-   type, size limit of 5 MB) and written atomically as
+   downloaded with `GET`, checked (same host as the source; JPEG, PNG, WebP
+   or GIF content type; size limit of 5 MB) and written atomically as
    `{external_id}{extension}`. A failed download is logged and the product
    keeps its placeholder. After 3 consecutive failures the remaining images
    are skipped for this run.

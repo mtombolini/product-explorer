@@ -11,12 +11,12 @@ import { useLocation, useNavigate } from 'react-router';
 import {
   CATALOGUE_PATH,
   catalogueUrl,
+  MAX_FILTER_LENGTH,
   parseCatalogueQuery,
 } from '../catalogueUrl';
 
 /** Wait this long after the last key press before searching. */
-export const SEARCH_DEBOUNCE_MS = 300;
-const MAX_SEARCH_LENGTH = 100;
+const SEARCH_DEBOUNCE_MS = 300;
 
 /**
  * The search box of the header.
@@ -92,7 +92,7 @@ export function SearchField() {
         slotProps={{
           htmlInput: {
             'aria-label': 'Search products',
-            maxLength: MAX_SEARCH_LENGTH,
+            maxLength: MAX_FILTER_LENGTH,
             enterKeyHint: 'search',
           },
           input: {

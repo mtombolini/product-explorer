@@ -4,8 +4,12 @@ import Button from '@mui/material/Button';
 import Skeleton from '@mui/material/Skeleton';
 import Typography from '@mui/material/Typography';
 import { useEffect } from 'react';
-import { Link as RouterLink, useLocation, useNavigate } from 'react-router';
-import { useParams } from 'react-router';
+import {
+  Link as RouterLink,
+  useLocation,
+  useNavigate,
+  useParams,
+} from 'react-router';
 
 import type { Product } from '../api/types';
 import { useAppDispatch, useAppSelector } from '../app/hooks';

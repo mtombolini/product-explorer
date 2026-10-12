@@ -3,7 +3,7 @@ import type { CatalogueQuery } from '../../api/types';
 export const CATALOGUE_PATH = '/products';
 
 /** Same limits as the API, so a hand-edited address cannot cause a 422. */
-const MAX_FILTER_LENGTH = 100;
+export const MAX_FILTER_LENGTH = 100;
 const MAX_PAGE = 1_000_000;
 
 function cleanFilter(value: string | null): string {

@@ -1,7 +1,6 @@
 import { useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 
-import type { CatalogueQuery } from '../../api/types';
 import { catalogueUrl, parseCatalogueQuery } from './catalogueUrl';
 
 /**
@@ -35,5 +34,3 @@ export function useCatalogueQuery() {
 
   return { query, setCategory, clearFilters, pageUrl };
 }
-
-export type { CatalogueQuery };
