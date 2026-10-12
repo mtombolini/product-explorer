@@ -20,18 +20,12 @@ interface CatalogueToolbarProps {
   onSelectSort: (sort: SortOrder) => void;
 }
 
-/** The small bold text that names a control of the toolbar. */
-const labelStyle = {
-  fontWeight: 'bold',
-  color: 'text.secondary',
-  flexShrink: 0,
-} as const;
-
 /**
  * The bar above the product grid, with every control of the list: the
- * category filter, the order and, at the right end, the number of
- * results. It is one row on a wide screen and two rows below that. On a
- * wide screen it stays in view under the header while the page scrolls.
+ * category filter, the number of results it gives and, at the right end,
+ * the order. It is one row on a wide screen and two rows below that.
+ * On a wide screen it stays in view under the header while the page
+ * scrolls.
  */
 export function CatalogueToolbar({
   categories,
@@ -42,10 +36,12 @@ export function CatalogueToolbar({
 }: CatalogueToolbarProps) {
   const { t } = useTranslation();
   const isScrolled = useIsScrolled();
-  const categoryLabelId = useId();
   const sortLabelId = useId();
 
   return (
+    // The outer box is the part that sticks. It is as wide as the page
+    // content and has the page colour, so the products scrolling behind
+    // the bar do not show around its rounded corners.
     <Box
       sx={{
         position: { lg: 'sticky' },
@@ -62,42 +58,28 @@ export function CatalogueToolbar({
           }),
         zIndex: 1,
         bgcolor: 'background.default',
-        borderBottom: 1,
-        borderColor: 'divider',
         py: 1.5,
-        mb: 3,
-        display: 'flex',
-        alignItems: 'center',
-        flexWrap: 'wrap',
-        columnGap: 3,
-        rowGap: 1.5,
+        mb: 1.5,
       }}
     >
-      {/* Category: the label and the buttons. */}
       <Box
         sx={{
+          bgcolor: 'grey.100',
+          borderRadius: 2,
+          px: 1.5,
+          py: 1,
           display: 'flex',
           alignItems: 'center',
-          flexWrap: { xs: 'wrap', md: 'nowrap' },
-          columnGap: 2,
+          flexWrap: 'wrap',
+          columnGap: 3,
           rowGap: 1,
-          minWidth: 0,
-          flex: { xs: '1 1 100%', lg: '0 1 auto' },
         }}
       >
-        <Typography
-          id={categoryLabelId}
-          component="span"
-          variant="body2"
-          sx={labelStyle}
-        >
-          {t('filter.title')}
-        </Typography>
         <Box
           sx={{
             // Lets the row of buttons scroll sideways when it does not
-            // fit; on a phone it takes a row of its own.
-            flex: { xs: '1 0 100%', md: '0 1 auto' },
+            // fit. Below the wide layout it takes a row of its own.
+            flex: { xs: '1 1 100%', lg: '0 1 auto' },
             minWidth: 0,
             overflowX: 'auto',
             // Room for the focus ring, which the scroll box would cut.
@@ -109,47 +91,49 @@ export function CatalogueToolbar({
             categories={categories}
             selected={query.category}
             onSelect={onSelectCategory}
-            labelledBy={categoryLabelId}
+            label={t('filter.title')}
           />
         </Box>
-      </Box>
 
-      {/* Order on the left of this group, result count at the right end. */}
-      <Box
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          columnGap: 3,
-          rowGap: 1,
-          flex: { xs: '1 1 100%', lg: '1 1 auto' },
-        }}
-      >
+        {/* The number of results follows the filter that produced it;
+            the order sits at the right end of the bar. */}
         <Box
           sx={{
             display: 'flex',
             alignItems: 'center',
-            gap: 1.5,
-            ml: { lg: 'auto' },
+            justifyContent: 'space-between',
+            gap: 2,
+            flex: { xs: '1 1 100%', lg: '1 1 auto' },
+            minWidth: 0,
           }}
         >
-          <Typography
-            id={sortLabelId}
-            component="span"
-            variant="body2"
-            sx={labelStyle}
-          >
-            {t('sort.title')}
-          </Typography>
-          <SortSelect
-            value={query.sort}
-            onChange={onSelectSort}
-            labelledBy={sortLabelId}
-          />
-        </Box>
-        <Box sx={{ ml: 'auto', textAlign: 'right' }}>
           {total !== undefined && <ResultSummary total={total} query={query} />}
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1,
+              minWidth: 0,
+              // Keeps the order at the right end while the count loads.
+              ml: 'auto',
+            }}
+          >
+            {/* Hidden on phones to leave room; it still names the select. */}
+            <Typography
+              id={sortLabelId}
+              component="span"
+              variant="body2"
+              color="text.secondary"
+              sx={{ display: { xs: 'none', sm: 'block' }, flexShrink: 0 }}
+            >
+              {t('sort.title')}
+            </Typography>
+            <SortSelect
+              value={query.sort}
+              onChange={onSelectSort}
+              labelledBy={sortLabelId}
+            />
+          </Box>
         </Box>
       </Box>
     </Box>

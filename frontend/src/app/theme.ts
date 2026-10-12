@@ -92,8 +92,11 @@ export const theme = createTheme({
       styleOverrides: {
         // One clearly visible focus ring for every interactive element.
         // MUI removes the outline of its own controls and marks keyboard
-        // focus with a class instead, so those classes are listed too.
-        ':focus-visible, .MuiButtonBase-root.Mui-focusVisible, .MuiInputBase-root.Mui-focused':
+        // focus with a class instead, so that class is listed too. A
+        // field shows the ring when the element inside it has keyboard
+        // focus: always for a text box, and for a select only when it
+        // was reached with the keyboard, not after every click.
+        ':focus-visible, .MuiButtonBase-root.Mui-focusVisible, .MuiInputBase-root:has(:focus-visible)':
           {
             outline: `3px solid ${BLUE}`,
             outlineOffset: 2,
@@ -122,8 +125,12 @@ export const theme = createTheme({
       styleOverrides: {
         root: {
           minHeight: CONTROL_HEIGHT,
+          backgroundColor: WHITE,
           [TOUCH_SCREEN]: { minHeight: TOUCH_TARGET },
         },
+        // The same edge as the category buttons, so the controls of the
+        // toolbar read as one family.
+        notchedOutline: { borderColor: CONTROL_LINE },
         // On touch screens the field itself, not only the box around
         // it, is 44px tall: 23px of text plus this padding.
         input: { [TOUCH_SCREEN]: { paddingBlock: 10.5 } },
@@ -170,6 +177,7 @@ export const theme = createTheme({
           paddingBlock: 0,
           paddingInline: 14,
           color: INK,
+          backgroundColor: WHITE,
           borderColor: CONTROL_LINE,
           fontWeight: 400,
           whiteSpace: 'nowrap',
@@ -180,6 +188,15 @@ export const theme = createTheme({
             color: WHITE,
           },
         },
+      },
+    },
+    MuiToggleButtonGroup: {
+      styleOverrides: {
+        // MUI makes the left edge of every button after the first
+        // transparent, which leaves gaps in the line between two
+        // buttons. Giving it the edge colour draws one crisp separator.
+        middleButton: { borderLeftColor: CONTROL_LINE },
+        lastButton: { borderLeftColor: CONTROL_LINE },
       },
     },
     MuiPaginationItem: {
