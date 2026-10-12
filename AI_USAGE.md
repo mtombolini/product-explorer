@@ -261,3 +261,81 @@ Representative excerpts from the master prompt:
   - Not verified against a real outage: the 503 of `/health` and the 500
     path are covered by tests that replace a dependency, not by stopping
     the database.
+
+## Phases 4 to 7: frontend
+
+- **Prompt or workflow.** The scope came from `docs/SPEC.md` (sections 7.8
+  to 7.10) and from the interface direction of the master prompt. Like
+  phase 3, the frontend was written by the main agent directly, file by
+  file, because sub-agent runs were being interrupted while the
+  development machine slept. The official Vite template was generated in
+  a scratch folder first and its configuration was used as the base.
+- **Accepted.**
+  - The project configuration (strict TypeScript, ESLint with
+    accessibility rules, Prettier, Vitest with jsdom).
+  - One MUI theme, the API client, the products slice with three thunks,
+    the URL helpers and the catalogue query hook.
+  - The layout shell, the catalogue page, the product page and their
+    components, including every loading, empty, error and not-found
+    state.
+  - The motion layer, the compact header and the reduced-motion rule.
+  - 38 tests: the flows of SPEC 7.10 plus the API client, the URL parsing
+    and the cache rules of the slice.
+- **Rejected or changed.**
+  - Oxlint, the template default, was replaced by ESLint (D-023).
+  - A first version of the search box synchronised with the URL inside an
+    effect and needed a lint exception. It was rewritten without the
+    exception (D-026). The same review found that trimming would have
+    removed a space the user had just typed, so the box is only
+    overwritten when its trimmed text differs from the URL.
+  - `git rm` of the placeholder page failed once because the formatter
+    had touched the file, and a chained command silently skipped writing
+    the new Dockerfile. It was noticed in the file listing and redone.
+  - Tests failed after the card reveal was added: jsdom has no
+    `IntersectionObserver`. A small stub was added to the test setup. The
+    failure also showed the router's technical error screen, so a plain
+    crash page was added as the route error element.
+  - The default placeholder colour and the default chip edge were too
+    pale. Both were darkened in the theme.
+  - Yellow stars were rejected (D-029) and card images got an empty text
+    alternative (D-028).
+- **Verification.**
+  - In `frontend/`: `npm run lint` (no output), `npm run format:check`
+    ("All matched files use Prettier code style!"), `npm run typecheck`
+    (no output), `npm test` ("38 passed"), `npm run build` (succeeds, with
+    Vite's warning about the 604 kB bundle, see D-032).
+  - `docker compose --profile test run --rm --build frontend-test`:
+    "38 passed". `npm run lint` in the same container: exit code 0.
+  - `docker compose up --build -d --wait`: three services healthy;
+    `/` and `/product/1` both answer 200 `text/html` through Nginx.
+  - Headless Chrome against port 8080, with every request recorded:
+    - `/products?page=2` made one products request and one categories
+      request.
+    - Opening a product from the list made no request; focus moved to the
+      page heading.
+    - The "Back to products" control and the browser back button both
+      returned to `/products?page=2` with no new request and the same
+      scroll position (484 px before and after).
+    - Typing "cotton" quickly made exactly one request; the address became
+      `/products?search=cotton` and the summary read `4 products for
+      "cotton"`.
+    - Choosing a category gave
+      `/products?search=cotton&category=women%27s+clothing`; back returned
+      to the search alone and the search box still showed "cotton".
+    - A direct visit to `/product/3` made exactly one request.
+      `/product/9999` and `/product/abc` showed "Product not found",
+      `/nowhere` showed "Page not found", `/` redirected to `/products`.
+    - The header measured 72 px at the top and 56 px after scrolling. The
+      first Tab focused "Skip to main content".
+    - No request went to any other origin.
+  - Screenshots at 360, 768 and 1280 px of seven views: no horizontal
+    overflow in any of them, and 1, 3 and 4 grid columns. The 2-column
+    step (480 to 767 px) was not captured.
+  - Lighthouse 13.5.0, accessibility category: 100 on `/products`,
+    `/product/1` and `/products?search=zzzz`, with no failed audit.
+  - Contrast computed with the WCAG formula for the ten colour pairs in
+    use: the lowest is the yellow focus ring on the blue header, 5.26:1
+    (3:1 required); every text pair is 7.18:1 or more.
+  - Not verified: a real screen reader session, the behaviour under
+    `prefers-reduced-motion` in a browser (the rule is in the theme and
+    the tests run with motion disabled), and browsers other than Chrome.
