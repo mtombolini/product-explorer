@@ -21,6 +21,12 @@ export const en = {
     title: 'Category',
     all: 'All',
   },
+  sort: {
+    title: 'Sort by',
+    default: 'Default order',
+    priceAsc: 'Price: low to high',
+    priceDesc: 'Price: high to low',
+  },
   catalogue: {
     title: 'Products',
     loading: 'Loading products…',

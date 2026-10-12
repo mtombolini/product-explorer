@@ -17,6 +17,12 @@ export const es: Messages = {
     title: 'Categoría',
     all: 'Todas',
   },
+  sort: {
+    title: 'Ordenar por',
+    default: 'Orden predeterminado',
+    priceAsc: 'Precio: de menor a mayor',
+    priceDesc: 'Precio: de mayor a menor',
+  },
   catalogue: {
     title: 'Productos',
     loading: 'Cargando productos…',

@@ -129,6 +129,16 @@ export const theme = createTheme({
         input: { [TOUCH_SCREEN]: { paddingBlock: 10.5 } },
       },
     },
+    // The sort select of the toolbar: as tall as the buttons next to it.
+    MuiSelect: {
+      styleOverrides: {
+        root: {
+          minHeight: COMPACT_CONTROL_HEIGHT,
+          [TOUCH_SCREEN]: { minHeight: TOUCH_TARGET },
+        },
+        select: { paddingBlock: 6.5 },
+      },
+    },
     MuiSkeleton: {
       // A light sweep across the placeholder instead of a pulse.
       defaultProps: { animation: 'wave' },

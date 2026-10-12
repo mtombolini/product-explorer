@@ -3,12 +3,13 @@ import Typography from '@mui/material/Typography';
 import { useId } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import type { CatalogueQuery } from '../../../api/types';
+import type { CatalogueQuery, SortOrder } from '../../../api/types';
 import { motionTokens } from '../../../app/motion';
 import { layout } from '../../../app/theme';
 import { useIsScrolled } from '../../../app/useIsScrolled';
 import { CategoryFilter } from './CategoryFilter';
 import { ResultSummary } from './ResultSummary';
+import { SortSelect } from './SortSelect';
 
 interface CatalogueToolbarProps {
   categories: string[];
@@ -16,30 +17,41 @@ interface CatalogueToolbarProps {
   /** Matching products; null while loading; undefined when unknown. */
   total: number | null | undefined;
   onSelectCategory: (category: string) => void;
+  onSelectSort: (sort: SortOrder) => void;
 }
 
+/** The small bold text that names a control of the toolbar. */
+const labelStyle = {
+  fontWeight: 'bold',
+  color: 'text.secondary',
+  flexShrink: 0,
+} as const;
+
 /**
- * The bar above the product grid: the category filter on the left and
- * the number of results on the right. On desktop it stays in view under
- * the header while the page scrolls.
+ * The bar above the product grid, with every control of the list: the
+ * category filter, the order and, at the right end, the number of
+ * results. It is one row on a wide screen and two rows below that. On a
+ * wide screen it stays in view under the header while the page scrolls.
  */
 export function CatalogueToolbar({
   categories,
   query,
   total,
   onSelectCategory,
+  onSelectSort,
 }: CatalogueToolbarProps) {
   const { t } = useTranslation();
   const isScrolled = useIsScrolled();
-  const labelId = useId();
+  const categoryLabelId = useId();
+  const sortLabelId = useId();
 
   return (
     <Box
       sx={{
-        position: { md: 'sticky' },
+        position: { lg: 'sticky' },
         // Right under the header, which is shorter after scrolling.
         top: {
-          md: isScrolled
+          lg: isScrolled
             ? layout.headerHeight.wide.compact
             : layout.headerHeight.wide.regular,
         },
@@ -56,55 +68,89 @@ export function CatalogueToolbar({
         mb: 3,
         display: 'flex',
         alignItems: 'center',
-        // Phones: label and count on one row, the buttons on the next.
-        // Wider screens: everything on a single row.
-        flexWrap: { xs: 'wrap', md: 'nowrap' },
-        columnGap: 2,
-        rowGap: 1,
+        flexWrap: 'wrap',
+        columnGap: 3,
+        rowGap: 1.5,
       }}
     >
-      <Typography
-        id={labelId}
-        component="span"
-        variant="body2"
-        sx={{ fontWeight: 'bold', color: 'text.secondary', flexShrink: 0 }}
-      >
-        {t('filter.title')}
-      </Typography>
-      {/* The count sits at the right end of the bar. It comes before the
-          filter in the document only so that, on a phone, it shares the
-          first row with the label. It is plain text, so the order of
-          keyboard focus is not affected. */}
+      {/* Category: the label and the buttons. */}
       <Box
         sx={{
-          order: { md: 3 },
-          ml: 'auto',
-          // A long summary wraps inside its share of the bar instead of
-          // pushing the buttons away.
-          maxWidth: { md: '40%' },
-          textAlign: 'right',
-        }}
-      >
-        {total !== undefined && <ResultSummary total={total} query={query} />}
-      </Box>
-      <Box
-        sx={{
-          order: { md: 2 },
-          flex: { xs: '1 0 100%', md: '0 1 auto' },
-          // Lets the row of buttons scroll sideways when it does not fit.
+          display: 'flex',
+          alignItems: 'center',
+          flexWrap: { xs: 'wrap', md: 'nowrap' },
+          columnGap: 2,
+          rowGap: 1,
           minWidth: 0,
-          overflowX: 'auto',
-          // Room for the focus ring, which the scroll box would cut off.
-          p: 0.75,
-          m: -0.75,
+          flex: { xs: '1 1 100%', lg: '0 1 auto' },
         }}
       >
-        <CategoryFilter
-          categories={categories}
-          selected={query.category}
-          onSelect={onSelectCategory}
-          labelledBy={labelId}
-        />
+        <Typography
+          id={categoryLabelId}
+          component="span"
+          variant="body2"
+          sx={labelStyle}
+        >
+          {t('filter.title')}
+        </Typography>
+        <Box
+          sx={{
+            // Lets the row of buttons scroll sideways when it does not
+            // fit; on a phone it takes a row of its own.
+            flex: { xs: '1 0 100%', md: '0 1 auto' },
+            minWidth: 0,
+            overflowX: 'auto',
+            // Room for the focus ring, which the scroll box would cut.
+            p: 0.75,
+            m: -0.75,
+          }}
+        >
+          <CategoryFilter
+            categories={categories}
+            selected={query.category}
+            onSelect={onSelectCategory}
+            labelledBy={categoryLabelId}
+          />
+        </Box>
+      </Box>
+
+      {/* Order on the left of this group, result count at the right end. */}
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          columnGap: 3,
+          rowGap: 1,
+          flex: { xs: '1 1 100%', lg: '1 1 auto' },
+        }}
+      >
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1.5,
+            ml: { lg: 'auto' },
+          }}
+        >
+          <Typography
+            id={sortLabelId}
+            component="span"
+            variant="body2"
+            sx={labelStyle}
+          >
+            {t('sort.title')}
+          </Typography>
+          <SortSelect
+            value={query.sort}
+            onChange={onSelectSort}
+            labelledBy={sortLabelId}
+          />
+        </Box>
+        <Box sx={{ ml: 'auto', textAlign: 'right' }}>
+          {total !== undefined && <ResultSummary total={total} query={query} />}
+        </Box>
       </Box>
     </Box>
   );
