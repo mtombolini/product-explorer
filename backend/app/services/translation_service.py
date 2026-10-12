@@ -50,6 +50,10 @@ class TranslationLoadService:
         product_ids = self._repository.get_ids_by_external_id()
         rows: list[dict[str, Any]] = []
         skipped = 0
+        # The (product, language) pairs already built. Two keys can name
+        # the same product ("1" and "01"), and one INSERT cannot write
+        # the same row twice: the first entry is kept.
+        seen: set[tuple[int, str]] = set()
         # Sorted, so the files are always read in the same order.
         for path in sorted(self._translations_dir.glob("*.json")):
             language = self._language_of(path)
@@ -59,8 +63,20 @@ class TranslationLoadService:
                 row = self._build_row(language, key, value, product_ids)
                 if row is None:
                     skipped += 1
-                else:
-                    rows.append(row)
+                    continue
+                pair = (row["product_id"], row["language"])
+                if pair in seen:
+                    logger.warning(
+                        "Skipped a translation: its product has another",
+                        extra={
+                            "language": language.value,
+                            "external_id": key,
+                        },
+                    )
+                    skipped += 1
+                    continue
+                seen.add(pair)
+                rows.append(row)
         self._repository.upsert_translations(rows)
         summary = TranslationSummary(stored=len(rows), skipped=skipped)
         logger.info("Translations loaded", extra=asdict(summary))

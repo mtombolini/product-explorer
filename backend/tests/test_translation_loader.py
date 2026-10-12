@@ -140,6 +140,31 @@ def test_bad_entries_are_skipped_without_stopping(
     assert row.title == "Mochila"
 
 
+def test_second_key_of_the_same_product_is_skipped(
+    session: Session, tmp_path: Path
+) -> None:
+    """ "1" and "01" are one product: the first is kept, the load goes on."""
+    create_product(session, external_id=1)
+    create_product(session, external_id=2)
+    _write_file(
+        tmp_path,
+        "es.json",
+        {
+            "1": {"title": "Mochila"},
+            "01": {"title": "Repetida"},
+            "2": {"title": "Anillo"},
+        },
+    )
+
+    summary = _make_service(session, tmp_path).run()
+
+    assert summary.stored == 2
+    assert summary.skipped == 1
+    first, second = _read_translations(session)
+    assert first.title == "Mochila"
+    assert second.title == "Anillo"
+
+
 def test_files_of_other_languages_are_ignored(
     session: Session, tmp_path: Path
 ) -> None:
