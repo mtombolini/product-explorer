@@ -31,6 +31,7 @@ def test_product_is_returned_with_the_public_fields_only(
         "id": product.id,
         "title": "Backpack",
         "description": "Fits a laptop",
+        "language": "en",
         "price": 109.95,
         "category": "men's clothing",
         "image_url": "/images/77.png",

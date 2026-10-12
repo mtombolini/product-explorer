@@ -3,7 +3,12 @@
 import math
 from dataclasses import dataclass
 
-from app.models import Product, ProductSort
+from app.models import (
+    SOURCE_LANGUAGE,
+    Language,
+    LocalizedProduct,
+    ProductSort,
+)
 from app.repositories.product_repository import ProductRepository
 from app.services.exceptions import ProductNotFoundError
 
@@ -12,7 +17,7 @@ from app.services.exceptions import ProductNotFoundError
 class ProductPage:
     """One page of products with the pagination metadata."""
 
-    items: list[Product]
+    items: list[LocalizedProduct]
     total: int
     page: int
     page_size: int
@@ -33,8 +38,12 @@ class ProductService:
         search: str | None = None,
         category: str | None = None,
         sort: ProductSort | None = None,
+        language: Language = SOURCE_LANGUAGE,
     ) -> ProductPage:
         """Return the requested page of the filtered catalogue.
+
+        The products come with their text in ``language`` when they
+        have a translation, and the search reads that text.
 
         A page after the last one is not an error: it has no items and
         keeps the real totals, so the client can offer a way back.
@@ -44,6 +53,7 @@ class ProductService:
             category=_clean(category),
             limit=page_size,
             offset=(page - 1) * page_size,
+            language=language,
             sort=sort,
         )
         return ProductPage(
@@ -55,9 +65,11 @@ class ProductService:
             total_pages=math.ceil(total / page_size),
         )
 
-    def get_product(self, product_id: int) -> Product:
+    def get_product(
+        self, product_id: int, language: Language = SOURCE_LANGUAGE
+    ) -> LocalizedProduct:
         """Return one product or raise ``ProductNotFoundError``."""
-        product = self._repository.get_by_id(product_id)
+        product = self._repository.get_by_id(product_id, language)
         if product is None:
             raise ProductNotFoundError(product_id)
         return product

@@ -1,4 +1,4 @@
-"""Create product rows for the API tests."""
+"""Create product and translation rows for the API tests."""
 
 from decimal import Decimal
 from typing import Any
@@ -6,7 +6,7 @@ from typing import Any
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.models import Product
+from app.models import Language, Product, ProductTranslation
 
 
 def create_product(session: Session, **overrides: Any) -> Product:
@@ -38,3 +38,21 @@ def create_products(session: Session, count: int, **overrides: Any) -> None:
     """Insert ``count`` products that share the given column values."""
     for _ in range(count):
         create_product(session, **overrides)
+
+
+def create_translation(
+    session: Session,
+    product: Product,
+    title: str,
+    description: str = "",
+    language: Language = Language.ES,
+) -> None:
+    """Insert the text of one product in another language."""
+    translation = ProductTranslation(
+        product_id=product.id,
+        language=language.value,
+        title=title,
+        description=description,
+    )
+    session.add(translation)
+    session.commit()
