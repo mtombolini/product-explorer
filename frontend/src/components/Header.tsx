@@ -2,11 +2,13 @@ import Box from '@mui/material/Box';
 import Container from '@mui/material/Container';
 import Link from '@mui/material/Link';
 import type { ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Link as RouterLink } from 'react-router';
 
 import { motionTokens } from '../app/motion';
 import { layout } from '../app/theme';
 import { useIsScrolled } from '../app/useIsScrolled';
+import { LanguageSwitcher } from './LanguageSwitcher';
 
 interface HeaderProps {
   /** The search field, shown next to the brand. */
@@ -19,6 +21,7 @@ interface HeaderProps {
  * compact once the user has scrolled, to leave room for the products.
  */
 export function Header({ search }: HeaderProps) {
+  const { t } = useTranslation();
   const isScrolled = useIsScrolled();
 
   return (
@@ -44,7 +47,7 @@ export function Header({ search }: HeaderProps) {
           display: 'flex',
           alignItems: 'center',
           flexWrap: 'wrap',
-          columnGap: 3,
+          columnGap: { xs: 1.5, sm: 3 },
           rowGap: 1,
           py: isScrolled ? 0.5 : 1.5,
           transition: (theme) =>
@@ -58,7 +61,7 @@ export function Header({ search }: HeaderProps) {
           component={RouterLink}
           to="/products"
           // The name stays the same when the visible text is hidden.
-          aria-label="Product Explorer, go to products"
+          aria-label={t('layout.homeLink')}
           underline="none"
           color="inherit"
           sx={{
@@ -68,6 +71,9 @@ export function Header({ search }: HeaderProps) {
             minHeight: layout.touchTarget,
             fontWeight: 'bold',
             fontSize: '1.25rem',
+            // On phones the brand has its own row until the header is
+            // compact; then search and language sit next to the mark.
+            flexBasis: { xs: isScrolled ? 'auto' : '100%', sm: 'auto' },
           }}
         >
           {/* Original mark: a plain yellow tile, decorative only. */}
@@ -91,9 +97,17 @@ export function Header({ search }: HeaderProps) {
             Product Explorer
           </Box>
         </Link>
-        <Box sx={{ flex: '1 1 260px', maxWidth: 560, ml: { sm: 'auto' } }}>
+        <Box
+          sx={{
+            flex: { xs: '1 1 150px', sm: '1 1 260px' },
+            minWidth: 0,
+            maxWidth: { sm: 560 },
+            ml: { sm: 'auto' },
+          }}
+        >
           {search}
         </Box>
+        <LanguageSwitcher />
       </Container>
     </Box>
   );
