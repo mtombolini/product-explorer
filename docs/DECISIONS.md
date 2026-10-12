@@ -390,8 +390,8 @@ trade-off that was accepted. New entries are appended as the work advances.
 
 ### D-032 One JavaScript bundle
 
-- **Context.** The production build is a single file of about 790 kB
-  (250 kB compressed) and Vite warns about its size. An unminified build
+- **Context.** The production build is a single file of about 800 kB
+  (255 kB compressed) and Vite warns about its size. An unminified build
   shows where it goes: React DOM, MUI, the router and the motion library
   are the four largest parts.
 - **Decision.** Leave it as one bundle for this version.
@@ -455,6 +455,8 @@ trade-off that was accepted. New entries are appended as the work advances.
 - **Trade-off.** A Spanish page with English product text. Translating
   content properly needs per-language data in the database and a language
   parameter in the API, which is listed in `FUTURE_IMPROVEMENTS.md`.
+- **Update (D-044).** Superseded: the catalogue text is now translated
+  in the database and served by language.
 
 ## Phase 10: interface refinements
 
@@ -548,3 +550,73 @@ trade-off that was accepted. New entries are appended as the work advances.
 - **Trade-off.** Each order is fetched and cached on its own. Leaving it
   out of the key would show a page that was cached in another order,
   which is the mistake this decision exists to prevent.
+
+## Phase 12: translated catalogue, logo and toolbar
+
+### D-044 Translations in their own table, served by a `lang` parameter
+
+- **Context.** With the interface in Spanish, product titles and
+  descriptions stayed in English. The candidate asked for them to change
+  with the language. Fake Store has no other language.
+- **Decision.** A table `product_translations` with one row per product
+  and language. The Spanish text was written for this project and is
+  bundled in `backend/app/data/translations/es.json`; the seed command
+  loads it on every start with an idempotent upsert and no network call.
+  The API takes `lang`, joins the row for that language and falls back to
+  the original text, and each product says in `language` which one it got.
+- **Alternatives.** Columns `title_es` and `description_es`; a dictionary
+  in the frontend; machine translation at import time.
+- **Trade-off.** One more table, a join and a parameter. In exchange a
+  third language needs a file and an enum value, the frontend stays free
+  of catalogue content, and search can read the language on screen. The
+  translations are a snapshot: a product that appears later is shown in
+  English until its text is added.
+
+### D-045 `lang` is a query parameter, not a header
+
+- **Context.** The language could travel in `Accept-Language`.
+- **Decision.** `?lang=es`, validated against an enum like `sort`.
+- **Alternatives.** Content negotiation with the header.
+- **Trade-off.** Less standard, but visible in the address, in the logs
+  and in the network panel, trivial to try with curl, and safe for any
+  cache between the browser and the API.
+
+### D-046 A change of language empties the cached catalogue text
+
+- **Context.** The store caches list pages and products. After a change of
+  language that text is in the wrong language.
+- **Decision.** The slice keeps the language its cache is in. The action
+  `languageChanged` drops the cached pages and products, and the visible
+  page requests them again. Every request carries its language, and an
+  answer for a language that is no longer current is ignored. Categories
+  are keys and keep their cache.
+- **Alternatives.** Cache keys that include the language, keeping both
+  languages in memory.
+- **Trade-off.** Going back to the previous language fetches again. The
+  state keeps one simple shape, and a slow answer in the old language can
+  never overwrite the new one.
+
+### D-047 An original mark instead of a brand asset
+
+- **Context.** The statement forbids protected assets, and the header had
+  only a plain tile next to the name.
+- **Decision.** A mark drawn for this project as inline SVG: a catalogue
+  grid whose fourth cell is a magnifying glass, in the accent yellow, with
+  the name in two weights. The favicon uses the same drawing.
+- **Alternatives.** Text only; a generated bitmap.
+- **Trade-off.** None worth noting. It is a few lines of SVG, sharp at any
+  size, and shares no shape with the IKEA logo.
+
+### D-048 The toolbar is one contained bar
+
+- **Context.** The list controls floated on the page as separate pieces
+  with different edges, and the select kept a heavy focus ring after a
+  mouse click.
+- **Decision.** One bar with a light background: the category buttons,
+  the result count next to them, and the order at the right end. Buttons
+  and select share one edge colour and height. The focus ring of a field
+  now follows keyboard focus (`:has(:focus-visible)`), so a text box
+  always shows it and a select only when reached with the keyboard.
+- **Alternatives.** Keep the hairline layout; a sidebar.
+- **Trade-off.** `:has()` needs a browser from 2023 or later. Older ones
+  still show the field's own focused border.

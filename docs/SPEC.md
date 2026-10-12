@@ -164,10 +164,9 @@ not blocked; all of them are cheap to change.
 
 ## 6. Out of scope
 
-Authentication, write endpoints, cart or checkout, translated
-catalogue content, a deployed demo, end-to-end browser tests in the
-repository, server-side rendering, and any service beyond the three
-containers.
+Authentication, write endpoints, cart or checkout, a deployed demo,
+end-to-end browser tests in the repository, server-side rendering, and any
+service beyond the three containers.
 
 ## 7. Design contract
 
@@ -197,7 +196,8 @@ containers.
 │   ├── app/
 │   │   ├── main.py               # application factory
 │   │   ├── core/                 # config, database session, logging
-│   │   ├── models/               # the table model and the sort orders
+│   │   ├── models/               # tables, languages and sort orders
+│   │   ├── data/translations/    # bundled Spanish text of the catalogue
 │   │   ├── schemas/              # Pydantic models (API and Fake Store)
 │   │   ├── repositories/         # data access, the only SQL in the app
 │   │   ├── services/             # business rules
@@ -279,7 +279,21 @@ Table `products`:
 | `created_at` | `TIMESTAMPTZ` | Not null, default `now()` |
 | `updated_at` | `TIMESTAMPTZ` | Not null, default `now()`, refreshed on every upsert |
 
-The schema is created by one explicit Alembic migration.
+Table `product_translations` (titles and descriptions in other languages):
+
+| Column | Type | Constraints |
+| --- | --- | --- |
+| `product_id` | `INTEGER` | Not null. Foreign key to `products.id`, `ON DELETE CASCADE` |
+| `language` | `VARCHAR(8)` | Not null, for example `es` |
+| `title` | `VARCHAR(255)` | Not null |
+| `description` | `TEXT` | Not null, default empty string |
+
+The primary key is (`product_id`, `language`): at most one translation per
+product and language. The text imported from Fake Store is English and
+stays in `products`; this table only holds the other languages.
+
+Each table is created by its own explicit Alembic migration (`0001`,
+`0002`).
 
 ### 7.5 Import strategy
 
@@ -306,6 +320,17 @@ Steps of one import run (`CatalogueImportService`):
 5. **Report.** A summary is logged: fetched, imported, skipped, images
    downloaded, images failed.
 
+A separate step, **translations**, runs after the import and also when the
+import is skipped because the table has rows. It needs no network: the
+Spanish titles and descriptions of the 20 products are bundled in
+`backend/app/data/translations/es.json`, keyed by the Fake Store id. Each
+entry is validated, matched to its product by `external_id` and written
+with `INSERT ... ON CONFLICT (product_id, language) DO UPDATE`. An invalid
+entry, a second entry for the same product, or one whose product does not
+exist is logged and skipped. The step does not run after a failed product
+import, because there would be no products to translate. A problem in
+this step never stops the API from starting.
+
 Behaviour of the command:
 
 - `python -m app.commands.seed` always runs the import. Exit code 0 on
@@ -328,6 +353,7 @@ Base path `/api`. JSON only. Field names are `snake_case`.
   "id": 1,
   "title": "Fjallraven - Foldsack No. 1 Backpack, Fits 15 Laptops",
   "description": "Your perfect pack for everyday use...",
+  "language": "en",
   "price": 109.95,
   "category": "men's clothing",
   "image_url": "/images/1.png",
@@ -336,7 +362,9 @@ Base path `/api`. JSON only. Field names are `snake_case`.
 }
 ```
 
-`image_url`, `rating_rate` and `rating_count` can be `null`.
+`image_url`, `rating_rate` and `rating_count` can be `null`. `language`
+is the language of `title` and `description` as returned: the one asked
+for with `lang` when a translation exists, otherwise `en`.
 
 **`GET /api/products`**
 
@@ -347,6 +375,7 @@ Base path `/api`. JSON only. Field names are `snake_case`.
 | `search` | string | none | At most 100 characters. Trimmed; blank means no search. Case-insensitive substring match on title or description; `%` and `_` are matched literally |
 | `category` | string | none | At most 100 characters. Trimmed; blank means no filter. Exact match |
 | `sort` | string | none | `price_asc` or `price_desc`. Any other value, including an empty one, is a 422 |
+| `lang` | string | `en` | `en` or `es`. Any other value is a 422. Titles and descriptions come back in this language when the catalogue has them, and `search` reads the text of this language |
 
 Without `sort`, results are ordered by `id` ascending. With it, by price
 and then by `id`, so products with the same price keep a fixed order and
@@ -365,9 +394,9 @@ pages never overlap. Response 200:
 `total_pages` is `ceil(total / page_size)` and 0 when `total` is 0. A page
 beyond the last one returns 200 with an empty `items` list.
 
-**`GET /api/products/{product_id}`**: 200 with a product, 404 when it does
-not exist, 422 when the id is not an integer between 1 and 2,147,483,647
-(the range of the id column).
+**`GET /api/products/{product_id}`** (accepts `lang` like the list): 200
+with a product, 404 when it does not exist, 422 when the id is not an
+integer between 1 and 2,147,483,647 (the range of the id column).
 
 **`GET /api/categories`**: 200 with `{"items": ["electronics", "jewelery"]}`,
 distinct values sorted alphabetically.
@@ -431,9 +460,10 @@ When the database cannot be reached: 503 with `status` and `database` set to
 - `repositories` are the only place that uses the SQLAlchemy session to
   query or write.
 - `clients` wrap external HTTP calls.
-- `models` hold the ORM class and the values that describe products (the
-  sort orders), which every layer may import; `schemas` are Pydantic
-  classes. They are never mixed: the API never returns an ORM object
+- `models` hold the ORM classes and the values that describe products
+  (the sort orders, the languages, and `LocalizedProduct`, a product
+  together with its optional translation), which every layer may import;
+  `schemas` are Pydantic classes. They are never mixed: the API never returns an ORM object
   without a response model.
 - `core` holds configuration, the database session and logging.
 - Synchronous SQLAlchemy with `psycopg` 3. FastAPI runs synchronous
@@ -450,6 +480,7 @@ When the database cannot be reached: 503 with `status` and `database` set to
 
   ```ts
   interface ProductsState {
+    language: string;                       // language of the cached text
     byId: Record<number, Product>;          // products cached by id
     pages: Record<string, PageEntry>;       // list pages cached by query key
     details: Record<number, DetailEntry>;   // status of single-product requests
@@ -529,6 +560,8 @@ All tests are deterministic and never call the real Fake Store API.
 | Backend | Pagination metadata and out-of-range page | Pagination rule |
 | Backend | Category filter and search, including `%` | Filtering rule |
 | Backend | Order by price in both directions, ties, sorted pages, unknown value | Sorting rule and its validation |
+| Backend | `lang=es` returns the translation, falls back per product, search reads that language | Translated catalogue |
+| Backend | Translation loader: idempotent, skips invalid, unknown and repeated entries | The bundled translations load safely |
 | Backend | Invalid `page`, `page_size`, `search` length, product id | 422 and the error envelope |
 | Backend | Unknown product and unknown route | 404 and the error envelope |
 | Backend | Unexpected error | 500 without internals |
@@ -536,6 +569,7 @@ All tests are deterministic and never call the real Fake Store API.
 | Backend | Service with a fake repository | Business rules without a database |
 | Frontend | Search and category filter flow | Requests carry the parameters, URL is updated, results announced |
 | Frontend | Sort by price | Order shown, URL updated, each order cached, page reset, unknown value ignored |
+| Frontend | Change of language | Interface copy, catalogue text requested again once, late answers in the old language ignored |
 | Frontend | Open a product and go back | Same list state and no new request |
 | Frontend | Error and empty states | Retry and clear filters work |
 | Frontend | Slice and URL helpers | Cache keys and parameter parsing |
@@ -602,10 +636,19 @@ does not ask for it.
   the chosen language.
 - The API stays language-neutral: it returns stable error codes, and the
   interface chooses the wording.
-- `<html lang>` follows the chosen language. Catalogue text (titles and
-  descriptions) is not translated, because the source has one language; it
-  is marked with `lang="en"`. The four known category names are translated
-  in the frontend, and any other category is shown as it comes.
+- `<html lang>` follows the chosen language.
+- Catalogue text is translated too. The backend stores translated titles
+  and descriptions (section 7.4) and returns them when the request says
+  `lang=es`; a product without a translation comes back in English and its
+  `language` field says so, and the interface marks that text with the
+  matching `lang` attribute. Search reads the text of the requested
+  language.
+- The Redux store keeps the language the catalogue was requested in. When
+  the user changes language the cached pages and products are dropped and
+  the visible page is requested again; an answer that arrives for the
+  previous language is ignored.
+- Category values are keys (`men's clothing`). The four known ones are
+  given a translated label in the frontend; any other is shown as it comes.
 - The language is not part of the URL.
 
 ## 8. Phases and exit criteria

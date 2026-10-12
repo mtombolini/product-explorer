@@ -81,12 +81,12 @@ flowchart LR
             nginx["Nginx<br/>serves the React build<br/>proxies /api and /images"]
         end
         subgraph backend["backend container"]
-            seed["Seed command<br/>runs on start when the table is empty"]
+            seed["Seed command<br/>imports when the table is empty,<br/>then loads the bundled translations"]
             api["FastAPI<br/>api → services → repositories"]
             images[("Image files<br/>volume product-images")]
         end
         subgraph db["db container"]
-            postgres[("PostgreSQL<br/>table products<br/>volume db-data")]
+            postgres[("PostgreSQL<br/>products, product_translations<br/>volume db-data")]
         end
     end
 
@@ -133,12 +133,13 @@ in [docs/architecture.md](docs/architecture.md).
 │   ├── app/
 │   │   ├── main.py                     application factory
 │   │   ├── api/                        routes, dependencies, errors, middleware
-│   │   ├── services/                   business rules and the import workflow
+│   │   ├── services/                   business rules, the import and the translation loader
 │   │   ├── repositories/               database queries and image files
 │   │   ├── clients/                    Fake Store HTTP client
-│   │   ├── models/  schemas/           table model and sort orders; request and response shapes
+│   │   ├── models/  schemas/           tables, languages and sort orders; request and response shapes
+│   │   ├── data/translations/          bundled Spanish text of the catalogue
 │   │   ├── core/                       settings, database session, logging
-│   │   └── commands/seed.py            the import command
+│   │   └── commands/seed.py            the import command (products, then translations)
 │   └── tests/
 └── frontend/
     ├── Dockerfile  nginx/default.conf
@@ -176,6 +177,7 @@ at <http://localhost:8000/docs>.
 | `search` | string | none | At most 100 characters. Case-insensitive match in title or description. `%` and `_` are literal |
 | `category` | string | none | At most 100 characters. Trimmed; blank means no filter. Exact match |
 | `sort` | string | none | `price_asc` or `price_desc`. Without it the list is ordered by id |
+| `lang` | string | `en` | `en` or `es`. Language of titles and descriptions, and of the text `search` reads. Also accepted by `GET /api/products/{id}` |
 
 ```bash
 curl "http://localhost:8080/api/products?search=cotton&category=women%27s%20clothing&page=1"
@@ -188,6 +190,7 @@ curl "http://localhost:8080/api/products?search=cotton&category=women%27s%20clot
       "id": 20,
       "title": "DANVOUY Womens T Shirt Casual Cotton Short",
       "description": "95%Cotton,5%Spandex, Features: Casual, Short Sle...",
+      "language": "en",
       "price": 12.99,
       "category": "women's clothing",
       "image_url": "/images/20.png",
@@ -202,7 +205,9 @@ curl "http://localhost:8080/api/products?search=cotton&category=women%27s%20clot
 }
 ```
 
-(Three products match; one is shown here.) A page after the last one answers 200 with an empty `items` list, so the
+(Three products match; one is shown here.) `language` says which language
+the title and description are in: the one asked for with `lang` when the
+catalogue has a translation, otherwise `en`. A page after the last one answers 200 with an empty `items` list, so the
 client can still show the totals.
 
 **Errors.** Every error has the same body:
@@ -257,6 +262,11 @@ docker compose exec backend python -m app.commands.seed
 5. **Log a summary**: fetched, imported, skipped, images downloaded and
    failed.
 
+Then, on every start and with no network, the **translations** are loaded:
+the Spanish titles and descriptions of the catalogue are bundled in
+`backend/app/data/translations/es.json` and upserted into the
+`product_translations` table (see [Languages](#languages)).
+
 | Topic | How it is handled |
 | --- | --- |
 | **Advantages** | Reproducible with one command; runs by itself on a clean start; the running application never depends on Fake Store; easy to test because the HTTP transport can be replaced |
@@ -283,10 +293,10 @@ docker compose exec backend python -m app.commands.seed
 No local toolchain is needed: both suites run in containers.
 
 ```bash
-# Backend: 71 tests (pytest) against PostgreSQL, in a database ending in _test
+# Backend: 98 tests (pytest) against PostgreSQL, in a database ending in _test
 docker compose --profile test run --rm --build backend-test
 
-# Frontend: 60 tests (Vitest + React Testing Library)
+# Frontend: 66 tests (Vitest + React Testing Library)
 docker compose --profile test run --rm --build frontend-test
 ```
 
@@ -308,11 +318,12 @@ HTTP transport with `httpx.MockTransport`, and the frontend replaces
 | --- | --- |
 | Backend, import | Idempotency (two runs, same rows), update in place, invalid records skipped, failed image keeps the placeholder, three failures stop the downloads, source unavailable leaves the table untouched, retries |
 | Backend, API | Pagination metadata and edge pages, category filter, search (case, title or description, `%` and `_`), order by price (both directions, ties, sorted pages), every validation rule (422), 404, 405, 500 without internals, request id, health with and without products and with the database down |
+| Backend, languages | Translated text with `lang=es`, fallback to English per product, search in the requested language, invalid `lang` (422); the translation loader (idempotent, invalid, unknown and repeated entries, unsupported files); the bundled Spanish file |
 | Backend, service | Pagination maths and filter clean-up with an in-memory repository, no database |
 | Frontend, flows | Search after a pause and category filter (requests, URL, announced count); sort by price (order, URL, cache); pagination; opening a product and going back with no new request; direct visit fetches once |
 | Frontend, states | Error with retry, filtered empty state with "Clear filters", empty catalogue, page past the end, product not found, malformed id, unknown route |
 | Frontend, units | API client errors, URL parsing, cache rules of the slice |
-| Frontend, languages | Switching to Spanish and back, plurals, translated states, same keys in every language, price and rating formats |
+| Frontend, languages | Switching to Spanish and back, plurals, translated states, same keys in every language, price and rating formats; catalogue text requested again in the new language, one request per language, a late answer in the old language ignored |
 
 ## Development workflow
 
@@ -360,8 +371,9 @@ from the browser's network panel and search for it in the backend logs.
   movement is removed; a short fade remains.
 - The grid has 1 column below 480 px, 2 from 480 px, 3 from 768 px and 4
   from 1200 px. The header is fixed and becomes shorter after scrolling
-  without moving the page. On desktop a toolbar with the category filter
-  and the result count stays in view under it.
+  without moving the page. A toolbar holds the category filter, the
+  result count and the order; on desktop it stays in view under the
+  header.
 
 **Measured** on the Docker stack with Lighthouse 13.5.0 (accessibility
 category, headless Chrome): **100** on `/products`, `/product/1` and the
@@ -396,13 +408,27 @@ in the browser.
   interface chooses the wording.
 - `<html lang>` follows the chosen language.
 
-To add a language: copy `locales/en.ts` to a new file and translate it,
-add the language to `SUPPORTED_LANGUAGES` in `i18n/languages.ts` and to
-`resources` in `i18n/i18n.ts`.
+**The catalogue is translated too.** Fake Store only has English text, so
+the Spanish titles and descriptions of the 20 products were written for
+this project (with AI) and are stored in our own database:
 
-Catalogue content is **not** translated: titles and descriptions come from
-Fake Store in English only and are marked with `lang="en"`. The four known
-category names are translated in the frontend.
+- A table `product_translations` holds one row per product and language.
+  The rows come from `backend/app/data/translations/es.json`, loaded on
+  every start by the seed command with an idempotent upsert.
+- `GET /api/products?lang=es` and `GET /api/products/{id}?lang=es` return
+  the translated text. A product without a translation comes back in
+  English, and the `language` field of each product says which language it
+  is in. `search` reads the text of the requested language.
+- In the frontend, changing language drops the cached catalogue text and
+  requests the visible page again; categories are keys and keep their
+  cache. The four known category names get a translated label in the
+  frontend.
+
+To add an interface language: copy `locales/en.ts` to a new file and
+translate it, add the language to `SUPPORTED_LANGUAGES` in
+`i18n/languages.ts` and to `resources` in `i18n/i18n.ts`. To translate the
+catalogue into it: add the value to the `Language` enum in the backend and
+a file next to `es.json`.
 
 ## Assumptions
 
@@ -431,7 +457,7 @@ The full list, with the open questions and the defaults taken, is in
   wildcard, which does not use an index and would be slow on a large table.
 - Prices travel as JSON numbers. That is fine for display, not for money
   arithmetic.
-- The frontend ships as one JavaScript bundle of about 790 kB (250 kB
+- The frontend ships as one JavaScript bundle of about 800 kB (255 kB
   compressed). React, MUI, the router and the motion library account for
   most of it.
 - The import is manual after the first start and never deletes products.
@@ -441,9 +467,11 @@ The full list, with the open questions and the defaults taken, is in
   development values and must be replaced outside a local machine.
 - No end-to-end browser tests are part of the repository. The browser
   checks described in `docs/AI_LOG.md` were run with throwaway scripts.
-- Product titles and descriptions are shown in English in every interface
-  language, and the browser language is not detected: a first visit is in
-  English.
+- The Spanish catalogue text was written with AI for the 20 current
+  products and is bundled with the code. A product that appears in the
+  source later is shown in English until a translation is added, and
+  category names are translated in the frontend, not in the database.
+- The browser language is not detected: a first visit is in English.
 - Tested in Chrome only. No screen reader session was run.
 - The CI workflow was written and linted but has not run on GitHub yet.
 
