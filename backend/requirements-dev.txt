@@ -1,3 +1,5 @@
 -r requirements.txt
 pytest==9.1.1
 ruff==0.17.0
+# HTTP client required by the FastAPI test client (Starlette 1.x).
+httpx2==2.13.1
