@@ -1,0 +1,16 @@
+# Tool configuration only. Dependencies are pinned in requirements.txt and
+# requirements-dev.txt.
+
+[tool.ruff]
+line-length = 79
+target-version = "py313"
+
+[tool.ruff.lint]
+# E, W: pycodestyle. F: pyflakes. I: import order. N: naming.
+# UP: modern syntax. B: likely bugs. SIM: simplifications.
+# C4: comprehensions.
+select = ["E", "W", "F", "I", "N", "UP", "B", "SIM", "C4"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
