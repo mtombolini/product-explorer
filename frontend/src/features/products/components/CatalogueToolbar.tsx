@@ -23,9 +23,9 @@ interface CatalogueToolbarProps {
 /**
  * The bar above the product grid, with every control of the list: the
  * category filter, the number of results it gives and, at the right end,
- * the order. It is one row on a wide screen and two rows below that.
- * On a wide screen it stays in view under the header while the page
- * scrolls.
+ * the order. It is one row on a wide screen when it fits, and two or
+ * three rows otherwise. On a wide screen it stays in view under the
+ * header while the page scrolls.
  */
 export function CatalogueToolbar({
   categories,
