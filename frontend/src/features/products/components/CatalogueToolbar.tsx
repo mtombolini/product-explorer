@@ -102,7 +102,11 @@ export function CatalogueToolbar({
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            gap: 2,
+            // On a phone the count and the order do not fit side by
+            // side: the order goes to a line of its own.
+            flexWrap: 'wrap',
+            columnGap: 2,
+            rowGap: 1,
             flex: { xs: '1 1 100%', lg: '1 1 auto' },
             minWidth: 0,
           }}

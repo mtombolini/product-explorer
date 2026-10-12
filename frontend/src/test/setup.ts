@@ -10,6 +10,7 @@ import { DEFAULT_LANGUAGE } from '../i18n/languages';
 // jsdom does not implement scrolling and prints a warning when the router
 // restores the scroll position. In the tests scrolling does nothing.
 window.scrollTo = () => {};
+Element.prototype.scrollIntoView = () => {};
 
 // jsdom has no IntersectionObserver, which the cards use to appear when
 // they scroll into view. In the tests every observed element counts as
