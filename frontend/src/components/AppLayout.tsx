@@ -1,8 +1,10 @@
 import Box from '@mui/material/Box';
 import Container from '@mui/material/Container';
+import { motion } from 'motion/react';
 import { useEffect, useRef } from 'react';
 import { Outlet, ScrollRestoration, useLocation } from 'react-router';
 
+import { motionTokens } from '../app/motion';
 import { layout } from '../app/theme';
 import { SearchField } from '../features/products/components/SearchField';
 import { Footer } from './Footer';
@@ -36,6 +38,7 @@ function useFocusOnPageChange(): void {
  * landmark where the current route renders, and the footer.
  */
 export function AppLayout() {
+  const { pathname } = useLocation();
   useFocusOnPageChange();
 
   return (
@@ -47,7 +50,19 @@ export function AppLayout() {
           maxWidth={false}
           sx={{ maxWidth: layout.contentMaxWidth, py: { xs: 3, md: 5 } }}
         >
-          <Outlet />
+          {/* The key restarts the short fade when the page (not the
+              search or the filter) changes. */}
+          <motion.div
+            key={pathname}
+            initial={{ opacity: 0, y: motionTokens.revealOffset / 2 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{
+              duration: motionTokens.duration.base,
+              ease: motionTokens.ease,
+            }}
+          >
+            <Outlet />
+          </motion.div>
         </Container>
       </Box>
       <Footer />
