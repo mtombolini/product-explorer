@@ -97,14 +97,18 @@ def test_invalid_records_are_skipped(session: Session, tmp_path: Path) -> None:
             make_record(3, price=-1),
             "not an object",
             make_record(5, rating=None, description="", image=None),
+            # Values PostgreSQL would refuse: too large, or with a NUL.
+            make_record(2**31),
+            make_record(6, rating={"rate": 4.1, "count": 2**31}),
+            make_record(7, title="a\x00b"),
         ]
     )
 
     summary = make_import_service(session, stub, tmp_path).run()
 
-    assert summary.fetched == 5
+    assert summary.fetched == 8
     assert summary.imported == 2
-    assert summary.skipped == 3
+    assert summary.skipped == 6
     rows = read_products(session)
     assert [row.external_id for row in rows] == [1, 5]
     assert rows[1].rating_rate is None
