@@ -77,14 +77,11 @@ export function CatalogueToolbar({
       >
         <Box
           sx={{
-            // Lets the row of buttons scroll sideways when it does not
-            // fit. Below the wide layout it takes a row of its own.
+            // Can shrink, so the row of buttons scrolls sideways when it
+            // does not fit. Below the wide layout it takes a row of its
+            // own.
             flex: { xs: '1 1 100%', lg: '0 1 auto' },
             minWidth: 0,
-            overflowX: 'auto',
-            // Room for the focus ring, which the scroll box would cut.
-            p: 0.75,
-            m: -0.75,
           }}
         >
           <CategoryFilter

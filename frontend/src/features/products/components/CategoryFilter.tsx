@@ -1,3 +1,4 @@
+import Box from '@mui/material/Box';
 import ToggleButton from '@mui/material/ToggleButton';
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 import { useEffect, useRef } from 'react';
@@ -29,15 +30,24 @@ export function CategoryFilter({
   label,
 }: CategoryFilterProps) {
   const { t, i18n } = useTranslation();
-  const groupRef = useRef<HTMLDivElement>(null);
+  const rowRef = useRef<HTMLDivElement>(null);
 
   // A category that comes from the address (a link, a reload) can be a
   // button outside the visible part of the row. The categories are in
   // the list because the buttons only exist once they have loaded.
+  // Only the row moves: scrollIntoView would move the page as well and
+  // lose the position restored when coming back from a product.
   useEffect(() => {
-    groupRef.current
-      ?.querySelector('[aria-pressed="true"]')
-      ?.scrollIntoView({ inline: 'nearest', block: 'nearest' });
+    const row = rowRef.current;
+    const pressed = row?.querySelector('[aria-pressed="true"]');
+    if (!row || !pressed) return;
+    const visible = row.getBoundingClientRect();
+    const button = pressed.getBoundingClientRect();
+    if (button.left < visible.left) {
+      row.scrollLeft -= visible.left - button.left;
+    } else if (button.right > visible.right) {
+      row.scrollLeft += button.right - visible.right;
+    }
   }, [selected, categories]);
 
   const options = [
@@ -49,21 +59,30 @@ export function CategoryFilter({
   ];
 
   return (
-    <ToggleButtonGroup
-      ref={groupRef}
-      exclusive
-      value={selected}
-      aria-label={label}
-      onChange={(_event, value: string | null) => {
-        // Clicking the pressed button gives null: one stays pressed.
-        if (value !== null) onSelect(value);
+    <Box
+      ref={rowRef}
+      sx={{
+        overflowX: 'auto',
+        // Room for the focus ring, which the scroll box would cut.
+        p: 0.75,
+        m: -0.75,
       }}
     >
-      {options.map((option) => (
-        <ToggleButton key={option.value} value={option.value}>
-          {option.label}
-        </ToggleButton>
-      ))}
-    </ToggleButtonGroup>
+      <ToggleButtonGroup
+        exclusive
+        value={selected}
+        aria-label={label}
+        onChange={(_event, value: string | null) => {
+          // Clicking the pressed button gives null: one stays pressed.
+          if (value !== null) onSelect(value);
+        }}
+      >
+        {options.map((option) => (
+          <ToggleButton key={option.value} value={option.value}>
+            {option.label}
+          </ToggleButton>
+        ))}
+      </ToggleButtonGroup>
+    </Box>
   );
 }

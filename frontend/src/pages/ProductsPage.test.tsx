@@ -131,13 +131,27 @@ describe('catalogue: search and filter flow', () => {
 
   it('brings the category of the address into view', async () => {
     installFakeApi(catalogue);
+    // jsdom has no layout. Here the row of buttons shows 300 px and the
+    // pressed button ends 120 px beyond its right edge.
+    const getBoundingClientRect = vi
+      .spyOn(Element.prototype, 'getBoundingClientRect')
+      .mockImplementation(function (this: Element) {
+        const isPressed = this.getAttribute('aria-pressed') === 'true';
+        return isPressed
+          ? new DOMRect(320, 0, 100, 40)
+          : new DOMRect(0, 0, 300, 40);
+      });
     const scrollIntoView = vi.spyOn(Element.prototype, 'scrollIntoView');
     renderApp('/products?category=jewelery');
 
     const pressed = await screen.findByRole('button', { name: 'Jewelery' });
     expect(pressed).toHaveAttribute('aria-pressed', 'true');
-    // The row of buttons can be wider than a phone screen.
-    expect(scrollIntoView.mock.contexts).toContain(pressed);
+    const row = screen.getByRole('group', { name: 'Category' }).parentElement;
+    expect(row?.scrollLeft).toBe(120);
+    // scrollIntoView would move the page too, and lose the scroll
+    // position restored when coming back from a product.
+    expect(scrollIntoView).not.toHaveBeenCalled();
+    getBoundingClientRect.mockRestore();
     scrollIntoView.mockRestore();
   });
 });
