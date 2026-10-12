@@ -68,6 +68,8 @@ export const en = {
       'This product does not exist or is no longer in the catalogue.',
     errorTitle: 'The product could not be loaded',
     topRated: 'Top rated',
+    specifications: 'Specifications',
+    description: 'Description',
     noRatings: 'No ratings yet',
     ratingText_one: 'Rated {{rate}} out of 5 by {{count}} customer',
     ratingText_other: 'Rated {{rate}} out of 5 by {{count}} customers',

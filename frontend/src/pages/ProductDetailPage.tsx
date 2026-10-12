@@ -21,6 +21,7 @@ import { StatusMessage } from '../components/StatusMessage';
 import { CATALOGUE_PATH } from '../features/products/catalogueUrl';
 import { ProductImage } from '../features/products/components/ProductImage';
 import { ProductRating } from '../features/products/components/ProductRating';
+import { ProductSpecifications } from '../features/products/components/ProductSpecifications';
 import { TopRatedBadge } from '../features/products/components/TopRatedBadge';
 import { formatPrice, isTopRated } from '../features/products/format';
 import { fetchProduct } from '../features/products/productsSlice';
@@ -90,7 +91,7 @@ interface ProductViewProps {
 
 /** Two columns on desktop (image, then information), stacked on mobile. */
 function ProductView({ product }: ProductViewProps) {
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   return (
     <Box
@@ -123,12 +124,25 @@ function ProductView({ product }: ProductViewProps) {
           />
           {isTopRated(product) && <TopRatedBadge />}
         </Box>
-        <Typography
-          lang={product.language}
-          sx={{ maxWidth: layout.readingWidth }}
-        >
-          {product.description}
-        </Typography>
+        {/* The facts first, as a list that can be scanned; then the
+            description, for whoever wants to read on. */}
+        <ProductSpecifications
+          specifications={product.specifications}
+          language={product.specifications_language}
+        />
+        {product.description && (
+          <Box component="section">
+            <Typography component="h2" variant="h3" sx={{ mb: 1 }}>
+              {t('product.description')}
+            </Typography>
+            <Typography
+              lang={product.language}
+              sx={{ maxWidth: layout.readingWidth }}
+            >
+              {product.description}
+            </Typography>
+          </Box>
+        )}
       </Box>
     </Box>
   );

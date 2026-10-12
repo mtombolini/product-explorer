@@ -63,6 +63,8 @@ export const es: Messages = {
     notFoundDescription: 'Este producto no existe o ya no está en el catálogo.',
     errorTitle: 'No se pudo cargar el producto',
     topRated: 'Mejor valorado',
+    specifications: 'Especificaciones',
+    description: 'Descripción',
     noRatings: 'Aún sin valoraciones',
     ratingText_one: 'Valorado con {{rate}} de 5 por {{count}} cliente',
     ratingText_other: 'Valorado con {{rate}} de 5 por {{count}} clientes',
