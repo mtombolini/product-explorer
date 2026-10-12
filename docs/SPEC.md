@@ -197,7 +197,7 @@ service beyond the three containers.
 │   │   ├── main.py               # application factory
 │   │   ├── core/                 # config, database session, logging
 │   │   ├── models/               # tables, languages and sort orders
-│   │   ├── data/translations/    # bundled Spanish text of the catalogue
+│   │   ├── data/                 # bundled translations and specifications
 │   │   ├── schemas/              # Pydantic models (API and Fake Store)
 │   │   ├── repositories/         # data access, the only SQL in the app
 │   │   ├── services/             # business rules
@@ -274,6 +274,7 @@ Table `products`:
 | `price` | `NUMERIC(10,2)` | Not null, `>= 0` |
 | `category` | `VARCHAR(100)` | Not null, indexed |
 | `image_path` | `VARCHAR(255)` | Nullable. File name inside `IMAGES_DIR`; `NULL` means placeholder |
+| `image_source_url` | `TEXT` | Nullable. The image URL as Fake Store sent it. Internal, not exposed by the API |
 | `rating_rate` | `NUMERIC(2,1)` | Nullable, between 0 and 5 |
 | `rating_count` | `INTEGER` | Nullable, `>= 0` |
 | `created_at` | `TIMESTAMPTZ` | Not null, default `now()` |
@@ -292,8 +293,19 @@ The primary key is (`product_id`, `language`): at most one translation per
 product and language. The text imported from Fake Store is English and
 stays in `products`; this table only holds the other languages.
 
-Each table is created by its own explicit Alembic migration (`0001`,
-`0002`).
+Table `product_specifications` (key facts of a product, per language):
+
+| Column | Type | Constraints |
+| --- | --- | --- |
+| `product_id` | `INTEGER` | Not null. Foreign key to `products.id`, `ON DELETE CASCADE` |
+| `language` | `VARCHAR(8)` | Not null. Every language has rows, English included |
+| `position` | `INTEGER` | Not null. Display order, from 1 |
+| `label` | `VARCHAR(100)` | Not null, for example `Capacity` |
+| `value` | `VARCHAR(255)` | Not null, for example `2 TB` |
+
+The primary key is (`product_id`, `language`, `position`).
+
+Every change of the schema is its own explicit Alembic migration.
 
 ### 7.5 Import strategy
 
@@ -331,6 +343,14 @@ exist is logged and skipped. The step does not run after a failed product
 import, because there would be no products to translate. A problem in
 this step never stops the API from starting.
 
+The **specifications** are loaded right after, in the same way and in the
+same situations. Fake Store has only a paragraph of description, so a short
+list of label and value was written for each product from that paragraph,
+in English and in Spanish, and is bundled in
+`backend/app/data/specifications/`. For each product and language the
+stored list is replaced by the one in the file, so the step can be
+repeated and a shorter list leaves nothing behind.
+
 Behaviour of the command:
 
 - `python -m app.commands.seed` always runs the import. Exit code 0 on
@@ -358,13 +378,21 @@ Base path `/api`. JSON only. Field names are `snake_case`.
   "category": "men's clothing",
   "image_url": "/images/1.png",
   "rating_rate": 3.9,
-  "rating_count": 120
+  "rating_count": 120,
+  "specifications": [
+    {"label": "Type", "value": "Backpack"},
+    {"label": "Laptop compartment", "value": "Padded sleeve, up to 15 inches"}
+  ],
+  "specifications_language": "en"
 }
 ```
 
 `image_url`, `rating_rate` and `rating_count` can be `null`. `language`
 is the language of `title` and `description` as returned: the one asked
 for with `lang` when a translation exists, otherwise `en`.
+`specifications` are the product's key facts in display order: the rows in
+the requested language when the product has any, otherwise the English
+ones, otherwise an empty list. `specifications_language` says which.
 
 **`GET /api/products`**
 
@@ -535,7 +563,9 @@ When the database cannot be reached: 503 with `status` and `database` set to
   count stays under it; page change starts at the top of the page;
   numbered pagination that mirrors the URL. No infinite scroll.
 - Detail page: two columns on desktop, stacked on mobile, with a way back
-  that preserves search, filter and page.
+  that preserves search, filter and page. The specifications come first,
+  as a list of label and value that can be scanned; the description
+  follows under its own heading.
 - States: skeletons that match the layout, empty state with "clear filters",
   error state with "retry", not-found for unknown routes and products.
 - Accessibility: landmarks, one `h1` per page, skip link, labelled controls,
@@ -562,6 +592,8 @@ All tests are deterministic and never call the real Fake Store API.
 | Backend | Order by price in both directions, ties, sorted pages, unknown value | Sorting rule and its validation |
 | Backend | `lang=es` returns the translation, falls back per product, search reads that language | Translated catalogue |
 | Backend | Translation loader: idempotent, skips invalid, unknown and repeated entries | The bundled translations load safely |
+| Backend | Specifications by language with fallback, in order, one query for a page; their loader | Key facts are served and loaded safely |
+| Backend | The import keeps the image source URL | Nothing the source sends is lost |
 | Backend | Invalid `page`, `page_size`, `search` length, product id | 422 and the error envelope |
 | Backend | Unknown product and unknown route | 404 and the error envelope |
 | Backend | Unexpected error | 500 without internals |
@@ -570,6 +602,7 @@ All tests are deterministic and never call the real Fake Store API.
 | Frontend | Search and category filter flow | Requests carry the parameters, URL is updated, results announced |
 | Frontend | Sort by price | Order shown, URL updated, each order cached, page reset, unknown value ignored |
 | Frontend | Change of language | Interface copy, catalogue text requested again once, late answers in the old language ignored |
+| Frontend | Specifications on the product page | Shown as labels and values in order; hidden when there are none |
 | Frontend | Open a product and go back | Same list state and no new request |
 | Frontend | Error and empty states | Retry and clear filters work |
 | Frontend | Slice and URL helpers | Cache keys and parameter parsing |

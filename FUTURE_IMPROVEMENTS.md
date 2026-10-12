@@ -13,7 +13,7 @@ solution that is complete and easy to explain.
 | Search | `ILIKE '%term%'` on title and description. Simple and correct, but it scans the table and has no ranking or typo tolerance |
 | Data | Prices are exposed as JSON numbers and have no currency. The list returns full products, which would be heavy for a large catalogue |
 | Images | Stored on a local volume in their original size and format (PNG files of 100 to 460 kB) and served by the API process |
-| Frontend | One JavaScript bundle of about 800 kB (255 kB compressed). The cache lives until reload and has no expiry. Sorting is by price only. The Spanish catalogue text is a bundled snapshot written with AI, category names are translated in the frontend, and the browser language is not detected |
+| Frontend | One JavaScript bundle of about 800 kB (255 kB compressed). The cache lives until reload and has no expiry. Sorting is by price only. The Spanish catalogue text and the specifications are bundled snapshots written with AI, category names are translated in the frontend, and the browser language is not detected |
 | Testing | No end-to-end browser tests in the repository. Accessibility was audited with Lighthouse and scripts, not with a screen reader. Chrome only |
 | Security | Local default credentials in the Compose file, no TLS, no rate limiting, no Content-Security-Policy |
 | Observability | Structured logs and request ids, but no metrics, traces or alerts |
@@ -37,7 +37,7 @@ Complexity is a rough estimate: S (hours), M (days), L (a week or more).
 | 9 | Smaller bundle (code splitting by route, the motion library's lazy feature set) and a cache lifetime in the store | Faster first load, and data that refreshes without a reload | S | Loading states between routes. An expiry rule must not bring back the refetching the cache avoids |
 | 10 | Rate limiting and response caching (ETag or short `Cache-Control`) on the API | Protects the database from abuse and repeated identical requests | S to M | Cache invalidation after an import |
 | 11 | Money as integer minor units with a currency code | Correct arithmetic once there is a basket or tax | M | A data migration and a contract change for every client |
-| 12 | A translation workflow, language detection and right-to-left layout | Translations are loaded from a file in the repository. A real catalogue needs them managed as data: reviewed by people, added when a product appears, and covering category names too | L | Needs an editing interface or a translation service, and a rule for products whose source text changes after they were translated |
+| 12 | A content workflow (translations and specifications), language detection and right-to-left layout | Translations and specifications are loaded from files in the repository. A real catalogue needs them managed as data: reviewed by people, added when a product appears, and covering category names too | L | Needs an editing interface or a translation service, and a rule for products whose source text changes after they were translated |
 
 ## 3. Suggested order
 

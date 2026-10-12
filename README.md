@@ -137,9 +137,9 @@ in [docs/architecture.md](docs/architecture.md).
 │   │   ├── repositories/               database queries and image files
 │   │   ├── clients/                    Fake Store HTTP client
 │   │   ├── models/  schemas/           tables, languages and sort orders; request and response shapes
-│   │   ├── data/translations/          bundled Spanish text of the catalogue
+│   │   ├── data/                       bundled Spanish text and specifications of the catalogue
 │   │   ├── core/                       settings, database session, logging
-│   │   └── commands/seed.py            the import command (products, then translations)
+│   │   └── commands/seed.py            the import command (products, translations, specifications)
 │   └── tests/
 └── frontend/
     ├── Dockerfile  nginx/default.conf
@@ -195,7 +195,12 @@ curl "http://localhost:8080/api/products?search=cotton&category=women%27s%20clot
       "category": "women's clothing",
       "image_url": "/images/20.png",
       "rating_rate": 3.6,
-      "rating_count": 145
+      "rating_count": 145,
+      "specifications": [
+        { "label": "Material", "value": "95% cotton, 5% spandex" },
+        { "label": "Sleeves", "value": "Short" }
+      ],
+      "specifications_language": "en"
     }
   ],
   "total": 3,
@@ -207,7 +212,9 @@ curl "http://localhost:8080/api/products?search=cotton&category=women%27s%20clot
 
 (Three products match; one is shown here.) `language` says which language
 the title and description are in: the one asked for with `lang` when the
-catalogue has a translation, otherwise `en`. A page after the last one answers 200 with an empty `items` list, so the
+catalogue has a translation, otherwise `en`. `specifications` are the key
+facts of the product (two of five are shown here), in the requested
+language when it has them. A page after the last one answers 200 with an empty `items` list, so the
 client can still show the totals.
 
 **Errors.** Every error has the same body:
@@ -265,7 +272,17 @@ docker compose exec backend python -m app.commands.seed
 Then, on every start and with no network, the **translations** are loaded:
 the Spanish titles and descriptions of the catalogue are bundled in
 `backend/app/data/translations/es.json` and upserted into the
-`product_translations` table (see [Languages](#languages)).
+`product_translations` table (see [Languages](#languages)). The
+**specifications** follow in the same way, from
+`backend/app/data/specifications/`.
+
+**Is everything Fake Store sends kept?** Yes. A product there has seven
+fields and all of them are stored for all 20 products: `id` (as
+`external_id`), `title`, `price`, `description`, `category`, `rating`
+(its `rate` and its `count`) and `image`, which is kept twice: the file
+is downloaded and its original URL is stored in `image_source_url`. The
+other Fake Store resources (carts and users) are not part of a catalogue
+and are not imported.
 
 | Topic | How it is handled |
 | --- | --- |
@@ -293,10 +310,10 @@ the Spanish titles and descriptions of the catalogue are bundled in
 No local toolchain is needed: both suites run in containers.
 
 ```bash
-# Backend: 98 tests (pytest) against PostgreSQL, in a database ending in _test
+# Backend: 119 tests (pytest) against PostgreSQL, in a database ending in _test
 docker compose --profile test run --rm --build backend-test
 
-# Frontend: 66 tests (Vitest + React Testing Library)
+# Frontend: 69 tests (Vitest + React Testing Library)
 docker compose --profile test run --rm --build frontend-test
 ```
 
@@ -319,8 +336,10 @@ HTTP transport with `httpx.MockTransport`, and the frontend replaces
 | Backend, import | Idempotency (two runs, same rows), update in place, invalid records skipped, failed image keeps the placeholder, three failures stop the downloads, source unavailable leaves the table untouched, retries |
 | Backend, API | Pagination metadata and edge pages, category filter, search (case, title or description, `%` and `_`), order by price (both directions, ties, sorted pages), every validation rule (422), 404, 405, 500 without internals, request id, health with and without products and with the database down |
 | Backend, languages | Translated text with `lang=es`, fallback to English per product, search in the requested language, invalid `lang` (422); the translation loader (idempotent, invalid, unknown and repeated entries, unsupported files); the bundled Spanish file |
+| Backend, specifications | Lists in order by language, fallback to English, empty list, a fixed number of queries for any page size; the loader (idempotent, a shorter list replaces the old one, invalid, unknown and repeated entries); the two bundled files; the image source URL kept by the import and absent from the API |
 | Backend, service | Pagination maths and filter clean-up with an in-memory repository, no database |
 | Frontend, flows | Search after a pause and category filter (requests, URL, announced count); sort by price (order, URL, cache); pagination; opening a product and going back with no new request; direct visit fetches once |
+| Frontend, product page | Specifications as labels and values in order, hidden when there are none, marked with their language |
 | Frontend, states | Error with retry, filtered empty state with "Clear filters", empty catalogue, page past the end, product not found, malformed id, unknown route |
 | Frontend, units | API client errors, URL parsing, cache rules of the slice |
 | Frontend, languages | Switching to Spanish and back, plurals, translated states, same keys in every language, price and rating formats; catalogue text requested again in the new language, one request per language, a late answer in the old language ignored |
@@ -424,6 +443,13 @@ this project (with AI) and are stored in our own database:
   cache. The four known category names get a translated label in the
   frontend.
 
+**Specifications.** Fake Store describes each product with one
+paragraph. To make the key facts quick to scan, a short list of label and
+value ("Capacity: 2 TB") was written for each product from its
+description, in both languages, and is served by the API as
+`specifications`. The product page shows that list first and the
+description below it.
+
 To add an interface language: copy `locales/en.ts` to a new file and
 translate it, add the language to `SUPPORTED_LANGUAGES` in
 `i18n/languages.ts` and to `resources` in `i18n/i18n.ts`. To translate the
@@ -467,8 +493,9 @@ The full list, with the open questions and the defaults taken, is in
   development values and must be replaced outside a local machine.
 - No end-to-end browser tests are part of the repository. The browser
   checks described in `docs/AI_LOG.md` were run with throwaway scripts.
-- The Spanish catalogue text was written with AI for the 20 current
-  products and is bundled with the code. A product that appears in the
+- The Spanish catalogue text and the specifications in both languages
+  were written with AI for the 20 current products, from what Fake Store
+  says about each one, and are bundled with the code. A product that appears in the
   source later is shown in English until a translation is added, and
   category names are translated in the frontend, not in the database.
 - The browser language is not detected: a first visit is in English.

@@ -620,3 +620,57 @@ trade-off that was accepted. New entries are appended as the work advances.
 - **Alternatives.** Keep the hairline layout; a sidebar.
 - **Trade-off.** `:has()` needs a browser from 2023 or later. Older ones
   still show the field's own focused border.
+
+## Phase 13: specifications and the image source URL
+
+### D-049 Specifications as rows of label and value
+
+- **Context.** A description is one paragraph, which is slow to scan. The
+  candidate asked for the key facts as specifications. Fake Store has no
+  such data.
+- **Decision.** A short list of label and value was written for each
+  product from its description, in English and Spanish, and is bundled in
+  `backend/app/data/specifications/`. It is stored in a table
+  `product_specifications` with one row per fact, loaded by the seed
+  command like the translations, and returned by the API in the requested
+  language with a fallback to English.
+- **Alternatives.** Splitting the paragraph into bullets in the browser; a
+  JSON column on the product.
+- **Trade-off.** Splitting text by punctuation breaks sentences and gives
+  uneven results. Rows keep order, language and length under the control
+  of the database. The lists are a snapshot written with AI: every row
+  must be backed by the description, and a new product has none until one
+  is written.
+
+### D-050 Specifications are replaced, not merged, on each load
+
+- **Context.** A list can get shorter or be reordered between two loads.
+- **Decision.** For each product and language the loader deletes the
+  stored rows and inserts the list of the file.
+- **Alternatives.** Upsert by position.
+- **Trade-off.** A few more writes on every start. An upsert would leave
+  the last rows of a list that became shorter.
+
+### D-051 The page loads its specifications with one extra query
+
+- **Context.** The list endpoint returns full products, so each of the 12
+  products of a page needs its specifications.
+- **Decision.** After the page query, one query reads the specifications
+  of those products, and they are attached in memory.
+- **Alternatives.** A join in the page query; one query per product.
+- **Trade-off.** Two queries per request instead of one. A join would
+  repeat each product once per specification and break `LIMIT`; a query
+  per product grows with the page size.
+
+### D-052 The import keeps the source URL of the image
+
+- **Context.** The import downloaded each image and stored only the file
+  name, so the URL that Fake Store sent was the one piece of source data
+  that was not kept.
+- **Decision.** A nullable column `image_source_url`, written by the
+  upsert. It is internal and not part of the API.
+- **Alternatives.** Leave it out.
+- **Trade-off.** One more column. Every field of the source is now in the
+  database, and an image can be traced or fetched again without asking
+  Fake Store for the product list.
+

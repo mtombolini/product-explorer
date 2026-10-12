@@ -9,9 +9,9 @@ command that was run and its real result, is in
 
 - **Claude Code** (Anthropic, model Claude Opus) as a coding agent with
   access to the repository, a shell, Docker and a headless Chrome.
-- **Sub-agents** started by that agent: three builders (the
-  infrastructure, the data layer and, later, the backend of the translated
-  catalogue), read-only reviewers, a triage step and a fixer.
+- **Sub-agents** started by that agent: builders (the infrastructure, the
+  data layer and, later, the backend of the translated catalogue and of
+  the specifications), read-only reviewers, a triage step and a fixer.
 
 ## How it was used
 
@@ -27,9 +27,11 @@ command that was run and its real result, is in
 4. The candidate then used the running application and asked for changes:
    a second language, a toolbar for the list controls, no native form
    controls, a header that does not move the page, sorting by price,
-   product text that follows the language, and a logo.
+   product text that follows the language, a logo, and specifications
+   next to the description.
 5. Independent AI reviewers examined the first complete version (seven
-   reviewers) and, later, the backend of the translated catalogue (two).
+   reviewers) and, later, the backend of the translated catalogue and of
+   the specifications (two each).
    Confirmed findings were fixed. The interface changes made after the
    first review (toolbar, header, logo, sorting and language in the
    frontend) were checked by the main agent in a browser, not by
@@ -64,6 +66,10 @@ From the candidate after using the application (translated from Spanish):
 > When I change the language, the product name does not change. Why? Nor
 > the description.
 
+> Descriptions are a paragraph. They could also be shown as
+> specifications; reading a paragraph does not always help. And are we
+> bringing all the data from the API? That matters.
+
 To each reviewer:
 
 > Report only what you can back with evidence: a file and line, or a
@@ -80,8 +86,9 @@ To each reviewer:
 - Eight findings of the first independent review, after duplicates among
   the 43 that were raised had been merged, and two from the review of the
   translation backend.
-- Spanish titles and descriptions for the 20 products, written by the
-  model and stored as catalogue data.
+- Spanish titles and descriptions for the 20 products, and a short list
+  of specifications for each in both languages, written by the model from
+  what Fake Store says and stored as catalogue data.
 
 ## What was rejected or changed
 
@@ -102,6 +109,11 @@ A selection; the log has all of them.
   was measured again and the documents corrected (about 800 kB now).
 - **Product translations as a dictionary in the frontend.** Catalogue
   text is data: it went to a table in the database, behind the API.
+- **Splitting a description into bullets in the browser.** Punctuation
+  is not structure; the key facts became rows of label and value instead.
+- **Two commits from a sub-agent that did not compile.** A reviewer found
+  a misplaced line in two intermediate, unpushed commits. They were
+  rebuilt with the line in place; the final content did not change.
 - **Sort tests that proved nothing.** A reviewer showed they passed with
   the tie-breaker removed; they were rewritten until they failed without
   it.
@@ -117,7 +129,7 @@ A selection; the log has all of them.
 - **Static checks.** `ruff` and `pycodestyle` at 79 characters for Python;
   ESLint with accessibility rules, strict TypeScript and Prettier for the
   frontend.
-- **Tests.** 98 backend tests against PostgreSQL and 66 frontend tests,
+- **Tests.** 119 backend tests against PostgreSQL and 69 frontend tests,
   both run in containers. None calls the real Fake Store API.
 - **A clean clone.** With no `.env` file, `docker-compose up` gave three
   healthy containers, 20 products and 20 images. The import was run again
@@ -136,8 +148,8 @@ A selection; the log has all of them.
 
 - The CI workflow has not run on GitHub; it was only linted.
 - No screen reader session, and no browser other than Chrome.
-- The Spanish copy, including the translated product text, was not read
-  by a second person.
+- The Spanish copy, the translated product text and the specifications
+  were not read by a second person.
 - The interface changes made after the first independent review were not
   reviewed independently.
 - One frontend test run failed once while the development machine was
