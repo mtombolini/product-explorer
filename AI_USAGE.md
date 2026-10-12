@@ -586,6 +586,63 @@ Representative excerpts from the master prompt:
     the buttons (they share the selector of the chips), and the import
     with a real out-of-range record (covered by the test only).
 
+## Phase 10: interface refinements
+
+- **Prompt or workflow.** The candidate used the running application and
+  reported four things: the language control should not be a native
+  select, the category buttons were too tall and too rounded and the
+  result count sat below them, the header "moved" while scrolling, and the
+  top bar should look more professional. The main agent measured the
+  scrolling problem first and then changed the code.
+- **Accepted.**
+  - A fixed header with a constant spacer (D-037), with a shadow once the
+    page is scrolled.
+  - Control heights that depend on the pointer: 36 to 40 px with a mouse,
+    44 px on touch screens (D-038). Corners of 6 px, no pill shapes.
+  - One toolbar with a "Category" label, joined buttons and the result
+    count at the right end (D-039).
+  - A button with an MUI menu for the language (D-040).
+- **Rejected or changed.**
+  - The sticky header from phase 7 was the cause of the movement and was
+    replaced. In Chrome, with a slow wheel scroll of 60 px, its height
+    went 72, 68, 65, 68, 70, 66, 63, 67, 63, 61, 65, 61 ... 56 and the
+    scroll position jumped back and forth: four changes of direction in
+    about 300 ms.
+  - A "Clear filters" button in the toolbar was considered and left out:
+    the search field has its own clear button and the filter has "All".
+  - A first version of the toolbar let the count drop to a second row at
+    768 px. From tablet width the bar is now a single row and the buttons
+    scroll sideways if they do not fit.
+  - The search field kept a pill shape set locally in the component. It
+    now uses the corner radius of the theme.
+  - The comment and the decision that said the category buttons work with
+    Tab were corrected: MUI's group is one Tab stop and the arrow keys
+    move inside it.
+- **Verification.**
+  - In `frontend/`: `npm run lint`, `npm run typecheck` and
+    `npm run format:check` clean; `npm test`: "52 passed".
+  - After `docker compose up --build -d --wait`, in headless Chrome:
+    - The same slow scroll: the header height went from 72 to 56 px with
+      no change of direction, and the first product card moved only by
+      the scrolled distance.
+    - Measured heights at 1280 and 768 px: category buttons 36 px, search
+      field 40 px, language button 40 px. With touch emulation at 360 px:
+      44 px each. No interactive element under 36 px, no horizontal
+      overflow at 360, 768 and 1280 px in English or Spanish.
+    - Keyboard: nine Tab presses from the top showed a solid 3 px outline
+      on every stop (yellow in the header, blue below). The language menu
+      opened with Enter, the arrow key and Enter changed the language and
+      focus returned to the button. In the category group the arrow keys,
+      Home and End moved between the buttons and Enter applied
+      `?category=electronics`.
+  - Lighthouse 13.5.0, accessibility: 100 on `/products` and
+    `/product/1`, no failed audit.
+  - Screenshots of the top of the catalogue, the scrolled state and the
+    open language menu at the three widths were looked at.
+  - Known and not fixed: at tablet width in Spanish, with a search and a
+    category active, the row of buttons scrolls sideways and the pressed
+    button can be out of view until the row is scrolled.
+
 ## Human review
 
 This section is for the candidate's own notes: what was read, questioned,

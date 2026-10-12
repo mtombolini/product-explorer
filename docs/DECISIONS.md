@@ -385,6 +385,8 @@ trade-off that was accepted. New entries are appended as the work advances.
 - **Alternatives.** A radio group; a select.
 - **Trade-off.** A radio group would need arrow-key handling written by
   hand. Buttons are operable with Tab, Enter and Space out of the box.
+- **Update (D-039).** The buttons are now MUI's `ToggleButtonGroup`, which
+  keeps `aria-pressed` and adds arrow-key movement inside the group.
 
 ### D-032 One JavaScript bundle
 
@@ -453,3 +455,57 @@ trade-off that was accepted. New entries are appended as the work advances.
 - **Trade-off.** A Spanish page with English product text. Translating
   content properly needs per-language data in the database and a language
   parameter in the API, which is listed in `FUTURE_IMPROVEMENTS.md`.
+
+## Phase 10: interface refinements
+
+### D-037 A fixed header with a spacer instead of a sticky one
+
+- **Context.** The sticky header changed height after scrolling. A
+  measurement in Chrome showed the cause of a visible jitter: the height
+  change moved the page, the browser corrected the scroll position, and
+  that crossed the threshold back. During a slow scroll the header height
+  changed direction four times in 300 ms.
+- **Decision.** The header is `position: fixed` and a spacer of constant
+  height holds its place. The header can change height without moving
+  anything else.
+- **Alternatives.** Keep it sticky and switch off scroll anchoring; keep
+  one height and drop the compact state.
+- **Trade-off.** The heights are written as tokens (in rem) instead of
+  coming from the content. In exchange the page never shifts: the same
+  measurement now shows the height going from 72 to 56 px in one
+  direction.
+
+### D-038 Control sizes depend on the kind of pointer
+
+- **Context.** Controls of 44 px looked heavy on a desktop screen, but
+  44 px is the comfortable minimum for a finger.
+- **Decision.** Controls are 36 to 40 px tall by default and grow to 44 px
+  under the `pointer: coarse` media query. Both sizes live in the theme.
+- **Alternatives.** 44 px everywhere; 36 px everywhere.
+- **Trade-off.** One media query in each control style. The 36 px size is
+  above the 24 px that WCAG 2.2 AA requires, and touch screens keep the
+  larger target.
+
+### D-039 Joined, rectangular filter buttons in a toolbar
+
+- **Context.** The category chips were tall, fully rounded and stacked
+  above a result count that sat on its own line.
+- **Decision.** One toolbar: a "Category" label, MUI's `ToggleButtonGroup`
+  with one filled button, and the result count at the right end. Corners
+  are 6 px everywhere and pill shapes are gone. On desktop the toolbar
+  stays under the header.
+- **Alternatives.** A select for the category; a sidebar with filters.
+- **Trade-off.** On a phone the buttons scroll sideways. A sidebar would
+  be the natural next step with more than one filter; with a single
+  filter it would be mostly empty.
+
+### D-040 A menu for the language, no native controls
+
+- **Context.** The language control was a native `select`, which opens
+  the operating system's own list and looks different on every platform.
+- **Decision.** A button in the header that opens an MUI menu. Items have
+  the role `menuitemradio` and the current one is checked.
+- **Alternatives.** MUI's `Select`; two buttons side by side.
+- **Trade-off.** More code than a native select, which was accessible for
+  free. The menu keeps keyboard support (Enter, arrows, Escape, focus
+  back on the button) and is covered by a test.

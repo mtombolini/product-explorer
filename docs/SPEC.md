@@ -479,8 +479,10 @@ When the database cannot be reached: 503 with `status` and `database` set to
   fluid headings with `clamp()`, body at least 16 px, descriptions limited to
   60 to 75 characters per line. Sentence case.
 - Layout: mobile-first, 8 px spacing scale, content width capped near
-  1280 to 1440 px. Grid of 1, 2, 3 and 4 columns. Touch targets of at least
-  44 px.
+  1280 to 1440 px. Grid of 1, 2, 3 and 4 columns. Controls are 36 to
+  40 px tall with a mouse and at least 44 px on touch screens. Corners are
+  slightly rounded (6 px); there are no pill shapes. No native form
+  controls: menus and selects are MUI components.
 - Cards: image-first, fixed aspect-ratio box with `object-fit: contain` on a
   light neutral background, lazy loading, fade in on load, placeholder on
   error, meaningful `alt`. Title clamped to two lines, category, price,
@@ -489,9 +491,10 @@ When the database cannot be reached: 503 with `status` and `database` set to
   reveal on scroll, lift on hover and focus, short route transition, skeleton
   shimmer. Under `prefers-reduced-motion` movement is removed; a short
   fade remains.
-- Scroll: sticky header that becomes compact, filters reachable on desktop,
-  page change starts at the top of the page, numbered pagination that
-  mirrors the URL. No infinite scroll.
+- Scroll: fixed header that becomes shorter after scrolling without moving
+  the page; on desktop a toolbar with the category filter and the result
+  count stays under it; page change starts at the top of the page;
+  numbered pagination that mirrors the URL. No infinite scroll.
 - Detail page: two columns on desktop, stacked on mobile, with a way back
   that preserves search, filter and page.
 - States: skeletons that match the layout, empty state with "clear filters",
@@ -577,7 +580,7 @@ Added after the first version, at the candidate's request. The statement
 does not ask for it.
 
 - The interface is available in English and Spanish. English is the
-  default. The user changes it with a select in the header and the choice
+  default. The user changes it with a menu in the header and the choice
   is stored in the browser for the next visit. The browser language is not
   detected automatically (see `docs/DECISIONS.md`).
 - All interface copy lives in one file per language under
