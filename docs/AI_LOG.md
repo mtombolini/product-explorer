@@ -711,3 +711,64 @@ during the work, one section at a time.
   - Not verified: the Spanish product text by a second reader, and the
     frontend of this phase by independent reviewers.
 
+## Phase 13: specifications and the image source URL
+
+- **Prompt or workflow.** The candidate asked three things: in which
+  language the source API answers and whether it could send translated
+  text, whether every field of the source is imported, and whether the
+  description could also be shown as specifications. The first two were
+  answered by testing Fake Store directly. For the third, the main agent
+  wrote a list of label and value for each product from its description,
+  in English and Spanish, and a contract; a sub-agent built the backend
+  against it, two read-only reviewers examined it and a fixer applied
+  their findings, while the main agent wrote the product page.
+- **Accepted.**
+  - Backend, from the sub-agent: the column `image_source_url`
+    (migration `0003`), the table `product_specifications` (migration
+    `0004`), the loader run by the seed command, and the fields
+    `specifications` and `specifications_language` (D-049 to D-052).
+  - A shared module for reading the bundled files, which the sub-agent
+    extracted from the translation loader although it was not asked for.
+  - Frontend: the specifications as a description list above the
+    description, in the language the API reports.
+- **Rejected or changed.**
+  - Splitting the description into bullets in the browser was rejected
+    (D-049).
+  - A reviewer found that two of the sub-agent's three commits did not
+    compile: one line had landed inside a method. The fixer refused to
+    rewrite history, as its instructions said. The main agent rebuilt
+    those unpushed commits with the line in its place and checked that
+    the final tree was identical to the one before.
+  - The sub-agent made a NUL character in the image URL an invalid
+    record, which the contract had not asked for. It was kept: the URL is
+    now written to the database, where one such value would have failed
+    the whole upsert.
+  - Two comments (the Dockerfile start sequence, the shortened revision
+    id of migration `0003`) were completed after review.
+- **Verification.**
+  - Fake Store, with curl: every one of the 20 records has the keys
+    `id`, `title`, `price`, `description`, `category`, `image` and
+    `rating` (`rate`, `count`) and no other; `?limit=100` returns 20;
+    `?lang=es`, `?language=es`, `?locale=es` and the header
+    `Accept-Language: es` all return the English title.
+  - Backend, by the sub-agents: `ruff check`, `ruff format --check` and
+    `pycodestyle --max-line-length=79` clean; `backend-test`:
+    "119 passed"; migrations `0003` and `0004` downgraded and upgraded in
+    the test database; a test counts the SQL statements of a list request
+    (3 for a page of 1 and 3 for a page of 6).
+  - Frontend, by the main agent: lint, type check and format check clean;
+    `npm test`: "69 passed".
+  - After `docker compose up --build -d --wait`:
+    `/api/products/9?lang=es` returned four Spanish specifications with
+    `specifications_language` "es" and no `image_source_url` field; the
+    database held 90 specification rows for 20 products in each language
+    and 20 products with an image source URL.
+  - In headless Chrome at 1280 and 360 px: opening a product from the
+    list made no request and showed its five specifications in order;
+    after choosing Español the list carried `lang="es"`, the headings
+    read "Especificaciones" and "Descripción", and there was no
+    horizontal overflow. The screenshots were looked at.
+  - Not verified: each specification against its description by a second
+    reader other than the reviewer sub-agent, and the frontend of this
+    phase by independent reviewers.
+
