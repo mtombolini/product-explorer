@@ -8,7 +8,7 @@ from sqlalchemy import create_engine, pool
 from app.core.config import get_settings
 from app.core.database import Base
 from app.core.logging import configure_logging
-from app.models import Product  # noqa: F401  (registers the table)
+from app.models import Product  # noqa: F401  (registers the tables)
 
 # Run as a command ("alembic upgrade head" in entrypoint.sh) nothing has
 # set up logging yet, so the migration lines get the JSON format of the
