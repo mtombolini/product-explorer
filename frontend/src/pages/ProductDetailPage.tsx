@@ -125,7 +125,9 @@ function ProductView({ product }: ProductViewProps) {
         </Box>
         {/* Below the name and its rating, between two lines, so it does
             not read as a second heading. */}
-        <Box sx={{ py: 2, borderBlock: 1, borderColor: 'divider' }}>
+        <Box
+          sx={{ py: 2, borderTop: 1, borderBottom: 1, borderColor: 'divider' }}
+        >
           <ProductPrice price={product.price} large />
         </Box>
         {/* The facts first, as a list that can be scanned; then the
