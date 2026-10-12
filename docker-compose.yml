@@ -1,0 +1,81 @@
+# Product Explorer: database, API and web server.
+# Every value has a local default, so a .env file is optional (see
+# .env.example for the variables that can be overridden).
+
+# Fixed project name: container, volume and network names do not depend on
+# the name of the directory the repository was cloned into.
+name: product-explorer
+
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-product_explorer}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-product_explorer}
+      POSTGRES_DB: ${POSTGRES_DB:-product_explorer}
+    # No "ports": the database is only reachable from the other containers.
+    # Inspect it with "docker compose exec db psql".
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      # $$ is an escaped $: the variables are expanded inside the
+      # container, not by Compose.
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg://${POSTGRES_USER:-product_explorer}:${POSTGRES_PASSWORD:-product_explorer}@db:5432/${POSTGRES_DB:-product_explorer}}
+      FAKESTORE_BASE_URL: ${FAKESTORE_BASE_URL:-https://fakestoreapi.com}
+      FAKESTORE_TIMEOUT_SECONDS: ${FAKESTORE_TIMEOUT_SECONDS:-5}
+      FAKESTORE_MAX_RETRIES: ${FAKESTORE_MAX_RETRIES:-2}
+      IMAGES_DIR: ${IMAGES_DIR:-/data/images}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    ports:
+      # Loopback only: the API is for local inspection (for example /docs).
+      # The browser reaches it through the frontend proxy.
+      - "127.0.0.1:${BACKEND_PORT:-8000}:8000"
+    volumes:
+      - product-images:${IMAGES_DIR:-/data/images}
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      # The slim Python image has no curl, so Python makes the request.
+      # urlopen raises on a non-2xx answer, which fails the check.
+      test:
+        - CMD
+        - python
+        - -c
+        - import urllib.request; urllib.request.urlopen("http://127.0.0.1:8000/health", timeout=3)
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+      start_interval: 2s
+
+  frontend:
+    build: ./frontend
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-8080}:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1/"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+      start_interval: 2s
+
+volumes:
+  db-data:
+  product-images:
