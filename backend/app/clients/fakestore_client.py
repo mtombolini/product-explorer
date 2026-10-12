@@ -81,7 +81,11 @@ class FakeStoreClient:
 
     def download_image(self, url: str) -> DownloadedImage:
         """Download one image from the same host as the products."""
-        if httpx.URL(url).host != self._base_url.host:
+        try:
+            host = httpx.URL(url).host
+        except httpx.InvalidURL as error:
+            raise ImageDownloadError(f"Invalid image URL: {url}") from error
+        if host != self._base_url.host:
             raise ImageDownloadError(f"Image is on another host: {url}")
         try:
             response = self._get(url)
