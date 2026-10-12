@@ -3,6 +3,7 @@ import Container from '@mui/material/Container';
 import { motion } from 'motion/react';
 import { useEffect, useRef } from 'react';
 import { Outlet, ScrollRestoration, useLocation } from 'react-router';
+import type { Location } from 'react-router';
 
 import { motionTokens } from '../app/motion';
 import { layout } from '../app/theme';
@@ -31,6 +32,18 @@ function useFocusOnPageChange(): void {
     // preventScroll: the router restores the scroll position itself.
     target?.focus({ preventScroll: true });
   }, [pathname]);
+}
+
+/**
+ * Scroll positions are remembered per history entry. The first entry of
+ * every page load has the same key ("default"), so it is identified by
+ * its address instead. Otherwise, opening another address in the same tab
+ * would start at the scroll position of the page that was there before.
+ */
+function scrollKey(location: Location): string {
+  return location.key === 'default'
+    ? location.pathname + location.search
+    : location.key;
 }
 
 /**
@@ -68,7 +81,7 @@ export function AppLayout() {
       <Footer />
       {/* Back and forward restore the scroll position; a new page
           starts at the top. */}
-      <ScrollRestoration />
+      <ScrollRestoration getKey={scrollKey} />
     </>
   );
 }
