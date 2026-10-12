@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react';
+import { screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { installFakeApi, makeProduct } from '../test/fakeApi';
@@ -165,5 +165,63 @@ describe('routing', () => {
       screen.getByRole('link', { name: 'Skip to main content' }),
     ).toHaveAttribute('href', '#main-content');
     await screen.findByRole('heading', { name: 'Item 01' });
+  });
+});
+
+describe('product page: specifications', () => {
+  const drive = makeProduct(9, {
+    title: 'External drive',
+    specifications: [
+      { label: 'Capacity', value: '2 TB' },
+      { label: 'Interface', value: 'USB 3.0' },
+    ],
+    specifications_language: 'en',
+  });
+
+  it('lists each specification as a label with its value, in order', async () => {
+    installFakeApi([drive]);
+    renderApp('/product/9');
+
+    const section = await screen.findByRole('region', {
+      name: 'Specifications',
+    });
+    expect(
+      within(section)
+        .getAllByRole('term')
+        .map((term) => term.textContent),
+    ).toEqual(['Capacity', 'Interface']);
+    expect(
+      within(section)
+        .getAllByRole('definition')
+        .map((definition) => definition.textContent),
+    ).toEqual(['2 TB', 'USB 3.0']);
+    // The description stays below, under its own heading.
+    expect(
+      screen.getByRole('heading', { level: 2, name: 'Description' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Description of product 9')).toBeInTheDocument();
+  });
+
+  it('shows no specifications section when the product has none', async () => {
+    installFakeApi([makeProduct(3, { title: 'Plain product' })]);
+    renderApp('/product/3');
+
+    await screen.findByRole('heading', { level: 1, name: 'Plain product' });
+    expect(
+      screen.queryByRole('region', { name: 'Specifications' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('marks the list with the language its text is in', async () => {
+    installFakeApi([
+      makeProduct(9, {
+        specifications: [{ label: 'Capacidad', value: '2 TB' }],
+        specifications_language: 'es',
+      }),
+    ]);
+    renderApp('/product/9');
+
+    const term = await screen.findByRole('term');
+    expect(term.closest('dl')).toHaveAttribute('lang', 'es');
   });
 });
