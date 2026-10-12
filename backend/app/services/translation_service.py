@@ -1,6 +1,5 @@
 """The loading of the bundled product translations into the database."""
 
-import json
 import logging
 from dataclasses import asdict, dataclass
 from pathlib import Path
@@ -11,6 +10,11 @@ from pydantic import ValidationError
 from app.models import SOURCE_LANGUAGE, Language
 from app.repositories.product_repository import ProductRepository
 from app.schemas.translation import TranslationEntry
+from app.services.bundled_files import (
+    find_product_id,
+    language_of,
+    read_entries,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -59,7 +63,7 @@ class TranslationLoadService:
             language = self._language_of(path)
             if language is None:
                 continue
-            for key, value in self._read_entries(path).items():
+            for key, value in read_entries(path).items():
                 row = self._build_row(language, key, value, product_ids)
                 if row is None:
                     skipped += 1
@@ -84,14 +88,7 @@ class TranslationLoadService:
 
     def _language_of(self, path: Path) -> Language | None:
         """Return the language a file is named after, or None to skip it."""
-        try:
-            language = Language(path.stem)
-        except ValueError:
-            logger.warning(
-                "Skipped a translation file: unsupported language",
-                extra={"file": path.name},
-            )
-            return None
+        language = language_of(path)
         if language is SOURCE_LANGUAGE:
             # The source text is the one in the products table.
             logger.warning(
@@ -100,24 +97,6 @@ class TranslationLoadService:
             )
             return None
         return language
-
-    def _read_entries(self, path: Path) -> dict[str, Any]:
-        """Return the entries of a file. A broken file gives none."""
-        try:
-            content = json.loads(path.read_text(encoding="utf-8"))
-        except (OSError, ValueError) as error:
-            logger.warning(
-                "Skipped a translation file: it cannot be read",
-                extra={"file": path.name, "reason": str(error)},
-            )
-            return {}
-        if not isinstance(content, dict):
-            logger.warning(
-                "Skipped a translation file: it is not a JSON object",
-                extra={"file": path.name},
-            )
-            return {}
-        return content
 
     def _build_row(
         self,
@@ -142,8 +121,7 @@ class TranslationLoadService:
                 },
             )
             return None
-        # A key that is not a number cannot be the id of a product.
-        product_id = product_ids.get(int(key)) if key.isdecimal() else None
+        product_id = find_product_id(key, product_ids)
         if product_id is None:
             logger.warning(
                 "Skipped a translation: its product does not exist",
