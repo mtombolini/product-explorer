@@ -9,11 +9,13 @@ from collections.abc import Iterator
 import pytest
 from alembic import command
 from alembic.config import Config
+from fastapi.testclient import TestClient
 from sqlalchemy import URL, create_engine, make_url, text
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
 from app.core.database import SessionFactory, engine
+from app.main import app
 
 
 def _create_database_if_missing(url: URL) -> None:
@@ -59,3 +61,15 @@ def session() -> Iterator[Session]:
     """Yield a database session and close it after the test."""
     with SessionFactory() as session:
         yield session
+
+
+@pytest.fixture
+def client() -> Iterator[TestClient]:
+    """Yield an HTTP client that calls the application in-process.
+
+    Dependency overrides set by a test are removed afterwards, so one
+    test can never change the behaviour of another.
+    """
+    with TestClient(app) as test_client:
+        yield test_client
+    app.dependency_overrides.clear()
