@@ -1,8 +1,8 @@
 /**
- * Category names are catalogue data, not interface copy: the API returns
- * them in the language of the source. Until the backend serves translated
- * content, the categories we know are translated here; any other category
- * is shown as it comes, in sentence case.
+ * Categories are keys, the same in every language: the API filters by
+ * them and never translates them (D-046). The interface gives the ones
+ * we know a translated name here; any other category is shown as it
+ * comes, in sentence case.
  */
 const CATEGORY_NAMES: Record<string, Record<string, string>> = {
   es: {
