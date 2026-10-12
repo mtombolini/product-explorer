@@ -14,17 +14,33 @@ const INK = '#111111';
 const INK_SOFT = '#484848';
 const SURFACE = '#F5F5F5';
 const LINE = '#DFDFDF';
+/** Edge of a control: dark enough to be seen against white (4.5:1). */
+const CONTROL_LINE = '#767676';
 const WHITE = '#FFFFFF';
 
-/** Smallest comfortable size of anything that can be tapped. */
+/**
+ * Heights of controls, in pixels. With a mouse they are compact. On a
+ * touch screen (the `pointer: coarse` media query) they grow to 44px,
+ * the smallest size that is comfortable for a finger.
+ */
+const CONTROL_HEIGHT = 40;
+const COMPACT_CONTROL_HEIGHT = 36;
 const TOUCH_TARGET = 44;
+const TOUCH_SCREEN = '@media (pointer: coarse)';
 
 /** Layout values shared by several components. */
 export const layout = {
   /** Widest the content is allowed to grow, in pixels. */
   contentMaxWidth: 1360,
-  /** Height of the sticky header before and after scrolling. */
-  headerHeight: { regular: 72, compact: 56 },
+  /**
+   * Height of the fixed header: full at the top of the page, compact
+   * after scrolling. On phones the full header has two rows. In rem, so
+   * it grows with the reader's font size.
+   */
+  headerHeight: {
+    phone: { regular: '7.5rem', compact: '3.75rem' },
+    wide: { regular: '4.5rem', compact: '3.5rem' },
+  },
   /** Longest comfortable line of running text. */
   readingWidth: '68ch',
   touchTarget: TOUCH_TARGET,
@@ -45,7 +61,8 @@ export const theme = createTheme({
   },
   // One unit of spacing is 8px: sx={{ p: 2 }} is 16px.
   spacing: 8,
-  shape: { borderRadius: 8 },
+  // Slightly rounded corners everywhere; no pill shapes.
+  shape: { borderRadius: 6 },
   typography: {
     fontFamily: '"Noto Sans", system-ui, -apple-system, "Segoe UI", sans-serif',
     // Only the two weights that are shipped with the application.
@@ -55,7 +72,7 @@ export const theme = createTheme({
     fontWeightBold: 700,
     // Headings grow with the viewport between a minimum and a maximum.
     h1: {
-      fontSize: 'clamp(1.75rem, 1.4rem + 1.6vw, 2.5rem)',
+      fontSize: 'clamp(1.625rem, 1.35rem + 1.2vw, 2.125rem)',
       fontWeight: 700,
       lineHeight: 1.2,
     },
@@ -103,10 +120,13 @@ export const theme = createTheme({
     },
     MuiOutlinedInput: {
       styleOverrides: {
-        root: { minHeight: TOUCH_TARGET, borderRadius: 999 },
-        // 23px of text plus this padding makes the field itself 44px
-        // tall, not only the box around it.
-        input: { paddingBlock: 10.5 },
+        root: {
+          minHeight: CONTROL_HEIGHT,
+          [TOUCH_SCREEN]: { minHeight: TOUCH_TARGET },
+        },
+        // On touch screens the field itself, not only the box around
+        // it, is 44px tall: 23px of text plus this padding.
+        input: { [TOUCH_SCREEN]: { paddingBlock: 10.5 } },
       },
     },
     MuiSkeleton: {
@@ -116,38 +136,57 @@ export const theme = createTheme({
     MuiButton: {
       defaultProps: { disableElevation: true },
       styleOverrides: {
-        root: { minHeight: TOUCH_TARGET, borderRadius: 999, paddingInline: 24 },
+        root: {
+          minHeight: CONTROL_HEIGHT,
+          paddingInline: 20,
+          [TOUCH_SCREEN]: { minHeight: TOUCH_TARGET },
+        },
       },
     },
     MuiIconButton: {
       styleOverrides: {
-        root: { minWidth: TOUCH_TARGET, minHeight: TOUCH_TARGET },
+        root: {
+          minWidth: CONTROL_HEIGHT,
+          minHeight: CONTROL_HEIGHT,
+          [TOUCH_SCREEN]: { minWidth: TOUCH_TARGET, minHeight: TOUCH_TARGET },
+        },
       },
     },
-    MuiChip: {
+    // The category filter: joined rectangular buttons, one of them filled.
+    MuiToggleButton: {
       styleOverrides: {
         root: {
-          height: TOUCH_TARGET,
-          borderRadius: 999,
-          fontSize: '1rem',
-          paddingInline: 4,
-          variants: [
-            {
-              // A darker edge, so an unselected chip is clearly a control.
-              props: { variant: 'outlined' },
-              style: { borderColor: INK_SOFT },
-            },
-          ],
+          minHeight: COMPACT_CONTROL_HEIGHT,
+          paddingBlock: 0,
+          paddingInline: 14,
+          color: INK,
+          borderColor: CONTROL_LINE,
+          fontWeight: 400,
+          whiteSpace: 'nowrap',
+          [TOUCH_SCREEN]: { minHeight: TOUCH_TARGET },
+          '&.Mui-selected, &.Mui-selected:hover': {
+            backgroundColor: BLUE,
+            borderColor: BLUE,
+            color: WHITE,
+          },
         },
       },
     },
     MuiPaginationItem: {
       styleOverrides: {
         root: {
-          minWidth: TOUCH_TARGET,
-          height: TOUCH_TARGET,
-          borderRadius: 999,
+          minWidth: COMPACT_CONTROL_HEIGHT,
+          height: COMPACT_CONTROL_HEIGHT,
           fontSize: '1rem',
+          [TOUCH_SCREEN]: { minWidth: TOUCH_TARGET, height: TOUCH_TARGET },
+        },
+      },
+    },
+    MuiMenuItem: {
+      styleOverrides: {
+        root: {
+          minHeight: CONTROL_HEIGHT,
+          [TOUCH_SCREEN]: { minHeight: TOUCH_TARGET },
         },
       },
     },
