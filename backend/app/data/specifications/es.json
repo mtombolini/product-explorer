@@ -1,7 +1,7 @@
 {
   "1": [
     {"label": "Tipo", "value": "Mochila"},
-    {"label": "Compartimento para portátil", "value": "Funda acolchada, hasta 15 pulgadas"},
+    {"label": "Compartimento para laptop", "value": "Funda acolchada, hasta 15 pulgadas"},
     {"label": "Uso", "value": "Diario y paseos por el bosque"}
   ],
   "2": [
@@ -91,15 +91,15 @@
     {"label": "Forro", "value": "Polar cálido desmontable"},
     {"label": "Bolsillos", "value": "2 de mano, 2 en el pecho y 1 interior, con cremallera"},
     {"label": "Capucha", "value": "Ajustable y desmontable"},
-    {"label": "Tallaje", "value": "Estándar de EE. UU."}
+    {"label": "Tallas", "value": "Estándar de EE. UU."}
   ],
   "16": [
-    {"label": "Tipo", "value": "Chaqueta motera de piel sintética"},
+    {"label": "Tipo", "value": "Chaqueta tipo motociclista de cuero sintético"},
     {"label": "Exterior", "value": "100 % poliuretano"},
     {"label": "Forro", "value": "100 % poliéster"},
     {"label": "Capucha", "value": "Desmontable"},
     {"label": "Bolsillos", "value": "2 delanteros"},
-    {"label": "Cuidado", "value": "Lavar solo a mano, no usar lejía, secar tendida, no planchar"}
+    {"label": "Cuidado", "value": "Lavar solo a mano, no usar blanqueador, secar al aire, no planchar"}
   ],
   "17": [
     {"label": "Tipo", "value": "Impermeable cortavientos"},
@@ -112,7 +112,7 @@
     {"label": "Material", "value": "95 % rayón, 5 % elastano"},
     {"label": "Mangas", "value": "Cortas"},
     {"label": "Cuello", "value": "Barco"},
-    {"label": "Cuidado", "value": "No usar lejía"},
+    {"label": "Cuidado", "value": "No usar blanqueador"},
     {"label": "Origen", "value": "Fabricada en EE. UU. o importada"}
   ],
   "19": [
