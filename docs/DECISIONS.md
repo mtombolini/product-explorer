@@ -222,3 +222,68 @@ trade-off that was accepted. New entries are appended as the work advances.
 - **Trade-off.** No fourth container and the real upsert syntax is
   tested, at the cost of sharing the server with the application. The
   rollback approach was not used because the repository commits (D-015).
+
+## Phase 3: backend API
+
+### D-018 Unexpected errors are answered by the request middleware
+
+- **Context.** A 500 must use the error envelope, carry `X-Request-ID`, be
+  logged once with the request id and reveal nothing internal.
+- **Decision.** The request middleware wraps the rest of the application in
+  a `try`. An exception that no handler claimed is logged with its
+  traceback and answered with the generic envelope in the same function
+  that sets the request id and writes the access log line.
+- **Alternatives.** A handler registered for `Exception`; a pure ASGI
+  middleware.
+- **Trade-off.** A handler for `Exception` runs in the outermost framework
+  layer, after the middleware has finished, so the response would miss the
+  header and the access line. One function doing three related things is
+  easier to follow than two layers that depend on each other's order.
+
+### D-019 Upper bounds on `page` and on the product id
+
+- **Context.** The specification only asked for `page >= 1` and a positive
+  id. A very large number reached PostgreSQL and failed there, which
+  would have been a 500 caused by user input.
+- **Decision.** `page` is limited to 1,000,000 and the product id to the
+  range of the `INTEGER` column. Values outside are a 422.
+- **Alternatives.** Catch the database error and translate it.
+- **Trade-off.** Two more constants. In exchange, invalid input is always
+  rejected at the edge and never becomes a query.
+
+### D-020 A separate health service
+
+- **Context.** `/health` must answer 503 when the database is down, and the
+  API layer must not know about SQLAlchemy.
+- **Decision.** `HealthService` counts the products through the repository
+  and turns a database error into a status object. The route only maps
+  that status to 200 or 503.
+- **Alternatives.** Catch the database exception in the route; add the
+  check to `ProductService`.
+- **Trade-off.** One small extra class, and the layering rule holds
+  without exceptions.
+
+### D-021 Response models are built explicitly from ORM rows
+
+- **Context.** The API exposes `image_url`, while the table stores
+  `image_path`, and it must hide `external_id` and the timestamps.
+- **Decision.** `ProductResponse.from_product` copies the public fields one
+  by one and builds the image URL.
+- **Alternatives.** Pydantic `from_attributes` with a computed property on
+  the ORM model.
+- **Trade-off.** A few more lines, but the mapping between the table and
+  the contract is visible in one place and cannot expose a new column by
+  accident.
+
+### D-022 `httpx2` as a development dependency
+
+- **Context.** The test client of FastAPI 0.143 (Starlette 1.7) warns that
+  using it with `httpx` is deprecated and asks for `httpx2`.
+- **Decision.** `httpx2` is pinned in `requirements-dev.txt` for the test
+  client only. The Fake Store client stays on `httpx` 0.28.1.
+- **Alternatives.** Silence the warning; move the Fake Store client to
+  `httpx2` as well.
+- **Trade-off.** Two HTTP libraries in the test image. The runtime image
+  is unchanged, and the import code keeps the library it was built and
+  tested with.
+
