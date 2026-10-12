@@ -24,7 +24,7 @@ describe('products slice: caching', () => {
       ids: [1, 2],
       total: 2,
       totalPages: 1,
-      error: null,
+      errorCode: null,
     });
     expect(Object.keys(byId)).toEqual(['1', '2']);
   });
@@ -61,7 +61,7 @@ describe('products slice: caching', () => {
     await store.dispatch(fetchProductPage({ query: firstPage }));
     expect(store.getState().products.pages[queryKey(firstPage)]).toMatchObject({
       status: 'failed',
-      error: 'An unexpected error.',
+      errorCode: 'internal_error',
     });
 
     api.isBroken = false;
@@ -89,7 +89,7 @@ describe('products slice: caching', () => {
 
     expect(store.getState().products.details[7]).toEqual({
       status: 'failed',
-      error: 'Product was not found.',
+      errorCode: 'product_not_found',
       notFound: true,
     });
   });

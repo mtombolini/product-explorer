@@ -18,13 +18,14 @@ export interface PageEntry {
   ids: number[];
   total: number;
   totalPages: number;
-  error: string | null;
+  /** The code of the API error, for the interface to translate. */
+  errorCode: string | null;
 }
 
 /** The state of the request for one single product. */
 export interface DetailEntry {
   status: RequestStatus;
-  error: string | null;
+  errorCode: string | null;
   /** True when the API answered 404 for this id. */
   notFound: boolean;
 }
@@ -32,7 +33,7 @@ export interface DetailEntry {
 export interface CategoriesState {
   status: 'idle' | RequestStatus;
   items: string[];
-  error: string | null;
+  errorCode: string | null;
 }
 
 export interface ProductsState {
@@ -49,12 +50,16 @@ const initialState: ProductsState = {
   byId: {},
   pages: {},
   details: {},
-  categories: { status: 'idle', items: [], error: null },
+  categories: { status: 'idle', items: [], errorCode: null },
 };
 
-/** What a failed thunk reports to the reducers. */
+/**
+ * What a failed thunk reports to the reducers: the error code of the API
+ * (or of the client, for a network failure) and the HTTP status. The
+ * message shown to the user is chosen from the code, in their language.
+ */
 interface Failure {
-  message: string;
+  code: string;
   status: number;
 }
 
@@ -63,14 +68,11 @@ interface ThunkConfig {
   rejectValue: Failure;
 }
 
-const UNKNOWN_FAILURE: Failure = {
-  message: 'Something went wrong.',
-  status: 0,
-};
+const UNKNOWN_FAILURE: Failure = { code: 'unknown_error', status: 0 };
 
 function toFailure(error: unknown): Failure {
   if (error instanceof ApiError) {
-    return { message: error.message, status: error.status };
+    return { code: error.code, status: error.status };
   }
   return UNKNOWN_FAILURE;
 }
@@ -163,7 +165,7 @@ const productsSlice = createSlice({
           ids: [],
           total: 0,
           totalPages: 0,
-          error: null,
+          errorCode: null,
         };
       })
       .addCase(fetchProductPage.fulfilled, (state, action) => {
@@ -178,7 +180,7 @@ const productsSlice = createSlice({
           ids: page.items.map((product) => product.id),
           total: page.total,
           totalPages: page.total_pages,
-          error: null,
+          errorCode: null,
         };
       })
       .addCase(fetchProductPage.rejected, (state, action) => {
@@ -188,14 +190,14 @@ const productsSlice = createSlice({
           ids: [],
           total: 0,
           totalPages: 0,
-          error: failure.message,
+          errorCode: failure.code,
         };
       })
       // One product -------------------------------------------------------
       .addCase(fetchProduct.pending, (state, action) => {
         state.details[action.meta.arg] = {
           status: 'loading',
-          error: null,
+          errorCode: null,
           notFound: false,
         };
       })
@@ -203,7 +205,7 @@ const productsSlice = createSlice({
         state.byId[action.payload.id] = action.payload;
         state.details[action.meta.arg] = {
           status: 'succeeded',
-          error: null,
+          errorCode: null,
           notFound: false,
         };
       })
@@ -211,14 +213,14 @@ const productsSlice = createSlice({
         const failure = action.payload ?? UNKNOWN_FAILURE;
         state.details[action.meta.arg] = {
           status: 'failed',
-          error: failure.message,
+          errorCode: failure.code,
           notFound: failure.status === 404,
         };
       })
       // Categories --------------------------------------------------------
       .addCase(fetchCategories.pending, (state) => {
         state.categories.status = 'loading';
-        state.categories.error = null;
+        state.categories.errorCode = null;
       })
       .addCase(fetchCategories.fulfilled, (state, action) => {
         state.categories.status = 'succeeded';
@@ -227,7 +229,7 @@ const productsSlice = createSlice({
       .addCase(fetchCategories.rejected, (state, action) => {
         const failure = action.payload ?? UNKNOWN_FAILURE;
         state.categories.status = 'failed';
-        state.categories.error = failure.message;
+        state.categories.errorCode = failure.code;
       });
   },
 });
