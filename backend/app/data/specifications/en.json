@@ -59,7 +59,7 @@
   ],
   "11": [
     {"label": "Capacity", "value": "256 GB"},
-    {"label": "Interface", "value": "SATA III, 2.5 inches"},
+    {"label": "Interface", "value": "SATA III"},
     {"label": "Memory", "value": "3D NAND with SLC cache"},
     {"label": "Thickness", "value": "7 mm"},
     {"label": "Supports", "value": "TRIM, garbage collection, RAID and ECC"}
