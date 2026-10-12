@@ -1,15 +1,16 @@
-"""Import the catalogue from Fake Store and load its translations.
+"""Import the catalogue from Fake Store and load its bundled data.
 
 Usage::
 
     python -m app.commands.seed              # always import
     python -m app.commands.seed --if-empty   # only when there are no rows
 
-The bundled translations need no network and are loaded after the
-import, and also when the import was skipped because of ``--if-empty``.
+The bundled translations and specifications need no network. They are
+loaded after the import, and also when the import was skipped because
+of ``--if-empty``.
 
 Exit code 0 on success, 1 when Fake Store is unavailable. A problem
-with the translations is logged and does not change the exit code.
+with the bundled data is logged and does not change the exit code.
 """
 
 import argparse
@@ -26,6 +27,7 @@ from app.core.logging import configure_logging
 from app.repositories.image_storage import ImageStorage
 from app.repositories.product_repository import ProductRepository
 from app.services.import_service import CatalogueImportService
+from app.services.specification_service import SpecificationLoadService
 from app.services.translation_service import TranslationLoadService
 
 # A fixed name: with "python -m" this module's __name__ is "__main__",
@@ -54,10 +56,15 @@ def main() -> int:
         else:
             catalogue_ready = _import_catalogue(repository, settings)
 
-        # After a failed import there may be nothing to translate: the
-        # next run that imports the products loads the translations too.
+        # After a failed import there may be no products to attach the
+        # bundled data to: the next run that imports them loads it too.
         if catalogue_ready:
             _load_translations(repository)
+            # If the translations failed in the database, their
+            # transaction must be closed before the next statement.
+            # After a successful step this does nothing.
+            session.rollback()
+            _load_specifications(repository)
 
     return 0 if catalogue_ready else 1
 
@@ -110,6 +117,16 @@ def _load_translations(repository: ProductRepository) -> None:
         # translations, in the source language, so this step must never
         # turn a good import into a failed command.
         logger.exception("Translations could not be loaded")
+
+
+def _load_specifications(repository: ProductRepository) -> None:
+    """Load the bundled specifications. A failure is only logged."""
+    try:
+        SpecificationLoadService(repository).run()
+    except Exception:
+        # Caught on purpose, like the translations: a product page works
+        # without its specification list.
+        logger.exception("Specifications could not be loaded")
 
 
 if __name__ == "__main__":
