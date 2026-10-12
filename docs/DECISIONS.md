@@ -595,6 +595,12 @@ trade-off that was accepted. New entries are appended as the work advances.
 - **Trade-off.** Going back to the previous language fetches again. The
   state keeps one simple shape, and a slow answer in the old language can
   never overwrite the new one.
+- **Update (final review).** Comparing languages was not enough: after
+  English, Spanish and English again, a slow answer to the first English
+  request has the current language, and a failed one replaced the page
+  that had already loaded. Each cached entry now keeps the id of the
+  request that wrote it (`requestId`, which Redux Toolkit gives every
+  thunk call), and an answer is stored only when its id matches.
 
 ### D-047 An original mark instead of a brand asset
 

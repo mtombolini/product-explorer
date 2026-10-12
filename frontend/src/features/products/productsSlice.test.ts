@@ -28,6 +28,7 @@ describe('products slice: caching', () => {
     const { pages, byId } = store.getState().products;
     expect(pages[queryKey(firstPage)]).toEqual({
       status: 'succeeded',
+      requestId: expect.any(String),
       ids: [1, 2],
       total: 2,
       totalPages: 1,
@@ -108,6 +109,7 @@ describe('products slice: caching', () => {
 
     expect(store.getState().products.details[7]).toEqual({
       status: 'failed',
+      requestId: expect.any(String),
       errorCode: 'product_not_found',
       notFound: true,
     });
@@ -160,5 +162,32 @@ describe('products slice: language', () => {
     expect(state.pages).toEqual({});
     expect(state.byId).toEqual({});
     expect(state.details).toEqual({});
+  });
+
+  it('keeps a loaded page when an older request for it fails late', async () => {
+    const api = installFakeApi([makeProduct(1)]);
+    const store = createStore('en');
+
+    // The first English request fails, but its answer is still on its
+    // way while the language goes to Spanish and back to English.
+    api.isBroken = true;
+    const late = store.dispatch(
+      fetchProductPage({ query: firstPage, language: 'en' }),
+    );
+    api.isBroken = false;
+    store.dispatch(languageChanged('es'));
+    store.dispatch(languageChanged('en'));
+    const current = store.dispatch(
+      fetchProductPage({ query: firstPage, language: 'en' }),
+    );
+    await Promise.all([late, current]);
+
+    // Same language and same page as the late answer: only the request
+    // id tells them apart.
+    expect(api.requests).toHaveLength(2);
+    expect(store.getState().products.pages[queryKey(firstPage)]).toMatchObject({
+      status: 'succeeded',
+      ids: [1],
+    });
   });
 });

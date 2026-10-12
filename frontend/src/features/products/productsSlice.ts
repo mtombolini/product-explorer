@@ -17,6 +17,8 @@ export type RequestStatus = 'loading' | 'succeeded' | 'failed';
 /** One cached list page: which products it holds and the totals. */
 export interface PageEntry {
   status: RequestStatus;
+  /** The request that wrote this entry; answers to any other are late. */
+  requestId: string;
   ids: number[];
   total: number;
   totalPages: number;
@@ -27,6 +29,8 @@ export interface PageEntry {
 /** The state of the request for one single product. */
 export interface DetailEntry {
   status: RequestStatus;
+  /** The request that wrote this entry; answers to any other are late. */
+  requestId: string;
   errorCode: string | null;
   /** True when the API answered 404 for this id. */
   notFound: boolean;
@@ -168,14 +172,16 @@ export const fetchCategories = createAsyncThunk<
 );
 
 /**
- * True for the answer to a request made before the language changed. It
- * must not be stored: it would put text in the old language on screen.
+ * True for the answer to a request that is no longer the one its entry is
+ * waiting for: the language changed in between, which empties the cache.
+ * It must not be stored: it would put text in the old language on screen,
+ * or replace what a newer request for the same page already loaded.
  */
-function isForAnotherLanguage(
-  state: ProductsState,
-  request: { language: string },
+function isLate(
+  entry: PageEntry | DetailEntry | undefined,
+  requestId: string,
 ): boolean {
-  return request.language !== state.language;
+  return entry?.requestId !== requestId;
 }
 
 const productsSlice = createSlice({
@@ -202,6 +208,7 @@ const productsSlice = createSlice({
       .addCase(fetchProductPage.pending, (state, action) => {
         state.pages[queryKey(action.meta.arg.query)] = {
           status: 'loading',
+          requestId: action.meta.requestId,
           ids: [],
           total: 0,
           totalPages: 0,
@@ -209,15 +216,17 @@ const productsSlice = createSlice({
         };
       })
       .addCase(fetchProductPage.fulfilled, (state, action) => {
-        if (isForAnotherLanguage(state, action.meta.arg)) return;
+        const key = queryKey(action.meta.arg.query);
+        if (isLate(state.pages[key], action.meta.requestId)) return;
         const page = action.payload;
         // Each product is stored once, by id, so the detail page can
         // show it later without asking the server again.
         for (const product of page.items) {
           state.byId[product.id] = product;
         }
-        state.pages[queryKey(action.meta.arg.query)] = {
+        state.pages[key] = {
           status: 'succeeded',
+          requestId: action.meta.requestId,
           ids: page.items.map((product) => product.id),
           total: page.total,
           totalPages: page.total_pages,
@@ -225,10 +234,12 @@ const productsSlice = createSlice({
         };
       })
       .addCase(fetchProductPage.rejected, (state, action) => {
-        if (isForAnotherLanguage(state, action.meta.arg)) return;
+        const key = queryKey(action.meta.arg.query);
+        if (isLate(state.pages[key], action.meta.requestId)) return;
         const failure = action.payload ?? UNKNOWN_FAILURE;
-        state.pages[queryKey(action.meta.arg.query)] = {
+        state.pages[key] = {
           status: 'failed',
+          requestId: action.meta.requestId,
           ids: [],
           total: 0,
           totalPages: 0,
@@ -239,24 +250,29 @@ const productsSlice = createSlice({
       .addCase(fetchProduct.pending, (state, action) => {
         state.details[action.meta.arg.id] = {
           status: 'loading',
+          requestId: action.meta.requestId,
           errorCode: null,
           notFound: false,
         };
       })
       .addCase(fetchProduct.fulfilled, (state, action) => {
-        if (isForAnotherLanguage(state, action.meta.arg)) return;
+        const { id } = action.meta.arg;
+        if (isLate(state.details[id], action.meta.requestId)) return;
         state.byId[action.payload.id] = action.payload;
-        state.details[action.meta.arg.id] = {
+        state.details[id] = {
           status: 'succeeded',
+          requestId: action.meta.requestId,
           errorCode: null,
           notFound: false,
         };
       })
       .addCase(fetchProduct.rejected, (state, action) => {
-        if (isForAnotherLanguage(state, action.meta.arg)) return;
+        const { id } = action.meta.arg;
+        if (isLate(state.details[id], action.meta.requestId)) return;
         const failure = action.payload ?? UNKNOWN_FAILURE;
-        state.details[action.meta.arg.id] = {
+        state.details[id] = {
           status: 'failed',
+          requestId: action.meta.requestId,
           errorCode: failure.code,
           notFound: failure.status === 404,
         };
