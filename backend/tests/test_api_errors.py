@@ -27,6 +27,8 @@ class BrokenProductService:
         ("/api/products?category=" + "a" * 101, "category"),
         ("/api/products?search=a%00b", "search"),
         ("/api/products?category=a%00b", "category"),
+        ("/api/products?sort=cheapest", "sort"),
+        ("/api/products?sort=", "sort"),
         ("/api/products/0", "product_id"),
         ("/api/products/-1", "product_id"),
         ("/api/products/abc", "product_id"),
