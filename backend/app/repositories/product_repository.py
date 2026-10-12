@@ -6,7 +6,7 @@ from sqlalchemy import func, or_, select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
-from app.models import Product
+from app.models import Product, ProductSort
 
 # The columns that an import run overwrites when the product already
 # exists. image_path is not in the list: it belongs to the image step.
@@ -38,12 +38,13 @@ class ProductRepository:
         category: str | None,
         limit: int,
         offset: int,
+        sort: ProductSort | None = None,
     ) -> tuple[list[Product], int]:
         """Return one page of products and the total that match.
 
         ``search`` is matched anywhere in the title or the description,
-        ignoring case. ``category`` must match exactly. Products are
-        ordered by id, so the pages are stable.
+        ignoring case. ``category`` must match exactly. Without ``sort``
+        products are ordered by id.
         """
         filters = []
         if search:
@@ -63,10 +64,20 @@ class ProductRepository:
         )
         total = self._session.scalar(count_statement) or 0
 
+        # The id is always the last sort key. Products with the same
+        # price then keep a fixed order, so two pages never show the same
+        # product and none is skipped.
+        if sort is ProductSort.PRICE_ASC:
+            order = (Product.price.asc(), Product.id)
+        elif sort is ProductSort.PRICE_DESC:
+            order = (Product.price.desc(), Product.id)
+        else:
+            order = (Product.id,)
+
         page_statement = (
             select(Product)
             .where(*filters)
-            .order_by(Product.id)
+            .order_by(*order)
             .limit(limit)
             .offset(offset)
         )

@@ -6,6 +6,7 @@ from fastapi import APIRouter, Path, Query
 
 from app.api.dependencies import ProductServiceDependency
 from app.api.errors import NOT_FOUND_RESPONSE, VALIDATION_ERROR_RESPONSE
+from app.models import ProductSort
 from app.schemas.product import ProductListResponse, ProductResponse
 
 DEFAULT_PAGE_SIZE = 12
@@ -51,13 +52,21 @@ def list_products(
             description="Exact category name, as returned by /api/categories.",
         ),
     ] = None,
+    sort: Annotated[
+        ProductSort | None,
+        Query(description="Order of the list. Without it: by id."),
+    ] = None,
 ) -> ProductListResponse:
-    """Return one page of the catalogue, ordered by id.
+    """Return one page of the catalogue.
 
     A page after the last one answers 200 with an empty list.
     """
     result = service.list_products(
-        page=page, page_size=page_size, search=search, category=category
+        page=page,
+        page_size=page_size,
+        search=search,
+        category=category,
+        sort=sort,
     )
     return ProductListResponse(
         items=[ProductResponse.from_product(item) for item in result.items],

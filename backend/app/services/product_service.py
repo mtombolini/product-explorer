@@ -3,7 +3,7 @@
 import math
 from dataclasses import dataclass
 
-from app.models import Product
+from app.models import Product, ProductSort
 from app.repositories.product_repository import ProductRepository
 from app.services.exceptions import ProductNotFoundError
 
@@ -32,6 +32,7 @@ class ProductService:
         page_size: int,
         search: str | None = None,
         category: str | None = None,
+        sort: ProductSort | None = None,
     ) -> ProductPage:
         """Return the requested page of the filtered catalogue.
 
@@ -43,6 +44,7 @@ class ProductService:
             category=_clean(category),
             limit=page_size,
             offset=(page - 1) * page_size,
+            sort=sort,
         )
         return ProductPage(
             items=products,
