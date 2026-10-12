@@ -2,7 +2,7 @@
 
 from typing import Any
 
-from sqlalchemy import func, select, update
+from sqlalchemy import func, or_, select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
@@ -21,7 +21,7 @@ UPSERT_UPDATED_COLUMNS = (
 
 
 class ProductRepository:
-    """Queries and writes of products. The only SQL of the import."""
+    """Queries and writes of products. The only SQL of the application."""
 
     def __init__(self, session: Session) -> None:
         """Create the repository on an open session."""
@@ -31,6 +31,58 @@ class ProductRepository:
         """Return the number of products."""
         statement = select(func.count()).select_from(Product)
         return self._session.scalar(statement) or 0
+
+    def list_page(
+        self,
+        search: str | None,
+        category: str | None,
+        limit: int,
+        offset: int,
+    ) -> tuple[list[Product], int]:
+        """Return one page of products and the total that match.
+
+        ``search`` is matched anywhere in the title or the description,
+        ignoring case. ``category`` must match exactly. Products are
+        ordered by id, so the pages are stable.
+        """
+        filters = []
+        if search:
+            # autoescape: a % or _ typed by the user is matched as that
+            # character, not as a LIKE wildcard.
+            filters.append(
+                or_(
+                    Product.title.icontains(search, autoescape=True),
+                    Product.description.icontains(search, autoescape=True),
+                )
+            )
+        if category:
+            filters.append(Product.category == category)
+
+        count_statement = (
+            select(func.count()).select_from(Product).where(*filters)
+        )
+        total = self._session.scalar(count_statement) or 0
+
+        page_statement = (
+            select(Product)
+            .where(*filters)
+            .order_by(Product.id)
+            .limit(limit)
+            .offset(offset)
+        )
+        products = list(self._session.scalars(page_statement))
+        return products, total
+
+    def get_by_id(self, product_id: int) -> Product | None:
+        """Return one product, or None when the id does not exist."""
+        return self._session.get(Product, product_id)
+
+    def list_categories(self) -> list[str]:
+        """Return the distinct categories, sorted by name."""
+        statement = (
+            select(Product.category).distinct().order_by(Product.category)
+        )
+        return list(self._session.scalars(statement))
 
     def upsert_many(self, rows: list[dict[str, Any]]) -> None:
         """Insert or update products by external_id in one transaction.
