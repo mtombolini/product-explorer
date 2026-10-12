@@ -434,6 +434,8 @@ during the work, one section at a time.
   code alone when a finding turned out to be wrong. The fixer saw the
   triage result only: eight confirmed findings and 29 entries rejected or
   merged, several of which stand for two or three reports.
+  The seven reviewers raised 43 findings between them (4, 5, 8, 8, 5, 8
+  and 5).
 - **Accepted.** All eight confirmed findings were fixed, one commit each:
   - A NUL character in `search` or `category` answered 500:
     `fix(backend): answer 422 for a NUL character in search or category`.
@@ -606,7 +608,7 @@ during the work, one section at a time.
   - `sort` as a field of the catalogue query in the frontend: in the URL,
     in the request and in the cache key (D-043), and an MUI select in the
     toolbar.
-  - Nine new backend tests and nine new frontend tests.
+  - Nine new backend tests and eight new frontend tests.
 - **Rejected or changed.**
   - Sorting the visible page in the browser was rejected: it would order
     12 products, not the catalogue.
@@ -637,3 +639,75 @@ during the work, one section at a time.
     overflow.
   - Screenshots at the three widths were looked at: one row at 1280 px,
     two at 768 px, three on a phone.
+
+## Phase 12: translated catalogue, logo and toolbar
+
+- **Prompt or workflow.** The candidate reported that product names and
+  descriptions did not change with the language, asked whether a logo
+  could be designed since the IKEA one cannot be used, and said the
+  toolbar still did not look right. A review of the previous changes was
+  running at that moment; it was stopped after three of its four
+  reviewers had answered, and their eight findings were handled in this
+  phase. The backend of the translated catalogue was then built by a
+  sub-agent against a written contract, reviewed by two read-only
+  reviewers and corrected by a fixer, while the main agent wrote the
+  frontend, the logo and the toolbar.
+- **Accepted.**
+  - Backend, from the sub-agent: the `product_translations` table and
+    migration `0002`, the `Language` enum, the translation loader run by
+    the seed command, `lang` on both product endpoints, the `language`
+    field and search in the requested language (D-044, D-045).
+  - The Spanish titles and descriptions of the 20 products, written by
+    the model.
+  - Frontend: the language sent with every product request, the cache
+    emptied on a change of language and late answers ignored (D-046).
+  - An original mark and favicon (D-047) and the toolbar as one bar
+    (D-048).
+- **Rejected or changed.**
+  - Keeping product translations in a frontend dictionary was rejected:
+    it is catalogue data.
+  - From the stopped review: two sort tests passed even with the
+    tie-breaker removed. They now rewrite an earlier row so the table's
+    physical order differs from the id order, and were seen to fail
+    without the tie-breaker. Four statements in the AI documents were
+    wrong or unsupported (a test count, the bundle size "in every
+    document", the number of raw findings, the scope of the independent
+    review) and were corrected. Two comments still described the cache
+    key without the order and were updated.
+  - From the review of the translation backend (three findings, two after
+    merging a duplicate, both fixed): two keys for the same product in
+    one translation file made the whole load fail; the start-up comments
+    did not mention the translation step.
+  - The sub-agent chose not to load translations after a failed product
+    import, which the contract had not specified. It was kept.
+  - The first toolbar of this phase had a divider with nothing after it
+    and gaps in the lines between the joined buttons. Both were removed.
+  - A select kept a heavy focus ring after a mouse click. The ring now
+    follows keyboard focus.
+- **Verification.**
+  - Backend, by the sub-agents: `ruff check`, `ruff format --check` and
+    `pycodestyle --max-line-length=79` clean; `backend-test`: "98 passed";
+    the migration was downgraded and upgraded in the test database; with
+    curl, `/api/products/1?lang=es` returned the Spanish title and
+    `language` "es", `/api/products/1` the English one,
+    `?lang=es&search=mochila` one product, `?search=mochila` none and
+    `?lang=fr` a 422 naming `lang`; 20 rows in `product_translations`
+    before and after running the seed again.
+  - Frontend, by the main agent: lint, type check and format check clean;
+    `npm test`: "66 passed".
+  - After `docker compose up --build -d --wait`, in headless Chrome at
+    1280 px: choosing Español made one more list request, with `lang=es`,
+    and no second request for the categories; the first titles were in
+    Spanish and carried `lang="es"`; searching "mochila" gave
+    `1 producto para "mochila"`; opening that product from the list made
+    no request; a direct visit to `/product/5` made exactly one request,
+    with `lang=es`.
+  - The toolbar and the logo were looked at in screenshots at 1440, 1280,
+    768 and 360 px, in English and Spanish, with no horizontal overflow.
+    After choosing an order with the mouse the select had no outline;
+    reached with the keyboard it had one.
+  - Lighthouse 13.5.0, accessibility, with the new toolbar and logo: 100
+    on `/products` and `/product/1`, no failed audit.
+  - Not verified: the Spanish product text by a second reader, and the
+    frontend of this phase by independent reviewers.
+

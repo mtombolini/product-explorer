@@ -12,12 +12,12 @@ flowchart LR
             nginx["Nginx<br/>serves the React build<br/>proxies /api and /images"]
         end
         subgraph backend["backend container"]
-            seed["Seed command<br/>runs on start when the table is empty"]
+            seed["Seed command<br/>imports when the table is empty,<br/>then loads the bundled translations"]
             api["FastAPI<br/>api → services → repositories"]
             images[("Image files<br/>volume product-images")]
         end
         subgraph db["db container"]
-            postgres[("PostgreSQL<br/>table products<br/>volume db-data")]
+            postgres[("PostgreSQL<br/>products, product_translations<br/>volume db-data")]
         end
     end
 
@@ -63,6 +63,7 @@ sequenceDiagram
             S->>D: set image_path
         end
     end
+    S->>D: upsert the bundled translations (no network)
     E->>E: start uvicorn (even if the import failed)
 ```
 
@@ -83,7 +84,7 @@ sequenceDiagram
     alt page already cached for this query
         X-->>R: products from the store (no request)
     else not cached
-        X->>N: GET /api/products?page=1&page_size=12&search=cotton
+        X->>N: GET /api/products?page=1&page_size=12&search=cotton&lang=en
         N->>A: same request + X-Request-ID
         A->>A: route validates input, service applies the rules
         A->>D: repository runs the filtered, paginated query
@@ -103,10 +104,10 @@ sequenceDiagram
 | Layer | Folder | Responsibility |
 | --- | --- | --- |
 | API | `api/` | HTTP: parameters, validation, status codes, error envelope, request id |
-| Services | `services/` | Business rules: pagination maths, filters, not found, the import workflow |
+| Services | `services/` | Business rules: pagination maths, filters, not found, the import workflow, the translation loader |
 | Repositories | `repositories/` | The only code that touches the database session or the image files |
 | Clients | `clients/` | Calls to Fake Store API |
-| Models and schemas | `models/`, `schemas/` | Table definition and sort orders; shapes of requests, responses and imported records |
+| Models and schemas | `models/`, `schemas/` | Tables, languages and sort orders; shapes of requests, responses, imported records and translations |
 | Core | `core/` | Settings, database session, logging |
 | Commands | `commands/` | The seed command |
 

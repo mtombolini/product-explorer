@@ -9,9 +9,9 @@ command that was run and its real result, is in
 
 - **Claude Code** (Anthropic, model Claude Opus) as a coding agent with
   access to the repository, a shell, Docker and a headless Chrome.
-- **Sub-agents** started by that agent: two builders (the infrastructure
-  and the data layer) and, at the end, seven read-only reviewers, a triage
-  step and a fixer.
+- **Sub-agents** started by that agent: three builders (the
+  infrastructure, the data layer and, later, the backend of the translated
+  catalogue), read-only reviewers, a triage step and a fixer.
 
 ## How it was used
 
@@ -26,9 +26,14 @@ command that was run and its real result, is in
    decision was recorded in [docs/DECISIONS.md](docs/DECISIONS.md).
 4. The candidate then used the running application and asked for changes:
    a second language, a toolbar for the list controls, no native form
-   controls, a header that does not move the page, sorting by price.
-5. Independent AI reviewers examined the result and the confirmed findings
-   were fixed.
+   controls, a header that does not move the page, sorting by price,
+   product text that follows the language, and a logo.
+5. Independent AI reviewers examined the first complete version (seven
+   reviewers) and, later, the backend of the translated catalogue (two).
+   Confirmed findings were fixed. The interface changes made after the
+   first review (toolbar, header, logo, sorting and language in the
+   frontend) were checked by the main agent in a browser, not by
+   independent reviewers.
 
 The master prompt asked the agent to stop for approval after each phase.
 In this run the phases were executed in sequence, so the candidate's
@@ -56,6 +61,9 @@ From the candidate after using the application (translated from Spanish):
 > tall and too rounded, and the total appears below them. Let us build one
 > complete bar with the controls. When I scroll, the top bar moves.
 
+> When I change the language, the product name does not change. Why? Nor
+> the description.
+
 To each reviewer:
 
 > Report only what you can back with evidence: a file and line, or a
@@ -69,8 +77,11 @@ To each reviewer:
   the API contract, the Redux slice with a cache by query and by id, and
   the catalogue state in the URL.
 - The code of each phase, once its checks passed.
-- Eight findings of the independent review, after duplicates among the
-  43 that were raised had been merged.
+- Eight findings of the first independent review, after duplicates among
+  the 43 that were raised had been merged, and two from the review of the
+  translation backend.
+- Spanish titles and descriptions for the 20 products, written by the
+  model and stored as catalogue data.
 
 ## What was rejected or changed
 
@@ -87,8 +98,13 @@ A selection; the log has all of them.
 - **A sticky header that changes height.** Measured in Chrome, its height
   changed direction four times in 300 ms during a slow scroll. It was
   replaced by a fixed header with a spacer.
-- **A bundle size written down from an old measurement** (604 kB). The
-  real figure, 786 kB, is now in every document.
+- **A bundle size written down from an old measurement** (604 kB). It
+  was measured again and the documents corrected (about 800 kB now).
+- **Product translations as a dictionary in the frontend.** Catalogue
+  text is data: it went to a table in the database, behind the API.
+- **Sort tests that proved nothing.** A reviewer showed they passed with
+  the tie-breaker removed; they were rewritten until they failed without
+  it.
 - **An example response in the README written from memory.** It did not
   match the example query and was replaced by the real answer of the API.
 - **Sorting the visible page in the browser.** It would order twelve
@@ -101,7 +117,7 @@ A selection; the log has all of them.
 - **Static checks.** `ruff` and `pycodestyle` at 79 characters for Python;
   ESLint with accessibility rules, strict TypeScript and Prettier for the
   frontend.
-- **Tests.** 71 backend tests against PostgreSQL and 60 frontend tests,
+- **Tests.** 98 backend tests against PostgreSQL and 66 frontend tests,
   both run in containers. None calls the real Fake Store API.
 - **A clean clone.** With no `.env` file, `docker-compose up` gave three
   healthy containers, 20 products and 20 images. The import was run again
@@ -113,14 +129,17 @@ A selection; the log has all of them.
   three widths, both languages, the keyboard and scroll restoration.
 - **Accessibility.** Lighthouse scored 100 on the catalogue and the
   product page, and the contrast of every colour pair was computed.
-- **Independent review.** Seven reviewers with different concerns, a
-  triage step that tried to refute each finding, and a fixer.
+- **Independent review.** Reviewers with different concerns, a triage
+  step that tried to refute each finding, and a fixer.
 
 ## What was not verified
 
 - The CI workflow has not run on GitHub; it was only linted.
 - No screen reader session, and no browser other than Chrome.
-- The Spanish copy was not read by a second person.
+- The Spanish copy, including the translated product text, was not read
+  by a second person.
+- The interface changes made after the first independent review were not
+  reviewed independently.
 - One frontend test run failed once while the development machine was
   going to sleep, and the failing test was not identified. Every later
   run passed.
