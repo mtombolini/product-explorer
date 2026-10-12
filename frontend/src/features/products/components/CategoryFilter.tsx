@@ -1,7 +1,8 @@
 import Box from '@mui/material/Box';
 import Chip from '@mui/material/Chip';
+import { useTranslation } from 'react-i18next';
 
-import { formatCategory } from '../format';
+import { categoryName } from '../../../i18n/categoryNames';
 
 interface CategoryFilterProps {
   categories: string[];
@@ -20,18 +21,20 @@ export function CategoryFilter({
   selected,
   onSelect,
 }: CategoryFilterProps) {
+  const { t, i18n } = useTranslation();
+
   const options = [
-    { value: '', label: 'All' },
+    { value: '', label: t('filter.all') },
     ...categories.map((category) => ({
       value: category,
-      label: formatCategory(category),
+      label: categoryName(category, i18n.language),
     })),
   ];
 
   return (
     <Box
       role="group"
-      aria-label="Filter by category"
+      aria-label={t('filter.label')}
       sx={{
         display: 'flex',
         gap: 1,

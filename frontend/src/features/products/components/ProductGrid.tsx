@@ -1,6 +1,7 @@
 import Box from '@mui/material/Box';
 import { motion } from 'motion/react';
 import type { ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import type { Product } from '../../../api/types';
 import { motionTokens } from '../../../app/motion';
@@ -50,8 +51,10 @@ interface ProductGridProps {
 
 /** The products of one catalogue page, as a list of cards. */
 export function ProductGrid({ products, listUrl }: ProductGridProps) {
+  const { t } = useTranslation();
+
   return (
-    <GridList label="Products">
+    <GridList label={t('catalogue.title')}>
       {products.map((product, index) => (
         // Each card fades in and rises a little the first time it enters
         // the viewport, slightly after its left neighbour.

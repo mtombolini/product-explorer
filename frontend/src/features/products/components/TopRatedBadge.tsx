@@ -1,10 +1,13 @@
 import Box from '@mui/material/Box';
+import { useTranslation } from 'react-i18next';
 
 /**
  * The yellow accent of the interface: marks the best rated products.
  * Yellow is only a background here, always behind near-black text.
  */
 export function TopRatedBadge() {
+  const { t } = useTranslation();
+
   return (
     <Box
       component="span"
@@ -20,7 +23,7 @@ export function TopRatedBadge() {
         lineHeight: 1.5,
       }}
     >
-      Top rated
+      {t('product.topRated')}
     </Box>
   );
 }
