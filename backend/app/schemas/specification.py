@@ -1,36 +1,93 @@
 """Pydantic models that validate the bundled product specifications."""
 
-from pydantic import BaseModel, ConfigDict, Field, RootModel
+from typing import Annotated, Self
 
+from pydantic import BaseModel, ConfigDict, Field, model_validator
+
+from app.models import Language
 from app.schemas.fakestore import NO_NUL_PATTERN
 
-# A product page shows a short list. More lines than this is a mistake
-# in the file, not a real product.
-MAX_SPECIFICATIONS = 20
+# The key of the group of attributes that every product has.
+GENERAL_GROUP = "general"
+
+# Surrounding spaces are removed before the length checks, so a text
+# made only of spaces is rejected as empty.
+_STRIPPED = ConfigDict(str_strip_whitespace=True)
+
+# The bounds match the columns of the product_specifications table.
+Key = Annotated[str, Field(min_length=1, max_length=50, pattern=r"^[a-z_]+$")]
+Label = Annotated[
+    str, Field(min_length=1, max_length=100, pattern=NO_NUL_PATTERN)
+]
+Value = Annotated[
+    str, Field(min_length=1, max_length=255, pattern=NO_NUL_PATTERN)
+]
 
 
-class SpecificationItem(BaseModel):
-    """One line of a specification list, as a file provides it.
+class Taxonomy(BaseModel):
+    """The attributes a product can have, and their names.
 
-    The bounds match the columns of the product_specifications table.
+    ``general`` are the attributes of every product. ``families`` gives
+    the extra attributes of each family of products ("storage"). Both
+    are in display order. ``labels`` gives, for every language, the
+    name of the general group, of every family and of every attribute.
     """
 
-    # Surrounding spaces are removed before the length checks, so a
-    # label made only of spaces is rejected as empty.
-    model_config = ConfigDict(str_strip_whitespace=True)
+    model_config = _STRIPPED
 
-    label: str = Field(min_length=1, max_length=100, pattern=NO_NUL_PATTERN)
-    value: str = Field(min_length=1, max_length=255, pattern=NO_NUL_PATTERN)
+    general: list[Key] = Field(min_length=1)
+    families: dict[Key, list[Key]]
+    labels: dict[Language, dict[Key, Label]]
+
+    @model_validator(mode="after")
+    def _check_labels(self) -> Self:
+        """Reject a taxonomy with a name missing in some language."""
+        keys = {GENERAL_GROUP, *self.general, *self.families}
+        for attributes in self.families.values():
+            keys.update(attributes)
+        for language in Language:
+            missing = keys - set(self.labels.get(language, {}))
+            if missing:
+                raise ValueError(
+                    f"labels without a name in {language.value}: "
+                    f"{sorted(missing)}"
+                )
+        return self
+
+    def attributes_of(self, family: str) -> list[tuple[str, str]]:
+        """Return (group, attribute) for every line of a family.
+
+        The general attributes come first, then the ones of the family.
+        """
+        return [(GENERAL_GROUP, key) for key in self.general] + [
+            (family, key) for key in self.families[family]
+        ]
 
 
-class SpecificationList(RootModel[list[SpecificationItem]]):
-    """The specifications of one product in one language, in order.
+class ProductValues(BaseModel):
+    """The family of one product and the values of its attributes.
 
-    The entry of a product is validated as a whole: one invalid line
-    makes the loader skip the product, so a list is never stored with
-    a line missing.
+    A value is one text for every language ("2 TB") or one text per
+    language. An attribute that is not listed has no value: the source
+    says nothing about it.
     """
 
-    root: list[SpecificationItem] = Field(
-        min_length=1, max_length=MAX_SPECIFICATIONS
-    )
+    model_config = _STRIPPED
+
+    family: Key
+    values: dict[Key, Value | dict[Language, Value]]
+
+    @model_validator(mode="after")
+    def _check_languages(self) -> Self:
+        """Reject a value that is not written in every language."""
+        for key, value in self.values.items():
+            if isinstance(value, dict) and set(value) != set(Language):
+                raise ValueError(f"{key} is not in every language")
+        return self
+
+    def value_in(self, key: str, language: Language) -> str | None:
+        """Return the value of an attribute in a language, or None."""
+        value = self.values.get(key)
+        if isinstance(value, dict):
+            return value[language]
+        return value

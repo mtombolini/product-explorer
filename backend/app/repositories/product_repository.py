@@ -273,7 +273,8 @@ class ProductRepository:
         """Replace the specifications of some products in one language.
 
         Each row is a dictionary with ``product_id``, ``language``,
-        ``position``, ``label`` and ``value``. For every product in the
+        ``position``, ``attribute``, ``group_label``, ``label`` and
+        ``value``. For every product in the
         rows, its old lines in ``language`` are deleted and the new ones
         inserted, in one transaction, so a shorter list leaves no old
         line behind. The other products are not touched.

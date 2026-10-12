@@ -1,9 +1,9 @@
 """Reading of the data files shipped with the code.
 
-The translations and the specifications are stored the same way: one
-JSON file per language, named after it ("es.json"), whose content is an
-object keyed by the Fake Store id of the product. Their two loaders
-share the functions of this module.
+The translations and the values of the specifications are JSON objects
+keyed by the Fake Store id of the product. The translations have one
+file per language, named after it ("es.json"). Their two loaders share
+the functions of this module.
 """
 
 import json

@@ -9,10 +9,22 @@ IMAGES_URL_PREFIX = "/images"
 
 
 class SpecificationResponse(BaseModel):
-    """One line of the specifications of a product: "label: value"."""
+    """One line of the specifications of a product: "label: value".
 
+    The products of one family have the same lines in the same order.
+    """
+
+    key: str = Field(
+        description="Key of the attribute, the same in every language."
+    )
+    group: str = Field(
+        description='Name of the group of the attribute: "General" or '
+        "the family of the product."
+    )
     label: str
-    value: str
+    value: str | None = Field(
+        description="Null when the source says nothing about it."
+    )
 
 
 class ProductResponse(BaseModel):
@@ -38,8 +50,8 @@ class ProductResponse(BaseModel):
     rating_rate: float | None
     rating_count: int | None
     specifications: list[SpecificationResponse] = Field(
-        description="Short list of label and value pairs, in display "
-        "order. Empty when the product has none."
+        description="The attributes of the family of the product, in "
+        "display order. Empty when the product has none."
     )
     specifications_language: Language = Field(
         description="Language of the specifications: the requested one, "
@@ -84,7 +96,12 @@ class ProductResponse(BaseModel):
             rating_rate=product.rating_rate,
             rating_count=product.rating_count,
             specifications=[
-                SpecificationResponse(label=item.label, value=item.value)
+                SpecificationResponse(
+                    key=item.attribute,
+                    group=item.group_label,
+                    label=item.label,
+                    value=item.value,
+                )
                 for item in specifications
             ],
             specifications_language=specifications_language,
