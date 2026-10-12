@@ -62,7 +62,13 @@ export function AppLayout() {
     <>
       <SkipLink />
       <Header search={<SearchField />} />
-      <Box component="main" id={MAIN_CONTENT_ID} tabIndex={-1}>
+      <Box
+        component="main"
+        id={MAIN_CONTENT_ID}
+        tabIndex={-1}
+        // The skip link jumps here: stop below the fixed header.
+        sx={{ scrollMarginTop: layout.headerHeight.phone.regular }}
+      >
         <Container
           maxWidth={false}
           sx={{ maxWidth: layout.contentMaxWidth, py: { xs: 3, md: 5 } }}

@@ -11,105 +11,129 @@ import { useIsScrolled } from '../app/useIsScrolled';
 import { LanguageSwitcher } from './LanguageSwitcher';
 
 interface HeaderProps {
-  /** The search field, shown next to the brand. */
+  /** The search field, shown between the brand and the language menu. */
   search: ReactNode;
 }
 
 /**
- * The sticky page header: brand link and search. It stays visible while
- * the page scrolls, so search is always within reach, and becomes more
- * compact once the user has scrolled, to leave room for the products.
+ * The page header: brand, search and language. It is always visible and
+ * becomes shorter once the user has scrolled, to leave room for the
+ * products.
+ *
+ * It is `position: fixed`, with a spacer of constant height holding its
+ * place in the page. Its own height can therefore change without moving
+ * the content below. (A sticky header that changes height moves the
+ * page, the browser corrects the scroll position, and near the top the
+ * two keep undoing each other: the header visibly jitters.)
  */
 export function Header({ search }: HeaderProps) {
   const { t } = useTranslation();
   const isScrolled = useIsScrolled();
+  const size = isScrolled ? 'compact' : 'regular';
 
   return (
-    <Box
-      component="header"
-      sx={{
-        position: 'sticky',
-        top: 0,
-        zIndex: 'appBar',
-        bgcolor: 'primary.main',
-        color: 'primary.contrastText',
-        // The blue focus ring would not show on the blue header.
-        '& :focus-visible, & .MuiButtonBase-root.Mui-focusVisible, & .MuiInputBase-root.Mui-focused':
-          { outlineColor: 'secondary.main' },
-      }}
-    >
-      <Container
-        maxWidth={false}
+    <>
+      <Box
+        component="header"
         sx={{
-          maxWidth: layout.contentMaxWidth,
-          minHeight: isScrolled
-            ? layout.headerHeight.compact
-            : layout.headerHeight.regular,
-          display: 'flex',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          columnGap: { xs: 1.5, sm: 3 },
-          rowGap: 1,
-          py: isScrolled ? 0.5 : 1.5,
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          zIndex: 'appBar',
+          height: {
+            xs: layout.headerHeight.phone[size],
+            sm: layout.headerHeight.wide[size],
+          },
+          bgcolor: 'primary.main',
+          color: 'primary.contrastText',
+          // A shadow separates the header from the content under it.
+          boxShadow: isScrolled ? 4 : 0,
           transition: (theme) =>
-            theme.transitions.create(['min-height', 'padding'], {
+            theme.transitions.create(['height', 'box-shadow'], {
               duration: motionTokens.duration.base * 1000,
               easing: theme.transitions.easing.easeOut,
             }),
+          // The blue focus ring would not show on the blue header.
+          '& :focus-visible, & .MuiButtonBase-root.Mui-focusVisible, & .MuiInputBase-root.Mui-focused':
+            { outlineColor: 'secondary.main' },
         }}
       >
-        <Link
-          component={RouterLink}
-          to="/products"
-          // The name stays the same when the visible text is hidden.
-          aria-label={t('layout.homeLink')}
-          underline="none"
-          color="inherit"
+        <Container
+          maxWidth={false}
           sx={{
-            display: 'inline-flex',
+            maxWidth: layout.contentMaxWidth,
+            height: '100%',
+            display: 'flex',
             alignItems: 'center',
-            gap: 1.5,
-            minHeight: layout.touchTarget,
-            fontWeight: 'bold',
-            fontSize: '1.25rem',
-            // On phones the brand has its own row until the header is
-            // compact; then search and language sit next to the mark.
-            flexBasis: { xs: isScrolled ? 'auto' : '100%', sm: 'auto' },
+            alignContent: 'center',
+            flexWrap: 'wrap',
+            columnGap: { xs: 1, sm: 3 },
+            rowGap: 1,
           }}
         >
-          {/* Original mark: a plain yellow tile, decorative only. */}
-          <Box
-            aria-hidden
+          <Link
+            component={RouterLink}
+            to="/products"
+            // The name stays the same when the visible text is hidden.
+            aria-label={t('layout.homeLink')}
+            underline="none"
+            color="inherit"
             sx={{
-              width: 28,
-              height: 28,
-              borderRadius: 0.75,
-              bgcolor: 'secondary.main',
-            }}
-          />
-          {/* On phones the name gives its place to the search field
-              once the header is compact. */}
-          <Box
-            component="span"
-            sx={{
-              display: { xs: isScrolled ? 'none' : 'inline', sm: 'inline' },
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 1.5,
+              minHeight: layout.touchTarget,
+              fontWeight: 'bold',
+              fontSize: '1.25rem',
+              // On phones the brand has its own row until the header is
+              // compact; then search and language sit next to the mark.
+              flexBasis: { xs: isScrolled ? 'auto' : '100%', sm: 'auto' },
             }}
           >
-            Product Explorer
+            {/* Original mark: a plain yellow tile, decorative only. */}
+            <Box
+              aria-hidden
+              sx={{
+                width: 28,
+                height: 28,
+                borderRadius: 0.75,
+                bgcolor: 'secondary.main',
+                flexShrink: 0,
+              }}
+            />
+            <Box
+              component="span"
+              sx={{
+                display: { xs: isScrolled ? 'none' : 'inline', sm: 'inline' },
+              }}
+            >
+              Product Explorer
+            </Box>
+          </Link>
+          <Box
+            sx={{
+              flex: { xs: '1 1 120px', sm: '1 1 260px' },
+              minWidth: 0,
+              maxWidth: { sm: 560 },
+              ml: { sm: 'auto' },
+            }}
+          >
+            {search}
           </Box>
-        </Link>
-        <Box
-          sx={{
-            flex: { xs: '1 1 150px', sm: '1 1 260px' },
-            minWidth: 0,
-            maxWidth: { sm: 560 },
-            ml: { sm: 'auto' },
-          }}
-        >
-          {search}
-        </Box>
-        <LanguageSwitcher />
-      </Container>
-    </Box>
+          <LanguageSwitcher />
+        </Container>
+      </Box>
+      {/* Holds the place of the fixed header. Its height never changes. */}
+      <Box
+        aria-hidden
+        sx={{
+          height: {
+            xs: layout.headerHeight.phone.regular,
+            sm: layout.headerHeight.wide.regular,
+          },
+        }}
+      />
+    </>
   );
 }
