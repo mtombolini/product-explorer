@@ -54,5 +54,6 @@ USER app
 
 EXPOSE 8000
 
-# Migrations, import when the table is empty, then the API.
+# Migrations, import when the table is empty, the bundled translations
+# (every start), then the API.
 CMD ["./entrypoint.sh"]
