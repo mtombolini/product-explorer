@@ -3,6 +3,12 @@
  * (snake_case). See "API contract" in docs/SPEC.md.
  */
 
+/** One fact about a product, for example "Capacity: 2 TB". */
+export interface ProductSpecification {
+  label: string;
+  value: string;
+}
+
 /** One product of the catalogue. */
 export interface Product {
   id: number;
@@ -19,6 +25,10 @@ export interface Product {
   image_url: string | null;
   rating_rate: number | null;
   rating_count: number | null;
+  /** Key facts in display order. Empty when the product has none. */
+  specifications: ProductSpecification[];
+  /** The language `specifications` are written in. */
+  specifications_language: string;
 }
 
 /** One page of products with the pagination metadata. */
