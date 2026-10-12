@@ -3,7 +3,7 @@ import { initReactI18next } from 'react-i18next';
 
 import {
   DEFAULT_LANGUAGE,
-  readStoredLanguage,
+  initialLanguage,
   storeLanguage,
   SUPPORTED_LANGUAGES,
 } from './languages';
@@ -19,8 +19,8 @@ i18n.use(initReactI18next).init({
     en: { translation: en },
     es: { translation: es },
   },
-  // The language chosen on an earlier visit, otherwise English.
-  lng: readStoredLanguage(),
+  // The language chosen on an earlier visit, otherwise the browser's.
+  lng: initialLanguage(),
   fallbackLng: DEFAULT_LANGUAGE,
   supportedLngs: SUPPORTED_LANGUAGES.map((language) => language.code),
   // React already escapes text, so i18next must not escape it again.

@@ -172,13 +172,14 @@ describe('product page: specifications', () => {
   const drive = makeProduct(9, {
     title: 'External drive',
     specifications: [
-      { label: 'Capacity', value: '2 TB' },
-      { label: 'Interface', value: 'USB 3.0' },
+      { key: 'brand', group: 'General', label: 'Brand', value: 'WD' },
+      { key: 'capacity', group: 'Storage', label: 'Capacity', value: '2 TB' },
+      { key: 'warranty', group: 'Storage', label: 'Warranty', value: null },
     ],
     specifications_language: 'en',
   });
 
-  it('lists each specification as a label with its value, in order', async () => {
+  it('lists the specifications by group, as labels with their values', async () => {
     installFakeApi([drive]);
     renderApp('/product/9');
 
@@ -189,12 +190,17 @@ describe('product page: specifications', () => {
       within(section)
         .getAllByRole('term')
         .map((term) => term.textContent),
-    ).toEqual(['Capacity', 'Interface']);
+    ).toEqual(['Brand', 'Capacity', 'Warranty']);
     expect(
       within(section)
         .getAllByRole('definition')
         .map((definition) => definition.textContent),
-    ).toEqual(['2 TB', 'USB 3.0']);
+    ).toEqual(['WD', '2 TB', '—Not specified']);
+    expect(
+      within(section)
+        .getAllByRole('heading', { level: 3 })
+        .map((heading) => heading.textContent),
+    ).toEqual(['General', 'Storage']);
     // The description stays below, under its own heading.
     expect(
       screen.getByRole('heading', { level: 2, name: 'Description' }),
@@ -215,13 +221,20 @@ describe('product page: specifications', () => {
   it('marks the list with the language its text is in', async () => {
     installFakeApi([
       makeProduct(9, {
-        specifications: [{ label: 'Capacidad', value: '2 TB' }],
+        specifications: [
+          {
+            key: 'capacity',
+            group: 'Almacenamiento',
+            label: 'Capacidad',
+            value: '2 TB',
+          },
+        ],
         specifications_language: 'es',
       }),
     ]);
     renderApp('/product/9');
 
     const term = await screen.findByRole('term');
-    expect(term.closest('dl')).toHaveAttribute('lang', 'es');
+    expect(term.closest('[lang]')).toHaveAttribute('lang', 'es');
   });
 });

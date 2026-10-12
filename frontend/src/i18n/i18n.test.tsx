@@ -6,7 +6,7 @@ import { installFakeApi, makeProduct } from '../test/fakeApi';
 import { renderApp } from '../test/renderApp';
 import { categoryName } from './categoryNames';
 import { i18n } from './i18n';
-import { readStoredLanguage, SUPPORTED_LANGUAGES } from './languages';
+import { initialLanguage, SUPPORTED_LANGUAGES } from './languages';
 import { en } from './locales/en';
 import { es } from './locales/es';
 
@@ -73,7 +73,7 @@ describe('language switcher', () => {
 
     // The document and the next visit know the language.
     expect(document.documentElement.lang).toBe('es');
-    expect(readStoredLanguage()).toBe('es');
+    expect(initialLanguage()).toBe('es');
     expect(document.title).toBe('Productos | Product Explorer');
   });
 
@@ -136,7 +136,39 @@ describe('translations', () => {
   it('ignores a stored language that is not supported', () => {
     window.localStorage.setItem('product-explorer.language', 'xx');
 
-    expect(readStoredLanguage()).toBe('en');
+    expect(initialLanguage()).toBe('en');
+  });
+});
+
+describe('language of a first visit', () => {
+  /** A first visit: nothing stored, and these browser languages. */
+  function browserPrefers(languages: string[]): void {
+    // The test setup switches to English, which stores that choice.
+    window.localStorage.clear();
+    vi.spyOn(window.navigator, 'languages', 'get').mockReturnValue(languages);
+  }
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('takes the first language of the browser that is supported', () => {
+    browserPrefers(['fr-FR', 'es-CL', 'en']);
+
+    expect(initialLanguage()).toBe('es');
+  });
+
+  it('falls back to English when the browser has none of them', () => {
+    browserPrefers(['fr-FR', 'de']);
+
+    expect(initialLanguage()).toBe('en');
+  });
+
+  it('prefers the language chosen on an earlier visit', () => {
+    browserPrefers(['es-CL']);
+    window.localStorage.setItem('product-explorer.language', 'en');
+
+    expect(initialLanguage()).toBe('en');
   });
 });
 
