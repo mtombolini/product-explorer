@@ -127,3 +127,72 @@ Representative excerpts from the master prompt:
     image pulls. The Docker commands above were run with `DOCKER_CONFIG`
     pointing to a temporary client configuration without a credential
     store. Nothing in the repository depends on it.
+
+## Phase 2: backend data
+
+- **Prompt or workflow.** A builder sub-agent received the phase scope from
+  `docs/SPEC.md` (sections 7.3, 7.4, 7.5, 7.7 and the import rows of 7.10):
+  "Build the data layer and the Fake Store import. Do not build the public
+  product endpoints yet". The code was written and committed in a first
+  run. A second run read every file of the phase, ran the verification
+  below from a clean state and wrote this section.
+- **Accepted.**
+  - Settings, database session and a JSON log formatter on the standard
+    `logging` module.
+  - The `Product` model with its check constraints and one hand-written
+    Alembic migration (`0001_create_products`).
+  - The Fake Store schema and an `httpx` client with a timeout, an
+    explicit retry loop with backoff and an injectable transport.
+  - The product repository (upsert on `external_id`), the image storage
+    and `CatalogueImportService` with one private method per step.
+  - The seed command, `entrypoint.sh`, a Dockerfile with `base`, `test`
+    and `runtime` stages, and the `backend-test` Compose service.
+  - Ten import tests on PostgreSQL with `httpx.MockTransport`.
+- **Rejected or changed.**
+  - Accepting any `image/*` content type was replaced with an allow-list
+    of four types that also gives the file extension; SVG is refused
+    (D-014).
+  - One transaction for the whole run was rejected: the upsert and each
+    image path are committed separately (D-015).
+  - A malformed image URL made `httpx` raise before any request. It is
+    now counted as one failed image.
+  - Run with `python -m`, the seed command logged under the name
+    `__main__`. The logger name is now fixed to `app.commands.seed`.
+  - A rollback per test was not used because the repository commits; the
+    table is truncated before each test (D-017).
+- **Verification.**
+  - `docker compose --profile test run --rm --build backend-test`:
+    "10 passed". The same command with `docker-compose`: "10 passed".
+  - In the test image, `ruff check .`: "All checks passed!";
+    `ruff format --check .`: "30 files already formatted".
+  - `docker compose down -v` followed by
+    `docker compose up --build -d --wait`: exit code 0, three services
+    healthy. The log showed the migration and "Catalogue import finished"
+    with fetched 20, imported 20, skipped 0, images downloaded 20, images
+    failed 0. `select count(*)` on `products`: 20. `ls /data/images` in
+    the backend container: 20 files, in a directory owned by `app`.
+  - `python -m app.commands.seed` run twice by hand: exit code 0 both
+    times, images downloaded 0, still 20 rows with ids 1 to 20 (the same
+    checksum of the id and `external_id` pairs), `updated_at` moved to the
+    time of each run, still 20 files.
+  - `docker compose restart backend`: the log showed "Import skipped: the
+    catalogue already has products" with `product_count` 20.
+  - Clean state with `FAKESTORE_BASE_URL=http://10.255.255.1`:
+    `docker compose up -d --wait` ended with exit code 0. The log showed
+    three "Fake Store request failed" lines (`ConnectTimeout`), "Import
+    failed: Fake Store is unavailable" and the entrypoint message; Uvicorn
+    started about 17 seconds after the first attempt. The table had 0
+    rows and `/health` answered 200. Then
+    `docker compose exec -e FAKESTORE_BASE_URL=https://fakestoreapi.com
+    backend python -m app.commands.seed` imported 20 products and 20
+    images with no restart. `docker compose up -d --wait` then recreated
+    the backend with the default URL, and it skipped the import.
+  - `/api/hello` through the frontend and `/health` still answer 200.
+  - Not verified: `/health` does not report `catalogue_seeded` yet (phase
+    3), so the empty catalogue was checked in the database, not through
+    the API.
+  - Environment note: the Docker commands again used the temporary
+    `DOCKER_CONFIG` described in phase 1. During this run the clock of
+    the Docker virtual machine was up to three minutes behind the host
+    for a while, so the wall-clock duration of the unreachable-source
+    start was read from the container log timestamps.
