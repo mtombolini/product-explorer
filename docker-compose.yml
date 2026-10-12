@@ -69,7 +69,9 @@ services:
       start_interval: 2s
 
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      target: runtime
     restart: unless-stopped
     ports:
       - "${FRONTEND_PORT:-8080}:80"
@@ -98,6 +100,15 @@ services:
     depends_on:
       db:
         condition: service_healthy
+
+  # One-off test runner of the frontend, also under the "test" profile:
+  #   docker compose --profile test run --rm --build frontend-test
+  # It needs no other service: the tests replace the API with a stub.
+  frontend-test:
+    profiles: ["test"]
+    build:
+      context: ./frontend
+      target: source
 
 volumes:
   db-data:
