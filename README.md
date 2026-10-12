@@ -487,6 +487,7 @@ The full list, with the open questions and the defaults taken, is in
 
 - The catalogue has 20 products. Search uses `ILIKE` with a leading
   wildcard, which does not use an index and would be slow on a large table.
+  Search ignores case but not accents: "algodon" does not find "algodón".
 - Prices travel as JSON numbers. That is fine for display, not for money
   arithmetic.
 - The frontend ships as one JavaScript bundle of about 800 kB (255 kB
