@@ -913,3 +913,54 @@ during the work, one section at a time.
     did not go to a product and back, and the test environment has no
     layout, so the old test only saw that the call was made.
 
+
+## The candidate's second review
+
+- **Prompt or workflow.** The candidate looked at the running application
+  and asked, in one message: the price looks like the title; make the
+  ratings visible; specifications by product family with general fields
+  and a taxonomy, the same fields for every product; detect the browser
+  language; undo three deviations from the master prompt (test services
+  in the Compose file, controls under 44 px, and building without
+  approval stops); icons on the categories; a README with a logo header,
+  badges and a language link. The main agent did the work itself, without
+  sub-agents.
+- **Accepted.**
+  - The taxonomy of specifications and its loader (D-055): two general
+    attributes and six product families, written by the model from the
+    Fake Store titles and descriptions.
+  - A price component, five-star ratings, category icons, browser
+    language detection (D-056) and one control height of 44 px (D-057).
+  - The test runners in `docker-compose.test.yml` (D-058).
+  - The README header, `docs/assets/logo.svg` and a Spanish summary,
+    `README.es.md` (D-059).
+- **Rejected or changed.**
+  - The approval stops between phases cannot be added afterwards. It
+    stays recorded as a deviation.
+  - Families equal to the four Fake Store categories were discarded:
+    "electronics" would give a monitor a "capacity" line.
+  - Facts outside the taxonomy that the old lists had (return policy,
+    seller, VESA mount, drive thickness) are no longer specifications.
+    They remain in the description.
+  - A first version of the "not specified" dash cleared the language
+    attribute instead of setting the interface language; corrected
+    before the commit.
+- **Verification.**
+  - `docker compose config --services`: `db`, `backend`, `frontend`.
+  - Through `docker-compose.test.yml`: backend "122 passed", `ruff check`
+    and `ruff format --check` clean; frontend "74 passed", lint, format
+    and typecheck clean.
+  - `docker compose up --build -d --wait` on the existing database: the
+    migration `0006_specification_taxonomy` ran and the log reported
+    "Specifications loaded" with 20 stored and 0 skipped. The table had
+    302 rows, 192 of them with a value. A second run of the seed command
+    left the same counts.
+  - Headless Chrome with the locale `es-CL` and nothing stored opened the
+    catalogue in Spanish and stored nothing; with `fr-FR` it opened in
+    English. At 1280 and 390 px the document was not wider than the
+    window. Screenshots of the catalogue, the phone layout and product 10
+    were looked at.
+  - Not verified: Lighthouse was not run again after these changes; the
+    badges and the logo of the README were not seen rendered on GitHub;
+    the CI badge shows nothing until the workflow runs there; the values
+    of the taxonomy were not read by a second person.

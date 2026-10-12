@@ -62,6 +62,7 @@ trade-off that was accepted. New entries are appended as the work advances.
 - **Trade-off.** Two extra entries in the Compose file. In exchange, tests
   run against the same database engine as production and the runtime image
   stays free of development tools.
+- **Update (D-058).** The two runners moved to their own Compose file.
 
 ### D-006 Full products in the list response
 
@@ -436,6 +437,7 @@ trade-off that was accepted. New entries are appended as the work advances.
 - **Trade-off.** A Spanish-speaking visitor has to choose once. Every
   reviewer sees the same thing on first load, and the required routes
   `/products` and `/product/:id` stay as the statement writes them.
+- **Update (D-056).** Superseded: the browser language is detected.
 
 ### D-035 The API returns codes, the interface chooses the words
 
@@ -494,6 +496,7 @@ trade-off that was accepted. New entries are appended as the work advances.
 - **Trade-off.** One media query in each control style. The 36 px size is
   above the 24 px that WCAG 2.2 AA requires, and touch screens keep the
   larger target.
+- **Update (D-057).** Superseded: every control is 44 px tall.
 
 ### D-039 Joined, rectangular filter buttons in a toolbar
 
@@ -658,6 +661,7 @@ trade-off that was accepted. New entries are appended as the work advances.
   of the database. The lists are a snapshot written with AI: every row
   must be backed by the description, and a new product has none until one
   is written.
+- **Update (D-055).** The free lists were replaced by a taxonomy.
 
 ### D-050 Specifications are replaced, not merged, on each load
 
@@ -723,3 +727,73 @@ trade-off that was accepted. New entries are appended as the work advances.
   likely readers are in Latin America, and a translation that invents a
   product type is a data error, not a style choice.
 
+
+## After the candidate's second review
+
+### D-055 Specifications follow a taxonomy by product family
+
+- **Context.** Each product had its own free list of labels, so two hard
+  drives could describe the same fact with different words and could not
+  be compared. The candidate asked for general fields and fields per
+  product family, the same for every product.
+- **Decision.** `taxonomy.json` defines two general attributes (brand,
+  product type) and the attributes of six product families, with their
+  names in every language. `products.json` gives each product its family
+  and the values its description states; a value that reads the same in
+  every language is written once. The loader stores one row per
+  attribute of the family, with a null value where the source is silent,
+  and the API returns `key`, `group`, `label` and `value`.
+- **Alternatives.** Tables for families and attributes; families equal
+  to the four Fake Store categories; hiding the empty lines.
+- **Trade-off.** "Electronics" mixes drives and monitors, so the family
+  is finer than the category and is assigned by hand. Normalised tables
+  would be right for a catalogue edited by people; for 20 products one
+  validated file and one flat table are easier to explain. Empty lines
+  are shown with a dash: they make the products of a family comparable
+  and are honest about what the source does not say. Facts outside the
+  taxonomy (a return policy, a seller) stay in the description only.
+
+### D-056 The first visit follows the browser language
+
+- **Context.** D-034 started every visit in English. The candidate asked
+  for the usual behaviour.
+- **Decision.** The start language is the stored choice, then the first
+  entry of `navigator.languages` whose language part the interface has,
+  then English. A detected language is not stored: only a choice is.
+- **Alternatives.** A detection plugin for i18next; the language in the
+  URL.
+- **Trade-off.** Two reviewers can see different languages on first
+  load. Ten lines in `languages.ts` instead of a dependency.
+
+### D-057 Every control is 44 px tall
+
+- **Context.** D-038 made controls 36 to 40 px with a mouse. The master
+  prompt asks for 44 px targets and the candidate asked to follow it.
+- **Decision.** One height, 44 px, for buttons, fields, selects, menu
+  items and pagination, with any pointer.
+- **Alternatives.** Keep the compact size and enlarge only the hit area.
+- **Trade-off.** The toolbar is 8 px taller on a desktop screen. One
+  constant and no media query in the theme.
+
+### D-058 The test runners have their own Compose file
+
+- **Context.** D-005 kept two test services in `docker-compose.yml` under
+  a profile. The master prompt says the Compose file has the three
+  services and no others.
+- **Decision.** The runners moved to `docker-compose.test.yml`, which is
+  only read when it is named with `-f`.
+- **Alternatives.** Running the tests with `docker build --target test`;
+  a Makefile.
+- **Trade-off.** A longer command for the tests. `docker compose config`
+  on the main file now lists exactly `db`, `backend` and `frontend`.
+
+### D-059 A Spanish summary of the README
+
+- **Context.** The repository is in English by rule. The candidate asked
+  for a README with a header, badges and a link between languages.
+- **Decision.** `README.md` stays complete and in English.
+  `README.es.md` is a short Spanish summary that links back to it for
+  the details. It is the only document in Spanish.
+- **Alternatives.** A full translation; no Spanish file.
+- **Trade-off.** A full translation of 500 lines would drift from the
+  original. The summary repeats only what rarely changes.

@@ -1,4 +1,41 @@
-# Product Explorer
+<p align="center">
+  <img src="docs/assets/logo.svg" alt="Product Explorer" width="360">
+</p>
+
+<p align="center"><strong>A fullstack product catalogue: search, filter and order a list, and open each product, on our own API and database.</strong></p>
+
+<p align="center">
+  <a href="https://github.com/mtombolini/product-explorer/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/mtombolini/product-explorer/actions/workflows/ci.yml/badge.svg"></a>
+  <img alt="React 19" src="https://img.shields.io/badge/react-19-0058A3?logo=react&logoColor=white">
+  <img alt="TypeScript 6" src="https://img.shields.io/badge/typescript-6-0058A3?logo=typescript&logoColor=white">
+  <img alt="FastAPI" src="https://img.shields.io/badge/fastapi-0.143-0058A3?logo=fastapi&logoColor=white">
+  <img alt="Python 3.13" src="https://img.shields.io/badge/python-3.13-0058A3?logo=python&logoColor=white">
+  <img alt="PostgreSQL 17" src="https://img.shields.io/badge/postgresql-17-0058A3?logo=postgresql&logoColor=white">
+  <img alt="Docker Compose" src="https://img.shields.io/badge/docker-compose-0058A3?logo=docker&logoColor=white">
+</p>
+
+<p align="center"><strong>English</strong> | <a href="README.es.md">Español</a></p>
+
+---
+
+## Contents
+
+[Quick start](#quick-start) ·
+[Environment variables](#environment-variables) ·
+[Architecture](#architecture-overview) ·
+[Project structure](#project-structure) ·
+[API](#api-endpoints) ·
+[Import](#import-strategy) ·
+[Tests](#tests) ·
+[Development](#development-workflow) ·
+[Accessibility](#accessibility-and-responsive-behaviour) ·
+[Languages](#languages) ·
+[Assumptions](#assumptions) ·
+[Limitations](#known-limitations) ·
+[Production](#path-to-production) ·
+[Further documents](#further-documents)
+
+## Purpose
 
 A small fullstack product catalogue: a paginated list with search and a
 category filter, and a page for each product. The React frontend talks only
@@ -122,7 +159,8 @@ in [docs/architecture.md](docs/architecture.md).
 
 ```text
 .
-├── docker-compose.yml          three services + two test runners (profile "test")
+├── docker-compose.yml          the three services of the application
+├── docker-compose.test.yml     the two test runners
 ├── .env.example
 ├── README.md  AI_USAGE.md  FUTURE_IMPROVEMENTS.md
 ├── docs/                       SPEC, DECISIONS, architecture, AI_LOG
@@ -138,7 +176,7 @@ in [docs/architecture.md](docs/architecture.md).
 │   │   ├── repositories/               database queries and image files
 │   │   ├── clients/                    Fake Store HTTP client
 │   │   ├── models/  schemas/           tables, languages and sort orders; request and response shapes
-│   │   ├── data/                       bundled Spanish text and specifications of the catalogue
+│   │   ├── data/                       bundled Spanish text, and the taxonomy and values of the specifications
 │   │   ├── core/                       settings, database session, logging
 │   │   └── commands/seed.py            the import command (products, translations, specifications)
 │   └── tests/
@@ -198,8 +236,9 @@ curl "http://localhost:8080/api/products?search=cotton&category=women%27s%20clot
       "rating_rate": 3.6,
       "rating_count": 145,
       "specifications": [
-        { "label": "Material", "value": "95% cotton, 5% spandex" },
-        { "label": "Sleeves", "value": "Short" }
+        { "key": "brand", "group": "General", "label": "Brand", "value": "DANVOUY" },
+        { "key": "material", "group": "Tops", "label": "Material", "value": "95% cotton, 5% spandex" },
+        { "key": "fit", "group": "Tops", "label": "Fit", "value": null }
       ],
       "specifications_language": "en"
     }
@@ -213,9 +252,10 @@ curl "http://localhost:8080/api/products?search=cotton&category=women%27s%20clot
 
 (Three products match; one is shown here.) `language` says which language
 the title and description are in: the one asked for with `lang` when the
-catalogue has a translation, otherwise `en`. `specifications` are the key
-facts of the product (two of five are shown here), in the requested
-language when it has them. A page after the last one answers 200 with an empty `items` list, so the
+catalogue has a translation, otherwise `en`. `specifications` are the
+attributes of the product's family (three of seven are shown here), in
+the requested language; `value` is `null` when the source says nothing
+about an attribute. A page after the last one answers 200 with an empty `items` list, so the
 client can still show the totals.
 
 **Errors.** Every error has the same body:
@@ -308,24 +348,26 @@ and are not imported.
 
 ## Tests
 
-No local toolchain is needed: both suites run in containers.
+No local toolchain is needed: both suites run in containers. The test
+runners are in their own Compose file, so `docker-compose.yml` holds only
+the three services of the application.
 
 ```bash
-# Backend: 121 tests (pytest) against PostgreSQL, in a database ending in _test
-docker compose --profile test run --rm --build backend-test
+# Backend: 122 tests (pytest) against PostgreSQL, in a database ending in _test
+docker compose -f docker-compose.yml -f docker-compose.test.yml run --rm --build backend-test
 
-# Frontend: 71 tests (Vitest + React Testing Library)
-docker compose --profile test run --rm --build frontend-test
+# Frontend: 74 tests (Vitest + React Testing Library)
+docker compose -f docker-compose.yml -f docker-compose.test.yml run --rm --build frontend-test
 ```
 
 Lint and format checks:
 
 ```bash
-docker compose --profile test run --rm backend-test ruff check .
-docker compose --profile test run --rm backend-test ruff format --check .
-docker compose --profile test run --rm frontend-test npm run lint
-docker compose --profile test run --rm frontend-test npm run format:check
-docker compose --profile test run --rm frontend-test npm run typecheck
+docker compose -f docker-compose.yml -f docker-compose.test.yml run --rm backend-test ruff check .
+docker compose -f docker-compose.yml -f docker-compose.test.yml run --rm backend-test ruff format --check .
+docker compose -f docker-compose.yml -f docker-compose.test.yml run --rm frontend-test npm run lint
+docker compose -f docker-compose.yml -f docker-compose.test.yml run --rm frontend-test npm run format:check
+docker compose -f docker-compose.yml -f docker-compose.test.yml run --rm frontend-test npm run typecheck
 ```
 
 The tests never call the real Fake Store API: the backend replaces the
@@ -378,15 +420,17 @@ from the browser's network panel and search for it in the backend logs.
 
 - Landmarks (`header`, `main`, `footer`, a `search` form), one `h1` per
   page, a skip link as the first focusable element.
-- Every control has a name and a visible 3 px focus ring. Controls are 36
-  to 40 px tall with a mouse and at least 44 px on touch screens.
+- Every control has a name and a visible 3 px focus ring. Controls are
+  44 px tall, with a mouse and on touch screens.
   Everything works with the keyboard alone: the category buttons are one
   Tab stop and the arrow keys move between them, and the language menu
   opens with Enter and closes with Escape.
 - After a change of page, focus moves to the new page's heading. The result
   count is a polite live region. The current page of the pagination has
   `aria-current`.
-- Product cards are single links. Ratings have a text equivalent.
+- Product cards are single links. Ratings are five stars with the score
+  and a text equivalent; each category button has an icon next to its
+  name.
 - Motion is short (150 to 300 ms). Under `prefers-reduced-motion`
   movement is removed; a short fade remains.
 - The grid has 1 column below 480 px, 2 from 480 px, 3 from 768 px and 4
@@ -415,8 +459,9 @@ focus ring).
 
 ## Languages
 
-The interface is available in **English and Spanish**. English is the
-default; the menu in the header changes it and the choice is remembered
+The interface is available in **English and Spanish**. A first visit
+starts in the language of the browser when it is one of the two, otherwise
+in English; the menu in the header changes it and the choice is remembered
 in the browser.
 
 - All interface copy is in `frontend/src/i18n/locales/`, one file per
@@ -446,11 +491,16 @@ this project (with AI) and are stored in our own database:
   frontend.
 
 **Specifications.** Fake Store describes each product with one
-paragraph. To make the key facts quick to scan, a short list of label and
-value ("Capacity: 2 TB") was written for each product from its
-description, in both languages, and is served by the API as
-`specifications`. The product page shows that list first and the
-description below it.
+paragraph. To make the facts quick to scan and comparable, the
+specifications follow a small taxonomy
+(`backend/app/data/specifications/taxonomy.json`): two general attributes
+that every product has (brand, product type) and the attributes of each
+of six product families (bags, tops, outerwear, jewelry, storage,
+monitors), with their names in both languages. `products.json` gives each
+product its family and the values its description states. The products
+of one family therefore show the same lines in the same order, and a line
+the source says nothing about shows a dash. The product page shows the
+groups first and the description below them.
 
 To add an interface language: copy `locales/en.ts` to a new file and
 translate it, add the language to `SUPPORTED_LANGUAGES` in
@@ -459,8 +509,10 @@ to the `Language` enum in the backend
 (`backend/app/models/language.py`). The backend step is required: the
 frontend sends the language with every request, and the API answers 422
 to a `lang` it does not know. Translating the catalogue is optional: a
-file next to `translations/es.json` and one next to
-`specifications/es.json`; without them the text comes back in English.
+file next to `translations/es.json`, and the new language in the labels
+of `specifications/taxonomy.json` and in the translated values of
+`specifications/products.json`. The specifications need every language
+of the enum: the loader rejects a taxonomy or a value that lacks one.
 
 ## Assumptions
 
@@ -504,7 +556,6 @@ The full list, with the open questions and the defaults taken, is in
   says about each one, and are bundled with the code. A product that appears in the
   source later is shown in English until a translation is added, and
   category names are translated in the frontend, not in the database.
-- The browser language is not detected: a first visit is in English.
 - Tested in Chrome only. No screen reader session was run.
 - The CI workflow was written and linted but has not run on GitHub yet.
 

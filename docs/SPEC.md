@@ -142,7 +142,7 @@ results of those checks are recorded phase by phase in `docs/AI_LOG.md`.
 | "Home furnishing products" | Fake Store has no furniture | Keep the data, neutral copy, documented as an assumption |
 | "A single Docker Compose command" | A mandatory `cp .env.example .env` would be a second command | Compose provides local defaults, so `.env` is optional and only overrides them |
 | `docker-compose up` | The hyphenated v1 tool is end of life | Compose v2 answers to both names; both were verified |
-| "No other services" (master prompt) | Tests need PostgreSQL and a toolchain | The application is exactly three long-running containers. Test runners are one-off jobs behind a Compose profile and are never started by `up` |
+| "No other services" (master prompt) | Tests need PostgreSQL and a toolchain | The application is exactly three long-running containers. `docker-compose.yml` has exactly those three services. The test runners are one-off jobs in `docker-compose.test.yml`, which `up` never reads (D-058) |
 | "Protected backend endpoint" for the import | Not needed with a seed command | Not implemented; the seed is a command, not an endpoint |
 | Latest TypeScript and ESLint | TypeScript 7 and ESLint 10 are newer than the lint plugins support | Pinned to TypeScript 6.0 and ESLint 9 (see `docs/DECISIONS.md`) |
 | Image hosting | Fake Store answers `HEAD` requests for images with a bot challenge (HTTP 403), `GET` works | The importer only uses `GET` |
@@ -239,8 +239,8 @@ service beyond the three containers.
 - Nginx resolves the backend through Docker's DNS at request time, so the
   backend can be rebuilt without restarting the frontend.
 - Nginx forwards its own request id in `X-Request-ID`.
-- Test runners `backend-test` and `frontend-test` exist only under the
-  Compose profile `test`.
+- Test runners `backend-test` and `frontend-test` are in
+  `docker-compose.test.yml`, not in the Compose file of the application.
 - The Compose project name is fixed to `product-explorer`.
 
 ### 7.3 Configuration
@@ -300,8 +300,10 @@ Table `product_specifications` (key facts of a product, per language):
 | `product_id` | `INTEGER` | Not null. Foreign key to `products.id`, `ON DELETE CASCADE` |
 | `language` | `VARCHAR(8)` | Not null. Every language has rows, English included |
 | `position` | `INTEGER` | Not null. Display order, from 1 |
+| `attribute` | `VARCHAR(50)` | Not null. Key in the taxonomy, for example `capacity` |
+| `group_label` | `VARCHAR(100)` | Not null. `General` or the name of the product family |
 | `label` | `VARCHAR(100)` | Not null, for example `Capacity` |
-| `value` | `VARCHAR(255)` | Not null, for example `2 TB` |
+| `value` | `VARCHAR(255)` | Null when the source says nothing about the attribute |
 
 The primary key is (`product_id`, `language`, `position`).
 
@@ -346,12 +348,16 @@ import, because there would be no products to translate. A problem in
 this step never stops the API from starting.
 
 The **specifications** are loaded right after, in the same way and in the
-same situations. Fake Store has only a paragraph of description, so a short
-list of label and value was written for each product from that paragraph,
-in English and in Spanish, and is bundled in
-`backend/app/data/specifications/`. For each product and language the
-stored list is replaced by the one in the file, so the step can be
-repeated and a shorter list leaves nothing behind.
+same situations. Fake Store has only a paragraph of description, so the
+specifications were written for this project and are bundled in
+`backend/app/data/specifications/`: `taxonomy.json` lists the general
+attributes, the attributes of each product family and their names in
+every language, and `products.json` gives each product its family and
+the values its description states. The loader writes one row per
+attribute of the family, with or without a value, in every language. For
+each product the stored rows are replaced, so the step can be repeated
+and nothing old is left behind. A product with an unknown family or
+attribute is skipped as a whole.
 
 Behaviour of the command:
 
@@ -383,8 +389,8 @@ Base path `/api`. JSON only. Field names are `snake_case`.
   "rating_rate": 3.9,
   "rating_count": 120,
   "specifications": [
-    {"label": "Type", "value": "Backpack"},
-    {"label": "Laptop compartment", "value": "Padded sleeve, up to 15 inches"}
+    {"key": "brand", "group": "General", "label": "Brand", "value": "Fjallraven"},
+    {"key": "laptop_size", "group": "Bags", "label": "Laptop size", "value": "Up to 15 inches, in a padded sleeve"}
   ],
   "specifications_language": "en"
 }
@@ -393,7 +399,8 @@ Base path `/api`. JSON only. Field names are `snake_case`.
 `image_url`, `rating_rate` and `rating_count` can be `null`. `language`
 is the language of `title` and `description` as returned: the one asked
 for with `lang` when a translation exists, otherwise `en`.
-`specifications` are the product's key facts in display order: the rows in
+`specifications` are the attributes of the product's family in display
+order, with a `null` value where the source says nothing: the rows in
 the requested language when the product has any, otherwise the English
 ones, otherwise an empty list. `specifications_language` says which.
 
@@ -550,8 +557,8 @@ When the database cannot be reached: 503 with `status` and `database` set to
   fluid headings with `clamp()`, body at least 16 px, descriptions limited to
   60 to 75 characters per line. Sentence case.
 - Layout: mobile-first, 8 px spacing scale, content width capped near
-  1280 to 1440 px. Grid of 1, 2, 3 and 4 columns. Controls are 36 to
-  40 px tall with a mouse and at least 44 px on touch screens. Corners are
+  1280 to 1440 px. Grid of 1, 2, 3 and 4 columns. Controls are 44 px
+  tall. Corners are
   slightly rounded (6 px); there are no pill shapes. No native form
   controls: menus and selects are MUI components.
 - Cards: image-first, fixed aspect-ratio box with `object-fit: contain` on a
@@ -660,10 +667,10 @@ Versions were read from the package registries on the day the work started.
 Added after the first version, at the candidate's request. The statement
 does not ask for it.
 
-- The interface is available in English and Spanish. English is the
-  default. The user changes it with a menu in the header and the choice
-  is stored in the browser for the next visit. The browser language is not
-  detected automatically (see `docs/DECISIONS.md`).
+- The interface is available in English and Spanish. A first
+  visit uses the language of the browser when it is one of the two,
+  otherwise English. The user changes it with a menu in the header and
+  the choice is stored in the browser for the next visit (D-056).
 - All interface copy lives in one file per language under
   `frontend/src/i18n/locales/`. English defines the shape; a missing key
   in another language is a type error. Adding a language is one file plus
