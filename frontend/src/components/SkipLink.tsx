@@ -1,4 +1,5 @@
 import Link from '@mui/material/Link';
+import { useTranslation } from 'react-i18next';
 
 import { layout } from '../app/theme';
 
@@ -10,6 +11,8 @@ export const MAIN_CONTENT_ID = 'main-content';
  * the header straight to the content. Hidden until it receives focus.
  */
 export function SkipLink() {
+  const { t } = useTranslation();
+
   return (
     <Link
       href={`#${MAIN_CONTENT_ID}`}
@@ -31,7 +34,7 @@ export function SkipLink() {
         '&:focus': { transform: 'none' },
       }}
     >
-      Skip to main content
+      {t('layout.skipToContent')}
     </Link>
   );
 }
