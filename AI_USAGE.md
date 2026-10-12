@@ -9,10 +9,17 @@ verified. It is updated during the work, not written at the end.
 
 - **Claude Code** (Anthropic, model Claude Opus), run as a coding agent with
   access to the repository, a shell and Docker.
-- The agent orchestrated sub-agents: one builder per phase, followed by
-  independent reviewers that read the result with different concerns
-  (requirements, correctness, style, security, accessibility) and a fixer
-  that applied only the findings that were confirmed.
+- Phases 1 and 2 were written by builder sub-agents that the main agent
+  briefed with the phase scope. Phases 3 to 8 were written by the main
+  agent itself, one file at a time.
+- No AI code review by independent sub-agents took place. It was planned
+  for the backend and the frontend, but the sub-agent runs could not
+  finish: the development machine was asleep most of the time (lid closed,
+  on battery) and the orchestration tool stops an agent that makes no
+  progress for three minutes. The checks that did happen are listed in
+  each phase and are of two kinds: automated (lint, tests, builds, Docker
+  Compose runs) and behavioural (requests with curl, scripted sessions in
+  headless Chrome, Lighthouse).
 
 ## Working method
 
@@ -25,6 +32,11 @@ verified. It is updated during the work, not written at the end.
 3. Each phase was built against that contract and closed only after lint,
    tests and a Docker Compose run.
 4. Decisions were recorded in `docs/DECISIONS.md` as they were taken.
+5. The master prompt asked the agent to stop for approval after the
+   specification and after each phase. In this run the phases were
+   executed in sequence without those stops, so the candidate's review
+   happens afterwards, from the commit history and the phase records in
+   this file.
 
 Representative excerpts from the master prompt:
 
