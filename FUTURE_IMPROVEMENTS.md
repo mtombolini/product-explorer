@@ -13,7 +13,7 @@ solution that is complete and easy to explain.
 | Search | `ILIKE '%term%'` on title and description. Simple and correct, but it scans the table and has no ranking or typo tolerance |
 | Data | Prices are exposed as JSON numbers and have no currency. The list returns full products, which would be heavy for a large catalogue |
 | Images | Stored on a local volume in their original size and format (PNG files of 100 to 460 kB) and served by the API process |
-| Frontend | One JavaScript bundle of about 790 kB (250 kB compressed). The cache lives until reload and has no expiry. No sorting. The interface is translated (English, Spanish) but the catalogue content is not, and the browser language is not detected |
+| Frontend | One JavaScript bundle of about 790 kB (250 kB compressed). The cache lives until reload and has no expiry. Sorting is by price only. The interface is translated (English, Spanish) but the catalogue content is not, and the browser language is not detected |
 | Testing | No end-to-end browser tests in the repository. Accessibility was audited with Lighthouse and scripts, not with a screen reader. Chrome only |
 | Security | Local default credentials in the Compose file, no TLS, no rate limiting, no Content-Security-Policy |
 | Observability | Structured logs and request ids, but no metrics, traces or alerts |
@@ -30,7 +30,7 @@ Complexity is a rough estimate: S (hours), M (days), L (a week or more).
 | 2 | Run migrations and the import as one-off jobs, not in the API entrypoint | Safe with several replicas and faster, predictable API starts | S | Changes the deployment sequence: the job must finish before the new version receives traffic |
 | 3 | End-to-end tests of the two main flows (Playwright) in CI | Catches integration breaks between frontend, Nginx and API that unit tests cannot see | M | Slower pipeline. Needs seeded test data, so it depends on item 2 or on a fixture import |
 | 4 | Metrics, traces and alerts (OpenTelemetry, error rate, latency, `/health`) | Problems are noticed before users report them, and a slow request can be explained | M | Needs a monitoring backend. Separate liveness and readiness endpoints come with it |
-| 5 | Sorting (price, rating) and a second filter (price range) | The most likely product request. The layers already separate where each part goes | S | The cache key and the URL must include the new parameters, or stale pages would be shown |
+| 5 | Sorting by rating and a second filter (price range) | The most likely product request. Sorting by price already shows the path through every layer | S | The cache key and the URL must include the new parameters, or stale pages would be shown |
 | 6 | Scheduled import with a run log and soft deletion | The catalogue stays current and every run can be audited | M | Deciding what "removed at the source" means for products that are referenced elsewhere |
 | 7 | Search with PostgreSQL full-text or trigram indexes | Fast and ranked search on a large catalogue | M | A migration and a change in the repository only. Result order changes, so tests and expectations move |
 | 8 | Images in object storage behind a CDN, resized and converted to WebP or AVIF | Much smaller pages and no image traffic through the API | M | The image URL is already produced by the API, so the frontend does not change. Adds a processing step to the import |
@@ -53,7 +53,7 @@ what the user sees.
 
 **Medium term (first product iterations)**
 
-5. Sorting and a second filter (item 5).
+5. Sorting by rating and a second filter (item 5).
 6. Scheduled import (item 6).
 7. Code splitting and cache lifetime (item 9).
 8. Rate limiting and response caching (item 10).

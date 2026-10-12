@@ -126,8 +126,9 @@ results of those checks are recorded phase by phase in `AI_USAGE.md`.
   `FUTURE_IMPROVEMENTS.md`).
 - **Search scope.** Search is a case-insensitive substring match on title and
   description.
-- **One filter.** Category is the single filter. Sorting is left out of the
-  first version on purpose.
+- **One filter, one order.** Category is the single filter. The list can be
+  ordered by price in both directions; without a choice it is ordered by
+  id.
 - **Cache lifetime.** Data cached in the Redux store lives until the page is
   reloaded. The catalogue does not change between imports, so there is no
   expiry.
@@ -163,7 +164,7 @@ not blocked; all of them are cheap to change.
 
 ## 6. Out of scope
 
-Authentication, write endpoints, cart or checkout, sorting, translated
+Authentication, write endpoints, cart or checkout, translated
 catalogue content, a deployed demo, end-to-end browser tests in the
 repository, server-side rendering, and any service beyond the three
 containers.
@@ -195,7 +196,7 @@ containers.
 │   ├── app/
 │   │   ├── main.py               # application factory
 │   │   ├── core/                 # config, database session, logging
-│   │   ├── models/               # SQLAlchemy ORM models
+│   │   ├── models/               # the table model and the sort orders
 │   │   ├── schemas/              # Pydantic models (API and Fake Store)
 │   │   ├── repositories/         # data access, the only SQL in the app
 │   │   ├── services/             # business rules
@@ -344,8 +345,11 @@ Base path `/api`. JSON only. Field names are `snake_case`.
 | `page_size` | integer | 12 | 1 to 48 |
 | `search` | string | none | At most 100 characters. Trimmed; blank means no search. Case-insensitive substring match on title or description; `%` and `_` are matched literally |
 | `category` | string | none | At most 100 characters. Trimmed; blank means no filter. Exact match |
+| `sort` | string | none | `price_asc` or `price_desc`. Any other value, including an empty one, is a 422 |
 
-Results are ordered by `id` ascending. Response 200:
+Without `sort`, results are ordered by `id` ascending. With it, by price
+and then by `id`, so products with the same price keep a fixed order and
+pages never overlap. Response 200:
 
 ```json
 {
@@ -426,8 +430,10 @@ When the database cannot be reached: 503 with `status` and `database` set to
 - `repositories` are the only place that uses the SQLAlchemy session to
   query or write.
 - `clients` wrap external HTTP calls.
-- `models` are ORM classes; `schemas` are Pydantic classes. They are never
-  mixed: the API never returns an ORM object without a response model.
+- `models` hold the ORM class and the values that describe products (the
+  sort orders), which every layer may import; `schemas` are Pydantic
+  classes. They are never mixed: the API never returns an ORM object
+  without a response model.
 - `core` holds configuration, the database session and logging.
 - Synchronous SQLAlchemy with `psycopg` 3. FastAPI runs synchronous
   endpoints in a thread pool.
@@ -456,10 +462,11 @@ When the database cannot be reached: 503 with `status` and `database` set to
 - The list endpoint returns full products, so opening a product that was
   seen in the list needs no request. A direct link to `/product/:id` fetches
   that product once.
-- The URL query string (`search`, `category`, `page`) is the source of truth
-  for the catalogue view. One hook reads and writes it. Changing search or
-  category resets the page to 1. Search is debounced and replaces the current
-  history entry; category and page changes push a new entry.
+- The URL query string (`search`, `category`, `sort`, `page`) is the source
+  of truth for the catalogue view. One hook reads and writes it. Changing
+  search, category or order resets the page to 1. Search is debounced and
+  replaces the current history entry; category, order and page changes
+  push a new entry.
 - Routes: `/` redirects to `/products`; `/products`; `/product/:id`; any
   other path renders the not-found page.
 - Scroll position is restored on back and forward navigation and reset on
@@ -520,12 +527,14 @@ All tests are deterministic and never call the real Fake Store API.
 | Backend | Source unavailable raises and leaves the table untouched | Resilience |
 | Backend | Pagination metadata and out-of-range page | Pagination rule |
 | Backend | Category filter and search, including `%` | Filtering rule |
+| Backend | Order by price in both directions, ties, sorted pages, unknown value | Sorting rule and its validation |
 | Backend | Invalid `page`, `page_size`, `search` length, product id | 422 and the error envelope |
 | Backend | Unknown product and unknown route | 404 and the error envelope |
 | Backend | Unexpected error | 500 without internals |
 | Backend | Health with and without products | `catalogue_seeded` |
 | Backend | Service with a fake repository | Business rules without a database |
 | Frontend | Search and category filter flow | Requests carry the parameters, URL is updated, results announced |
+| Frontend | Sort by price | Order shown, URL updated, each order cached, page reset, unknown value ignored |
 | Frontend | Open a product and go back | Same list state and no new request |
 | Frontend | Error and empty states | Retry and clear filters work |
 | Frontend | Slice and URL helpers | Cache keys and parameter parsing |

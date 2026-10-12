@@ -509,3 +509,42 @@ trade-off that was accepted. New entries are appended as the work advances.
 - **Trade-off.** More code than a native select, which was accessible for
   free. The menu keeps keyboard support (Enter, arrows, Escape, focus
   back on the button) and is covered by a test.
+
+## Phase 11: sort by price
+
+### D-041 Sorting is a validated value that travels through every layer
+
+- **Context.** The candidate asked for ordering by price in the toolbar.
+- **Decision.** The API accepts `sort=price_asc` or `sort=price_desc`,
+  declared as an enum, so any other value is a 422. The route passes it to
+  the service, the service to the repository, and only the repository
+  turns it into `ORDER BY`. The enum lives in `app/models` because all
+  three layers use it and none of them should import from the one above.
+- **Alternatives.** Free `sort_by` and `order` strings; sorting the page
+  in the browser.
+- **Trade-off.** One more value type. Sorting in the browser would only
+  order the 12 products of the current page, which is wrong as soon as
+  there are two pages.
+
+### D-042 The id is always the last sort key
+
+- **Context.** Several products can have the same price, and the list is
+  paginated with `LIMIT` and `OFFSET`.
+- **Decision.** `ORDER BY price, id` (or `price DESC, id`).
+- **Alternatives.** Order by price alone.
+- **Trade-off.** None worth noting. Without the second key the database
+  may return equal prices in a different order on each request, so a
+  product could appear on two pages or on none.
+
+### D-043 The order is part of the URL and of the cache key
+
+- **Context.** List pages are cached by query key, and the catalogue state
+  lives in the URL.
+- **Decision.** `sort` is a field of the catalogue query. It is written to
+  the URL, sent to the API and included in the cache key. Choosing an
+  order goes back to page 1. An unknown value in the URL means the
+  default order.
+- **Alternatives.** Keep the order in component state.
+- **Trade-off.** Each order is fetched and cached on its own. Leaving it
+  out of the key would show a page that was cached in another order,
+  which is the mistake this decision exists to prevent.
