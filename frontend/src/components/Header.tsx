@@ -4,7 +4,9 @@ import Link from '@mui/material/Link';
 import type { ReactNode } from 'react';
 import { Link as RouterLink } from 'react-router';
 
+import { motionTokens } from '../app/motion';
 import { layout } from '../app/theme';
+import { useIsScrolled } from '../app/useIsScrolled';
 
 interface HeaderProps {
   /** The search field, shown next to the brand. */
@@ -13,9 +15,12 @@ interface HeaderProps {
 
 /**
  * The sticky page header: brand link and search. It stays visible while
- * the page scrolls, so search is always within reach.
+ * the page scrolls, so search is always within reach, and becomes more
+ * compact once the user has scrolled, to leave room for the products.
  */
 export function Header({ search }: HeaderProps) {
+  const isScrolled = useIsScrolled();
+
   return (
     <Box
       component="header"
@@ -33,18 +38,27 @@ export function Header({ search }: HeaderProps) {
         maxWidth={false}
         sx={{
           maxWidth: layout.contentMaxWidth,
-          minHeight: layout.headerHeight.regular,
+          minHeight: isScrolled
+            ? layout.headerHeight.compact
+            : layout.headerHeight.regular,
           display: 'flex',
           alignItems: 'center',
           flexWrap: 'wrap',
           columnGap: 3,
           rowGap: 1,
-          py: 1.5,
+          py: isScrolled ? 0.5 : 1.5,
+          transition: (theme) =>
+            theme.transitions.create(['min-height', 'padding'], {
+              duration: motionTokens.duration.base * 1000,
+              easing: theme.transitions.easing.easeOut,
+            }),
         }}
       >
         <Link
           component={RouterLink}
           to="/products"
+          // The name stays the same when the visible text is hidden.
+          aria-label="Product Explorer, go to products"
           underline="none"
           color="inherit"
           sx={{
@@ -66,7 +80,16 @@ export function Header({ search }: HeaderProps) {
               bgcolor: 'secondary.main',
             }}
           />
-          Product Explorer
+          {/* On phones the name gives its place to the search field
+              once the header is compact. */}
+          <Box
+            component="span"
+            sx={{
+              display: { xs: isScrolled ? 'none' : 'inline', sm: 'inline' },
+            }}
+          >
+            Product Explorer
+          </Box>
         </Link>
         <Box sx={{ flex: '1 1 260px', maxWidth: 560, ml: { sm: 'auto' } }}>
           {search}
