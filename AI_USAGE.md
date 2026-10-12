@@ -131,7 +131,7 @@ A selection; the log has all of them.
 - **Static checks.** `ruff` and `pycodestyle` at 79 characters for Python;
   ESLint with accessibility rules, strict TypeScript and Prettier for the
   frontend.
-- **Tests.** 121 backend tests against PostgreSQL and 71 frontend tests,
+- **Tests.** 122 backend tests against PostgreSQL and 74 frontend tests,
   both run in containers. None calls the real Fake Store API.
 - **A clean clone.** With no `.env` file, `docker-compose up` gave three
   healthy containers, 20 products and 20 images. The import was run again
@@ -160,6 +160,16 @@ A selection; the log has all of them.
 - One frontend test run failed once while the development machine was
   going to sleep, and the failing test was not identified. Every later
   run passed.
+
+## Changes after the candidate's second review
+
+The candidate reviewed the running application and asked for a taxonomy
+of specifications by product family, a clearer price and rating, category
+icons, browser language detection, 44 px controls, the test runners out
+of the main Compose file and a README header. The agent made these
+changes without sub-agents. They were checked with the tests and in
+headless Chrome, not by an independent reviewer, and Lighthouse was not
+run again. Details are in `docs/AI_LOG.md`.
 
 ## Human review
 
