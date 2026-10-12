@@ -2,6 +2,8 @@
 // font CDN for it. Only the two weights the theme uses are loaded.
 import '@fontsource/noto-sans/latin-400.css';
 import '@fontsource/noto-sans/latin-700.css';
+// Sets up the translations before anything renders.
+import './i18n/i18n';
 
 import CssBaseline from '@mui/material/CssBaseline';
 import { ThemeProvider } from '@mui/material/styles';
