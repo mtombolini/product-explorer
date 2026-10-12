@@ -9,6 +9,8 @@ Create Date: 2026-10-12
 import sqlalchemy as sa
 from alembic import op
 
+# Shorter than the file name: alembic_version.version_num holds at most
+# 32 characters.
 revision: str = "0003_add_image_source_url"
 down_revision: str | None = "0002_create_product_translations"
 branch_labels: str | None = None
