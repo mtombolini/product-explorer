@@ -8,6 +8,11 @@ export interface Product {
   id: number;
   title: string;
   description: string;
+  /**
+   * The language of `title` and `description`: the one that was asked
+   * for when a translation exists, otherwise the language of the source.
+   */
+  language: string;
   price: number;
   category: string;
   /** Path on our own origin, or null when the product has no image. */

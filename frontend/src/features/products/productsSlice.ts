@@ -1,4 +1,5 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
+import type { PayloadAction } from '@reduxjs/toolkit';
 
 import { ApiError } from '../../api/client';
 import { getCategories, getProduct, getProductPage } from '../../api/products';
@@ -8,6 +9,7 @@ import type {
   Product,
   ProductPage,
 } from '../../api/types';
+import { DEFAULT_LANGUAGE } from '../../i18n/languages';
 import { queryKey } from './queryKey';
 
 export type RequestStatus = 'loading' | 'succeeded' | 'failed';
@@ -37,21 +39,30 @@ export interface CategoriesState {
 }
 
 export interface ProductsState {
+  /**
+   * The language the catalogue text is requested in. Everything cached
+   * below is in this language.
+   */
+  language: string;
   /** Every product seen so far, from lists or single requests. */
   byId: Record<number, Product>;
-  /** List pages, cached by query key (search + category + page). */
+  /** List pages, cached by query key (search, category, order, page). */
   pages: Record<string, PageEntry>;
   /** Requests for single products, by product id. */
   details: Record<number, DetailEntry>;
   categories: CategoriesState;
 }
 
-const initialState: ProductsState = {
-  byId: {},
-  pages: {},
-  details: {},
-  categories: { status: 'idle', items: [], errorCode: null },
-};
+/** An empty cache for the given language. */
+export function createInitialState(language: string): ProductsState {
+  return {
+    language,
+    byId: {},
+    pages: {},
+    details: {},
+    categories: { status: 'idle', items: [], errorCode: null },
+  };
+}
 
 /**
  * What a failed thunk reports to the reducers: the error code of the API
@@ -86,13 +97,13 @@ function toFailure(error: unknown): Failure {
  */
 export const fetchProductPage = createAsyncThunk<
   ProductPage,
-  { query: CatalogueQuery; force?: boolean },
+  { query: CatalogueQuery; language: string; force?: boolean },
   ThunkConfig
 >(
   'products/fetchPage',
-  async ({ query }, { rejectWithValue }) => {
+  async ({ query, language }, { rejectWithValue }) => {
     try {
-      return await getProductPage(query);
+      return await getProductPage(query, language);
     } catch (error) {
       return rejectWithValue(toFailure(error));
     }
@@ -113,17 +124,21 @@ export const fetchProductPage = createAsyncThunk<
  * Skipped when the product is already in the store (for example because
  * a list page contained it) or its request is on its way.
  */
-export const fetchProduct = createAsyncThunk<Product, number, ThunkConfig>(
+export const fetchProduct = createAsyncThunk<
+  Product,
+  { id: number; language: string },
+  ThunkConfig
+>(
   'products/fetchOne',
-  async (id, { rejectWithValue }) => {
+  async ({ id, language }, { rejectWithValue }) => {
     try {
-      return await getProduct(id);
+      return await getProduct(id, language);
     } catch (error) {
       return rejectWithValue(toFailure(error));
     }
   },
   {
-    condition: (id, { getState }) => {
+    condition: ({ id }, { getState }) => {
       const { byId, details } = getState().products;
       return byId[id] === undefined && details[id]?.status !== 'loading';
     },
@@ -152,10 +167,35 @@ export const fetchCategories = createAsyncThunk<
   },
 );
 
+/**
+ * True for the answer to a request made before the language changed. It
+ * must not be stored: it would put text in the old language on screen.
+ */
+function isForAnotherLanguage(
+  state: ProductsState,
+  request: { language: string },
+): boolean {
+  return request.language !== state.language;
+}
+
 const productsSlice = createSlice({
   name: 'products',
-  initialState,
-  reducers: {},
+  initialState: createInitialState(DEFAULT_LANGUAGE),
+  reducers: {
+    /**
+     * The interface language changed. The cached titles and descriptions
+     * are in the previous language, so they are dropped and the pages on
+     * screen ask for them again. Categories are keys, the same in every
+     * language, and stay.
+     */
+    languageChanged(state, action: PayloadAction<string>) {
+      if (action.payload === state.language) return;
+      state.language = action.payload;
+      state.byId = {};
+      state.pages = {};
+      state.details = {};
+    },
+  },
   extraReducers: (builder) => {
     builder
       // One list page -----------------------------------------------------
@@ -169,6 +209,7 @@ const productsSlice = createSlice({
         };
       })
       .addCase(fetchProductPage.fulfilled, (state, action) => {
+        if (isForAnotherLanguage(state, action.meta.arg)) return;
         const page = action.payload;
         // Each product is stored once, by id, so the detail page can
         // show it later without asking the server again.
@@ -184,6 +225,7 @@ const productsSlice = createSlice({
         };
       })
       .addCase(fetchProductPage.rejected, (state, action) => {
+        if (isForAnotherLanguage(state, action.meta.arg)) return;
         const failure = action.payload ?? UNKNOWN_FAILURE;
         state.pages[queryKey(action.meta.arg.query)] = {
           status: 'failed',
@@ -195,23 +237,25 @@ const productsSlice = createSlice({
       })
       // One product -------------------------------------------------------
       .addCase(fetchProduct.pending, (state, action) => {
-        state.details[action.meta.arg] = {
+        state.details[action.meta.arg.id] = {
           status: 'loading',
           errorCode: null,
           notFound: false,
         };
       })
       .addCase(fetchProduct.fulfilled, (state, action) => {
+        if (isForAnotherLanguage(state, action.meta.arg)) return;
         state.byId[action.payload.id] = action.payload;
-        state.details[action.meta.arg] = {
+        state.details[action.meta.arg.id] = {
           status: 'succeeded',
           errorCode: null,
           notFound: false,
         };
       })
       .addCase(fetchProduct.rejected, (state, action) => {
+        if (isForAnotherLanguage(state, action.meta.arg)) return;
         const failure = action.payload ?? UNKNOWN_FAILURE;
-        state.details[action.meta.arg] = {
+        state.details[action.meta.arg.id] = {
           status: 'failed',
           errorCode: failure.code,
           notFound: failure.status === 404,
@@ -234,4 +278,5 @@ const productsSlice = createSlice({
   },
 });
 
+export const { languageChanged } = productsSlice.actions;
 export const productsReducer = productsSlice.reducer;

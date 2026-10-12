@@ -29,3 +29,6 @@ export const selectProductDetail = (state: RootState, id: number) =>
   state.products.details[id];
 
 export const selectCategories = (state: RootState) => state.products.categories;
+
+/** The language the catalogue text is requested in. */
+export const selectLanguage = (state: RootState) => state.products.language;

@@ -7,7 +7,6 @@ import { Link as RouterLink } from 'react-router';
 import type { Product } from '../../../api/types';
 import { motionTokens } from '../../../app/motion';
 import { categoryName } from '../../../i18n/categoryNames';
-import { CATALOGUE_LANGUAGE } from '../../../i18n/languages';
 import { formatPrice, isTopRated } from '../format';
 import { ProductImage } from './ProductImage';
 import { ProductRating } from './ProductRating';
@@ -73,8 +72,8 @@ export function ProductCard({ product, listUrl }: ProductCardProps) {
       <Typography
         component="h2"
         variant="h3"
-        // The catalogue text is not translated: say which language it is.
-        lang={CATALOGUE_LANGUAGE}
+        // A translation or the original: the API says which language.
+        lang={product.language}
         sx={{
           // At most two lines, then an ellipsis.
           display: '-webkit-box',
