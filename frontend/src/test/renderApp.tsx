@@ -1,5 +1,6 @@
 import { ThemeProvider } from '@mui/material/styles';
 import { render } from '@testing-library/react';
+import { MotionConfig } from 'motion/react';
 import userEvent from '@testing-library/user-event';
 import { Provider } from 'react-redux';
 import { createMemoryRouter } from 'react-router';
@@ -20,7 +21,10 @@ export function renderApp(initialPath = '/products') {
   render(
     <Provider store={store}>
       <ThemeProvider theme={theme}>
-        <RouterProvider router={router} />
+        {/* No animation in tests: elements are in their final state. */}
+        <MotionConfig reducedMotion="always">
+          <RouterProvider router={router} />
+        </MotionConfig>
       </ThemeProvider>
     </Provider>,
   );

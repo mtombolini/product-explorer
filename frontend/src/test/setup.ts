@@ -8,6 +8,44 @@ import { afterEach } from 'vitest';
 // restores the scroll position. In the tests scrolling does nothing.
 window.scrollTo = () => {};
 
+// jsdom has no IntersectionObserver, which the cards use to appear when
+// they scroll into view. In the tests every observed element counts as
+// visible straight away.
+class ImmediateIntersectionObserver implements IntersectionObserver {
+  readonly root = null;
+  readonly rootMargin = '0px';
+  readonly scrollMargin = '0px';
+  readonly thresholds = [0];
+  private readonly callback: IntersectionObserverCallback;
+
+  constructor(callback: IntersectionObserverCallback) {
+    this.callback = callback;
+  }
+
+  observe(target: Element): void {
+    const rect = target.getBoundingClientRect();
+    const entry: IntersectionObserverEntry = {
+      target,
+      isIntersecting: true,
+      intersectionRatio: 1,
+      boundingClientRect: rect,
+      intersectionRect: rect,
+      rootBounds: null,
+      time: 0,
+    };
+    this.callback([entry], this);
+  }
+
+  unobserve(): void {}
+
+  disconnect(): void {}
+
+  takeRecords(): IntersectionObserverEntry[] {
+    return [];
+  }
+}
+window.IntersectionObserver = ImmediateIntersectionObserver;
+
 afterEach(() => {
   // Unmount what the test rendered, so tests cannot affect each other.
   cleanup();
