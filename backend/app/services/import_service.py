@@ -99,6 +99,8 @@ class CatalogueImportService:
                 "description": product.description,
                 "price": product.price,
                 "category": product.category,
+                # An empty URL is stored as NULL, like a missing one.
+                "image_source_url": product.image or None,
                 "rating_rate": product.rating.rate if product.rating else None,
                 "rating_count": (
                     product.rating.count if product.rating else None

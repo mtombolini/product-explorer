@@ -21,6 +21,7 @@ UPSERT_UPDATED_COLUMNS = (
     "description",
     "price",
     "category",
+    "image_source_url",
     "rating_rate",
     "rating_count",
 )
