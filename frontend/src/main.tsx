@@ -3,7 +3,7 @@
 import '@fontsource/noto-sans/latin-400.css';
 import '@fontsource/noto-sans/latin-700.css';
 // Sets up the translations before anything renders.
-import './i18n/i18n';
+import { i18n } from './i18n/i18n';
 
 import CssBaseline from '@mui/material/CssBaseline';
 import { ThemeProvider } from '@mui/material/styles';
@@ -18,7 +18,8 @@ import { routes } from './app/routes';
 import { createStore } from './app/store';
 import { theme } from './app/theme';
 
-const store = createStore();
+// The catalogue is requested in the language the interface starts in.
+const store = createStore(i18n.resolvedLanguage);
 const router = createBrowserRouter(routes);
 
 const rootElement = document.getElementById('root');

@@ -33,7 +33,7 @@ export function useCatalogueQuery() {
     navigate(catalogueUrl({ ...query, search: '', category: '', page: 1 }));
   }
 
-  /** The address of another page of the same search and category. */
+  /** The address of another page of the same search, category and order. */
   function pageUrl(page: number): string {
     return catalogueUrl({ ...query, page });
   }

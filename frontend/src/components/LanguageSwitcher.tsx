@@ -9,6 +9,8 @@ import MenuItem from '@mui/material/MenuItem';
 import { useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { useAppDispatch } from '../app/hooks';
+import { languageChanged } from '../features/products/productsSlice';
 import { SUPPORTED_LANGUAGES } from '../i18n/languages';
 
 /**
@@ -21,6 +23,7 @@ import { SUPPORTED_LANGUAGES } from '../i18n/languages';
  */
 export function LanguageSwitcher() {
   const { t, i18n } = useTranslation();
+  const dispatch = useAppDispatch();
   // The button the menu hangs from; null while the menu is closed.
   const [anchor, setAnchor] = useState<HTMLElement | null>(null);
   const menuId = useId();
@@ -31,9 +34,14 @@ export function LanguageSwitcher() {
       (language) => language.code === i18n.resolvedLanguage,
     ) ?? SUPPORTED_LANGUAGES[0];
 
+  /**
+   * Two things change with the language: the interface copy (i18next) and
+   * the catalogue text, which the store drops and the pages request again.
+   */
   function choose(code: string): void {
     setAnchor(null);
     void i18n.changeLanguage(code);
+    dispatch(languageChanged(code));
   }
 
   return (

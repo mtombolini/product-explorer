@@ -26,11 +26,11 @@ import { formatPrice, isTopRated } from '../features/products/format';
 import { fetchProduct } from '../features/products/productsSlice';
 import {
   selectProduct,
+  selectLanguage,
   selectProductDetail,
 } from '../features/products/selectors';
 import { categoryName } from '../i18n/categoryNames';
 import { errorDescription } from '../i18n/errorDescription';
-import { CATALOGUE_LANGUAGE } from '../i18n/languages';
 
 /** The largest product id, the same limit as the API. */
 const MAX_PRODUCT_ID = 2_147_483_647;
@@ -103,15 +103,16 @@ function ProductView({ product }: ProductViewProps) {
       }}
     >
       {/* The text alternative is the product name, in English too. */}
-      <Box lang={CATALOGUE_LANGUAGE}>
+      <Box lang={product.language}>
         <ProductImage src={product.image_url} alt={product.title} eager />
       </Box>
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
         <Typography color="text.secondary">
           {categoryName(product.category, i18n.language)}
         </Typography>
-        {/* Catalogue text is not translated: say which language it is. */}
-        <PageHeading lang={CATALOGUE_LANGUAGE}>{product.title}</PageHeading>
+        {/* The text may be a translation or the original: the API says
+            which language it is, for correct pronunciation. */}
+        <PageHeading lang={product.language}>{product.title}</PageHeading>
         <Typography sx={{ fontSize: '2rem', fontWeight: 'bold' }}>
           {formatPrice(product.price, i18n.language)}
         </Typography>
@@ -123,7 +124,7 @@ function ProductView({ product }: ProductViewProps) {
           {isTopRated(product) && <TopRatedBadge />}
         </Box>
         <Typography
-          lang={CATALOGUE_LANGUAGE}
+          lang={product.language}
           sx={{ maxWidth: layout.readingWidth }}
         >
           {product.description}
@@ -180,6 +181,7 @@ export function ProductDetailPage() {
   const detail = useAppSelector((state) =>
     productId === null ? undefined : selectProductDetail(state, productId),
   );
+  const language = useAppSelector(selectLanguage);
 
   const isNotFound = productId === null || detail?.notFound === true;
   const hasFailed = detail?.status === 'failed' && !isNotFound;
@@ -195,9 +197,9 @@ export function ProductDetailPage() {
   // The thunk skips the request when the product is already in the store.
   useEffect(() => {
     if (productId !== null) {
-      dispatch(fetchProduct(productId));
+      dispatch(fetchProduct({ id: productId, language }));
     }
-  }, [dispatch, productId]);
+  }, [dispatch, productId, language]);
 
   function renderContent() {
     if (product) {
@@ -220,7 +222,7 @@ export function ProductDetailPage() {
           title={t('product.errorTitle')}
           description={errorDescription(detail?.errorCode ?? null, t)}
           actionLabel={t('actions.tryAgain')}
-          onAction={() => dispatch(fetchProduct(productId))}
+          onAction={() => dispatch(fetchProduct({ id: productId, language }))}
         />
       );
     }

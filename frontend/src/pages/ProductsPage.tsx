@@ -18,6 +18,7 @@ import {
 import { queryKey } from '../features/products/queryKey';
 import {
   selectCategories,
+  selectLanguage,
   selectPage,
   selectPageProducts,
 } from '../features/products/selectors';
@@ -41,14 +42,17 @@ export function ProductsPage() {
   const page = useAppSelector((state) => selectPage(state, key));
   const products = useAppSelector((state) => selectPageProducts(state, key));
   const categories = useAppSelector(selectCategories);
+  const language = useAppSelector(selectLanguage);
 
   useDocumentTitle(t('catalogue.title'));
 
-  // Load the page the address asks for. The thunk decides whether a
-  // request is needed: a page already in the store is not fetched again.
+  // Load the page the address asks for, in the current language. The
+  // thunk decides whether a request is needed: a page already in the
+  // store is not fetched again. A change of language empties the store,
+  // and this effect then asks for the page in the new language.
   useEffect(() => {
-    dispatch(fetchProductPage({ query }));
-  }, [dispatch, query]);
+    dispatch(fetchProductPage({ query, language }));
+  }, [dispatch, query, language]);
 
   // The categories are the same for every view: loaded once.
   useEffect(() => {
@@ -60,7 +64,7 @@ export function ProductsPage() {
 
   /** Ask again for the page and for the categories, if they failed. */
   function retry(): void {
-    dispatch(fetchProductPage({ query }));
+    dispatch(fetchProductPage({ query, language }));
     dispatch(fetchCategories());
   }
 
@@ -85,7 +89,9 @@ export function ProductsPage() {
           title={t('catalogue.emptyTitle')}
           description={t('catalogue.emptyDescription')}
           actionLabel={t('actions.tryAgain')}
-          onAction={() => dispatch(fetchProductPage({ query, force: true }))}
+          onAction={() =>
+            dispatch(fetchProductPage({ query, language, force: true }))
+          }
         />
       );
     }

@@ -14,9 +14,6 @@ export type LanguageCode = (typeof SUPPORTED_LANGUAGES)[number]['code'];
 /** Used on a first visit and whenever a stored value is not usable. */
 export const DEFAULT_LANGUAGE: LanguageCode = 'en';
 
-/** The language of the catalogue itself (titles and descriptions). */
-export const CATALOGUE_LANGUAGE: LanguageCode = 'en';
-
 const STORAGE_KEY = 'product-explorer.language';
 
 export function isSupportedLanguage(value: unknown): value is LanguageCode {
