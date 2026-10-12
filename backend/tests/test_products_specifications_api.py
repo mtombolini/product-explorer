@@ -15,9 +15,22 @@ ENGLISH = [("Capacity", "2 TB"), ("Interface", "USB 3.0")]
 SPANISH = [("Capacidad", "2 TB"), ("Interfaz", "USB 3.0")]
 
 
-def _as_response(items: list[tuple[str, str]]) -> list[dict[str, str]]:
-    """Return (label, value) pairs as the API sends them."""
-    return [{"label": label, "value": value} for label, value in items]
+def _as_response(
+    items: list[tuple[str, str | None]],
+) -> list[dict[str, str | None]]:
+    """Return (label, value) pairs as the API sends them.
+
+    The key and the group are the ones ``create_specifications`` gives.
+    """
+    return [
+        {
+            "key": label.lower(),
+            "group": "General",
+            "label": label,
+            "value": value,
+        }
+        for label, value in items
+    ]
 
 
 def _count_statements(client: TestClient, **params: object) -> int:
@@ -51,6 +64,8 @@ def test_specifications_come_in_order_in_the_requested_language(
             product_id=product.id,
             language="es",
             position=2,
+            attribute="interfaz",
+            group_label="General",
             label="Interfaz",
             value="USB 3.0",
         )
@@ -60,6 +75,8 @@ def test_specifications_come_in_order_in_the_requested_language(
             product_id=product.id,
             language="es",
             position=1,
+            attribute="capacidad",
+            group_label="General",
             label="Capacidad",
             value="2 TB",
         )
@@ -70,6 +87,34 @@ def test_specifications_come_in_order_in_the_requested_language(
 
     assert body["specifications"] == _as_response(SPANISH)
     assert body["specifications_language"] == "es"
+
+
+def test_attribute_without_a_value_is_sent_as_null(
+    client: TestClient, session: Session
+) -> None:
+    """Every line of the family is sent, also the ones with no value."""
+    product = create_product(session)
+    lines = [("Capacity", "2 TB"), ("Warranty", None)]
+    create_specifications(
+        session, product, lines, Language.EN, group="Storage"
+    )
+
+    body = client.get(f"/api/products/{product.id}").json()
+
+    assert body["specifications"] == [
+        {
+            "key": "capacity",
+            "group": "Storage",
+            "label": "Capacity",
+            "value": "2 TB",
+        },
+        {
+            "key": "warranty",
+            "group": "Storage",
+            "label": "Warranty",
+            "value": None,
+        },
+    ]
 
 
 def test_specifications_fall_back_to_the_source_language(

@@ -66,12 +66,14 @@ def create_translation(
 def create_specifications(
     session: Session,
     product: Product,
-    items: list[tuple[str, str]],
+    items: list[tuple[str, str | None]],
     language: Language = Language.ES,
+    group: str = "General",
 ) -> None:
     """Insert the specification list of one product in one language.
 
-    ``items`` are (label, value) pairs in display order.
+    ``items`` are (label, value) pairs in display order. The attribute
+    key is the label in lower case.
     """
     for position, (label, value) in enumerate(items, start=1):
         session.add(
@@ -79,6 +81,8 @@ def create_specifications(
                 product_id=product.id,
                 language=language.value,
                 position=position,
+                attribute=label.lower(),
+                group_label=group,
                 label=label,
                 value=value,
             )

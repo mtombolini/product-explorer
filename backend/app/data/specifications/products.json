@@ -1,0 +1,402 @@
+{
+  "1": {
+    "family": "bags",
+    "values": {
+      "brand": "Fjallraven",
+      "product_type": {
+        "en": "Backpack",
+        "es": "Mochila"
+      },
+      "laptop_size": {
+        "en": "Up to 15 inches, in a padded sleeve",
+        "es": "Hasta 15 pulgadas, en funda acolchada"
+      },
+      "use": {
+        "en": "Everyday and walks in the forest",
+        "es": "Diario y paseos por el bosque"
+      }
+    }
+  },
+  "2": {
+    "family": "tops",
+    "values": {
+      "product_type": {
+        "en": "T-shirt",
+        "es": "Camiseta"
+      },
+      "fit": {
+        "en": "Slim",
+        "es": "Ajustado"
+      },
+      "sleeves": {
+        "en": "Long raglan, in a contrast colour",
+        "es": "Largas raglán, en color de contraste"
+      },
+      "neckline": {
+        "en": "Round, henley style with a three-button placket",
+        "es": "Redondo, estilo henley con tapeta de tres botones"
+      }
+    }
+  },
+  "3": {
+    "family": "outerwear",
+    "values": {
+      "product_type": {
+        "en": "Jacket",
+        "es": "Chaqueta"
+      },
+      "material": {
+        "en": "Cotton",
+        "es": "Algodón"
+      },
+      "seasons": {
+        "en": "Spring, autumn and winter",
+        "es": "Primavera, otoño e invierno"
+      }
+    }
+  },
+  "4": {
+    "family": "tops",
+    "values": {
+      "fit": {
+        "en": "Slim",
+        "es": "Ajustado"
+      }
+    }
+  },
+  "5": {
+    "family": "jewelry",
+    "values": {
+      "brand": "John Hardy",
+      "product_type": {
+        "en": "Chain bracelet",
+        "es": "Pulsera de cadena"
+      },
+      "material": {
+        "en": "Gold and silver",
+        "es": "Oro y plata"
+      },
+      "motif": {
+        "en": "Naga dragon",
+        "es": "Dragón Naga"
+      }
+    }
+  },
+  "6": {
+    "family": "jewelry",
+    "values": {
+      "material": {
+        "en": "Solid gold",
+        "es": "Oro macizo"
+      },
+      "stone": {
+        "en": "Micropavé setting",
+        "es": "Engaste micropavé"
+      }
+    }
+  },
+  "7": {
+    "family": "jewelry",
+    "values": {
+      "product_type": {
+        "en": "Solitaire ring",
+        "es": "Anillo solitario"
+      },
+      "finish": {
+        "en": "White gold plated",
+        "es": "Bañado en oro blanco"
+      },
+      "stone": {
+        "en": "Created diamond",
+        "es": "Diamante creado"
+      },
+      "occasions": {
+        "en": "Engagement, wedding, anniversary, Valentine's Day",
+        "es": "Compromiso, boda, aniversario, San Valentín"
+      }
+    }
+  },
+  "8": {
+    "family": "jewelry",
+    "values": {
+      "brand": "Pierced Owl",
+      "product_type": {
+        "en": "Double flared tunnel plug earrings",
+        "es": "Dilatadores tipo túnel de doble reborde"
+      },
+      "material": {
+        "en": "316L stainless steel",
+        "es": "Acero inoxidable 316L"
+      },
+      "finish": {
+        "en": "Rose gold plated",
+        "es": "Bañado en oro rosa"
+      }
+    }
+  },
+  "9": {
+    "family": "storage",
+    "values": {
+      "brand": "WD",
+      "product_type": {
+        "en": "Portable external hard drive",
+        "es": "Disco duro externo portátil"
+      },
+      "capacity": "2 TB",
+      "interface": {
+        "en": "USB 3.0, compatible with USB 2.0",
+        "es": "USB 3.0, compatible con USB 2.0"
+      },
+      "compatibility": {
+        "en": "Windows 10, 8.1 and 7 (NTFS); other systems may need reformatting",
+        "es": "Windows 10, 8.1 y 7 (NTFS); otros sistemas pueden requerir volver a formatear"
+      }
+    }
+  },
+  "10": {
+    "family": "storage",
+    "values": {
+      "brand": "SanDisk",
+      "product_type": {
+        "en": "Internal SSD",
+        "es": "SSD interno"
+      },
+      "capacity": "1 TB",
+      "interface": "SATA III 6 Gb/s",
+      "read_speed": {
+        "en": "Up to 535 MB/s",
+        "es": "Hasta 535 MB/s"
+      },
+      "write_speed": {
+        "en": "Up to 450 MB/s",
+        "es": "Hasta 450 MB/s"
+      }
+    }
+  },
+  "11": {
+    "family": "storage",
+    "values": {
+      "brand": "Silicon Power",
+      "product_type": "SSD",
+      "capacity": "256 GB",
+      "interface": {
+        "en": "SATA III, 2.5 inches",
+        "es": "SATA III, 2,5 pulgadas"
+      },
+      "compatibility": {
+        "en": "TRIM, garbage collection, RAID and ECC",
+        "es": "TRIM, recolección de basura, RAID y ECC"
+      }
+    }
+  },
+  "12": {
+    "family": "storage",
+    "values": {
+      "brand": "WD",
+      "product_type": {
+        "en": "Portable external hard drive",
+        "es": "Disco duro externo portátil"
+      },
+      "capacity": "4 TB",
+      "compatibility": "PlayStation 4",
+      "warranty": {
+        "en": "3-year limited manufacturer's warranty",
+        "es": "Limitada del fabricante, 3 años"
+      }
+    }
+  },
+  "13": {
+    "family": "monitors",
+    "values": {
+      "brand": "Acer",
+      "product_type": "Monitor",
+      "screen_size": {
+        "en": "21.5 inches",
+        "es": "21,5 pulgadas"
+      },
+      "resolution": "Full HD (1920 x 1080)",
+      "panel": "IPS",
+      "refresh_rate": {
+        "en": "75 Hz over HDMI",
+        "es": "75 Hz por HDMI"
+      },
+      "response_time": "4 ms",
+      "aspect_ratio": "16:9"
+    }
+  },
+  "14": {
+    "family": "monitors",
+    "values": {
+      "brand": "Samsung",
+      "product_type": {
+        "en": "Curved gaming monitor",
+        "es": "Monitor curvo para juegos"
+      },
+      "screen_size": {
+        "en": "49 inches",
+        "es": "49 pulgadas"
+      },
+      "panel": {
+        "en": "QLED (Quantum Dot) with HDR",
+        "es": "QLED (Quantum Dot) con HDR"
+      },
+      "refresh_rate": "144 Hz",
+      "response_time": "1 ms",
+      "aspect_ratio": {
+        "en": "32:9 super ultrawide",
+        "es": "32:9 superultrapanorámica"
+      }
+    }
+  },
+  "15": {
+    "family": "outerwear",
+    "values": {
+      "brand": "BIYLACLESEN",
+      "product_type": {
+        "en": "3-in-1 snowboard jacket",
+        "es": "Chaqueta de snowboard 3 en 1"
+      },
+      "material": {
+        "en": "100% polyester",
+        "es": "100 % poliéster"
+      },
+      "lining": {
+        "en": "Detachable warm fleece",
+        "es": "Polar cálido desmontable"
+      },
+      "hood": {
+        "en": "Adjustable and detachable",
+        "es": "Ajustable y desmontable"
+      },
+      "pockets": {
+        "en": "2 hand, 2 chest and 1 inside, with zips",
+        "es": "2 de mano, 2 en el pecho y 1 interior, con cremallera"
+      }
+    }
+  },
+  "16": {
+    "family": "outerwear",
+    "values": {
+      "brand": "Lock and Love",
+      "product_type": {
+        "en": "Faux leather moto biker jacket",
+        "es": "Chaqueta tipo motociclista de cuero sintético"
+      },
+      "material": {
+        "en": "100% polyurethane shell",
+        "es": "Exterior 100 % poliuretano"
+      },
+      "lining": {
+        "en": "100% polyester",
+        "es": "100 % poliéster"
+      },
+      "hood": {
+        "en": "Removable",
+        "es": "Desmontable"
+      },
+      "pockets": {
+        "en": "2 front",
+        "es": "2 delanteros"
+      },
+      "care": {
+        "en": "Hand wash only, do not bleach, line dry, do not iron",
+        "es": "Lavar solo a mano, no usar blanqueador, secar al aire, no planchar"
+      }
+    }
+  },
+  "17": {
+    "family": "outerwear",
+    "values": {
+      "product_type": {
+        "en": "Windbreaker raincoat",
+        "es": "Impermeable cortavientos"
+      },
+      "lining": {
+        "en": "Striped",
+        "es": "A rayas"
+      },
+      "hood": {
+        "en": "Attached, cotton lined, with adjustable drawstrings",
+        "es": "Fija, forrada de algodón, con cordones ajustables"
+      },
+      "pockets": {
+        "en": "2 side",
+        "es": "2 laterales"
+      },
+      "closure": {
+        "en": "Buttons and zip",
+        "es": "Botones y cremallera"
+      }
+    }
+  },
+  "18": {
+    "family": "tops",
+    "values": {
+      "brand": "MBJ",
+      "material": {
+        "en": "95% rayon, 5% spandex",
+        "es": "95 % rayón, 5 % elastano"
+      },
+      "sleeves": {
+        "en": "Short",
+        "es": "Cortas"
+      },
+      "neckline": {
+        "en": "Boat neck",
+        "es": "Barco"
+      },
+      "care": {
+        "en": "Do not bleach",
+        "es": "No usar blanqueador"
+      }
+    }
+  },
+  "19": {
+    "family": "tops",
+    "values": {
+      "brand": "Opna",
+      "material": {
+        "en": "100% polyester",
+        "es": "100 % poliéster"
+      },
+      "fit": {
+        "en": "Slimmer",
+        "es": "Más entallado"
+      },
+      "sleeves": {
+        "en": "Short",
+        "es": "Cortas"
+      },
+      "neckline": {
+        "en": "V-neck",
+        "es": "En V"
+      },
+      "care": {
+        "en": "Machine wash",
+        "es": "Lavable a máquina"
+      }
+    }
+  },
+  "20": {
+    "family": "tops",
+    "values": {
+      "brand": "DANVOUY",
+      "product_type": {
+        "en": "T-shirt",
+        "es": "Camiseta"
+      },
+      "material": {
+        "en": "95% cotton, 5% spandex",
+        "es": "95 % algodón, 5 % elastano"
+      },
+      "sleeves": {
+        "en": "Short",
+        "es": "Cortas"
+      },
+      "neckline": {
+        "en": "V-neck",
+        "es": "En V"
+      }
+    }
+  }
+}

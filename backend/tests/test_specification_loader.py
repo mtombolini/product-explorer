@@ -1,4 +1,4 @@
-"""Loader tests: the specification files and what is stored from them."""
+"""Loader tests: the taxonomy, the product values and what is stored."""
 
 import json
 from pathlib import Path
@@ -9,22 +9,56 @@ from sqlalchemy.orm import Session
 
 from app.models import Language, ProductSpecification
 from app.repositories.product_repository import ProductRepository
-from app.schemas.specification import SpecificationList
+from app.schemas.specification import ProductValues, Taxonomy
 from app.services.specification_service import (
+    PRODUCTS_FILE,
     SPECIFICATIONS_DIR,
+    TAXONOMY_FILE,
     SpecificationLoadService,
 )
 from tests.factories import create_product
 
-CAPACITY = {"label": "Capacity", "value": "2 TB"}
-INTERFACE = {"label": "Interface", "value": "USB 3.0"}
-MATERIAL = {"label": "Material", "value": "Cotton"}
+TAXONOMY = {
+    "general": ["brand"],
+    "families": {"storage": ["capacity", "interface"], "tops": ["material"]},
+    "labels": {
+        "en": {
+            "general": "General",
+            "storage": "Storage",
+            "tops": "Tops",
+            "brand": "Brand",
+            "capacity": "Capacity",
+            "interface": "Interface",
+            "material": "Material",
+        },
+        "es": {
+            "general": "General",
+            "storage": "Almacenamiento",
+            "tops": "Camisetas",
+            "brand": "Marca",
+            "capacity": "Capacidad",
+            "interface": "Interfaz",
+            "material": "Material",
+        },
+    },
+}
+DRIVE = {"family": "storage", "values": {"brand": "WD", "capacity": "2 TB"}}
+SHIRT = {
+    "family": "tops",
+    "values": {"material": {"en": "Cotton", "es": "Algodón"}},
+}
 
 
-def _write_file(directory: Path, name: str, content: Any) -> None:
-    """Write one specification file as JSON."""
-    path = directory / name
-    path.write_text(json.dumps(content), encoding="utf-8")
+def _write_files(
+    directory: Path, products: Any, taxonomy: Any = TAXONOMY
+) -> None:
+    """Write the taxonomy and the product values as JSON."""
+    for name, content in (
+        (TAXONOMY_FILE, taxonomy),
+        (PRODUCTS_FILE, products),
+    ):
+        path = directory / name
+        path.write_text(json.dumps(content), encoding="utf-8")
 
 
 def _make_service(
@@ -34,45 +68,74 @@ def _make_service(
     return SpecificationLoadService(ProductRepository(session), directory)
 
 
-def _read_specifications(session: Session) -> list[tuple[Any, ...]]:
-    """Return every specification row as stored now, in a fixed order.
+def _read_specifications(
+    session: Session, language: str | None = None
+) -> list[tuple[Any, ...]]:
+    """Return the specification rows as stored now, in a fixed order.
 
-    Each row is (product_id, language, position, label, value).
+    Each row is (product_id, language, position, attribute,
+    group_label, label, value).
     """
     table = ProductSpecification.__table__
-    statement = select(table).order_by(
-        table.c.product_id, table.c.language, table.c.position
-    )
+    statement = select(
+        table.c.product_id,
+        table.c.language,
+        table.c.position,
+        table.c.attribute,
+        table.c.group_label,
+        table.c.label,
+        table.c.value,
+    ).order_by(table.c.product_id, table.c.language, table.c.position)
+    if language is not None:
+        statement = statement.where(table.c.language == language)
     return [tuple(row) for row in session.execute(statement)]
 
 
-def test_load_stores_the_lists_in_order(
+def test_load_stores_one_line_per_attribute_of_the_family(
     session: Session, tmp_path: Path
 ) -> None:
-    """Each line becomes a row, with its place in the file as position."""
+    """General lines first, then the family; no value gives None."""
     drive = create_product(session, external_id=10)
     shirt = create_product(session, external_id=20)
-    _write_file(
-        tmp_path,
-        "es.json",
-        {
-            "10": [
-                {"label": "  Capacidad  ", "value": " 2 TB "},
-                {"label": "Interfaz", "value": "USB 3.0"},
-            ],
-            "20": [{"label": "Material", "value": "Algodón"}],
-        },
-    )
+    _write_files(tmp_path, {"10": DRIVE, "20": SHIRT})
 
     summary = _make_service(session, tmp_path).run()
 
     assert summary.stored == 2
     assert summary.skipped == 0
-    assert _read_specifications(session) == [
-        (drive.id, "es", 1, "Capacidad", "2 TB"),
-        (drive.id, "es", 2, "Interfaz", "USB 3.0"),
-        (shirt.id, "es", 1, "Material", "Algodón"),
+    assert _read_specifications(session, "es") == [
+        (drive.id, "es", 1, "brand", "General", "Marca", "WD"),
+        (drive.id, "es", 2, "capacity", "Almacenamiento", "Capacidad", "2 TB"),
+        (drive.id, "es", 3, "interface", "Almacenamiento", "Interfaz", None),
+        (shirt.id, "es", 1, "brand", "General", "Marca", None),
+        (shirt.id, "es", 2, "material", "Camisetas", "Material", "Algodón"),
     ]
+    assert _read_specifications(session, "en")[-1] == (
+        shirt.id,
+        "en",
+        2,
+        "material",
+        "Tops",
+        "Material",
+        "Cotton",
+    )
+
+
+def test_products_of_one_family_have_the_same_lines(
+    session: Session, tmp_path: Path
+) -> None:
+    """Same attributes in the same order, whatever values are known."""
+    create_product(session, external_id=1)
+    create_product(session, external_id=2)
+    other = {"family": "storage", "values": {"interface": "USB 3.0"}}
+    _write_files(tmp_path, {"1": DRIVE, "2": other})
+
+    _make_service(session, tmp_path).run()
+
+    rows = _read_specifications(session, "en")
+    first = [row[3] for row in rows[:3]]
+    second = [row[3] for row in rows[3:]]
+    assert first == second == ["brand", "capacity", "interface"]
 
 
 def test_load_twice_gives_the_same_rows(
@@ -81,9 +144,7 @@ def test_load_twice_gives_the_same_rows(
     """Idempotency: a second run adds nothing and changes nothing."""
     create_product(session, external_id=1)
     create_product(session, external_id=2)
-    _write_file(
-        tmp_path, "en.json", {"1": [CAPACITY, INTERFACE], "2": [MATERIAL]}
-    )
+    _write_files(tmp_path, {"1": DRIVE, "2": SHIRT})
     service = _make_service(session, tmp_path)
 
     service.run()
@@ -91,76 +152,76 @@ def test_load_twice_gives_the_same_rows(
     second_summary = service.run()
     rows_after_second_run = _read_specifications(session)
 
-    assert len(rows_after_second_run) == 3
+    # 3 + 2 lines, in two languages.
+    assert len(rows_after_second_run) == 10
     assert rows_after_second_run == rows_after_first_run
     assert second_summary.stored == 2
     assert second_summary.skipped == 0
 
 
-def test_shorter_list_replaces_the_old_one(
+def test_change_of_family_replaces_the_old_lines(
     session: Session, tmp_path: Path
 ) -> None:
-    """Replace: a line removed from the file is removed from the table."""
+    """Replace: no line of the longer old list is left behind."""
     product = create_product(session, external_id=1)
-    other = create_product(session, external_id=2)
-    _write_file(
-        tmp_path,
-        "en.json",
-        {"1": [CAPACITY, INTERFACE, MATERIAL], "2": [MATERIAL]},
-    )
-    _write_file(tmp_path, "es.json", {"1": [CAPACITY, INTERFACE]})
     service = _make_service(session, tmp_path)
+    _write_files(tmp_path, {"1": DRIVE})
     service.run()
 
-    # Product 2 is no longer in the file: its rows are left as they are.
-    _write_file(tmp_path, "en.json", {"1": [INTERFACE]})
+    _write_files(tmp_path, {"1": SHIRT})
     service.run()
 
-    assert _read_specifications(session) == [
-        (product.id, "en", 1, "Interface", "USB 3.0"),
-        # The other language of the same product is not touched.
-        (product.id, "es", 1, "Capacity", "2 TB"),
-        (product.id, "es", 2, "Interface", "USB 3.0"),
-        (other.id, "en", 1, "Material", "Cotton"),
+    assert _read_specifications(session, "en") == [
+        (product.id, "en", 1, "brand", "General", "Brand", None),
+        (product.id, "en", 2, "material", "Tops", "Material", "Cotton"),
     ]
 
 
-def test_product_with_one_invalid_item_is_skipped_as_a_whole(
+def test_invalid_product_is_skipped_as_a_whole(
     session: Session, tmp_path: Path
 ) -> None:
-    """One bad line skips the product and keeps what it had stored."""
+    """One bad value skips the product and keeps what it had stored."""
     product = create_product(session, external_id=1)
     for external_id in range(2, 10):
         create_product(session, external_id=external_id)
     service = _make_service(session, tmp_path)
-    _write_file(tmp_path, "en.json", {"1": [CAPACITY]})
+    _write_files(tmp_path, {"1": DRIVE})
     service.run()
 
-    _write_file(
+    _write_files(
         tmp_path,
-        "en.json",
         {
-            # A good line and a bad one: nothing of the product is stored.
-            "1": [INTERFACE, {"label": "   ", "value": "x"}],
-            # Invalid: no value, a NUL character, texts longer than the
-            # columns, an empty list, too many lines, not a list.
-            "2": [{"label": "Capacity"}],
-            "3": [{"label": "a\x00b", "value": "x"}],
-            "4": [{"label": "a" * 101, "value": "x"}],
-            "5": [{"label": "a", "value": "x" * 256}],
-            "6": [],
-            "7": [MATERIAL] * 21,
-            "8": {"label": "Capacity", "value": "2 TB"},
-            "9": [MATERIAL],
+            # A good value and an empty one: nothing new is stored.
+            "1": {
+                "family": "storage",
+                "values": {"brand": "SanDisk", "capacity": "   "},
+            },
+            # Invalid: unknown family, attribute of another family, a
+            # value missing in one language, a NUL character, a text
+            # longer than the column, no family, not an object.
+            "2": {"family": "furniture", "values": {}},
+            "3": {"family": "storage", "values": {"material": "Steel"}},
+            "4": {"family": "tops", "values": {"material": {"en": "Wool"}}},
+            "5": {"family": "tops", "values": {"material": "a\x00b"}},
+            "6": {"family": "tops", "values": {"material": "x" * 256}},
+            "7": {"values": {"brand": "WD"}},
+            "8": ["storage"],
+            "9": SHIRT,
         },
     )
     summary = service.run()
 
     assert summary.stored == 1
     assert summary.skipped == 8
-    rows = _read_specifications(session)
-    assert rows[0] == (product.id, "en", 1, "Capacity", "2 TB")
-    assert [row[3] for row in rows] == ["Capacity", "Material"]
+    rows = _read_specifications(session, "en")
+    assert rows[0] == (product.id, "en", 1, "brand", "General", "Brand", "WD")
+    assert [row[3] for row in rows] == [
+        "brand",
+        "capacity",
+        "interface",
+        "brand",
+        "material",
+    ]
 
 
 def test_unknown_and_repeated_products_are_skipped(
@@ -169,16 +230,15 @@ def test_unknown_and_repeated_products_are_skipped(
     """No such product, or a second key for one: skipped, the load goes on."""
     product = create_product(session, external_id=1)
     other = create_product(session, external_id=2)
-    _write_file(
+    _write_files(
         tmp_path,
-        "en.json",
         {
-            "99": [MATERIAL],
-            "not a number": [MATERIAL],
-            "1": [CAPACITY],
+            "99": SHIRT,
+            "not a number": SHIRT,
+            "1": DRIVE,
             # "1" and "01" are one product: the first is kept.
-            "01": [INTERFACE],
-            "2": [MATERIAL],
+            "01": SHIRT,
+            "2": SHIRT,
         },
     )
 
@@ -186,76 +246,68 @@ def test_unknown_and_repeated_products_are_skipped(
 
     assert summary.stored == 2
     assert summary.skipped == 3
-    assert _read_specifications(session) == [
-        (product.id, "en", 1, "Capacity", "2 TB"),
-        (other.id, "en", 1, "Material", "Cotton"),
-    ]
+    stored = {(row[0], row[3]) for row in _read_specifications(session)}
+    assert stored == {
+        (product.id, "brand"),
+        (product.id, "capacity"),
+        (product.id, "interface"),
+        (other.id, "brand"),
+        (other.id, "material"),
+    }
 
 
-def test_file_of_an_unsupported_language_is_ignored(
+def test_unusable_taxonomy_stores_nothing(
     session: Session, tmp_path: Path
 ) -> None:
-    """Only the files named after a supported language are loaded."""
+    """Missing, broken or incomplete taxonomy: the load does nothing."""
     create_product(session, external_id=1)
-    # Not a value of Language.
-    _write_file(tmp_path, "fr.json", {"1": [MATERIAL]})
-    # Not a JSON file at all.
-    (tmp_path / "notes.txt").write_text("not a specification file")
+    service = _make_service(session, tmp_path)
+    without_spanish = TAXONOMY | {"labels": {"en": TAXONOMY["labels"]["en"]}}
+
+    # No file at all.
+    assert service.run().stored == 0
+    (tmp_path / TAXONOMY_FILE).write_text("{ this is not JSON")
+    assert service.run().stored == 0
+    _write_files(tmp_path, {"1": DRIVE}, without_spanish)
+    assert service.run().stored == 0
+
+    assert _read_specifications(session) == []
+
+
+def test_broken_products_file_stores_nothing(
+    session: Session, tmp_path: Path
+) -> None:
+    """A products file that is not a JSON object is skipped as a whole."""
+    create_product(session, external_id=1)
+    _write_files(tmp_path, {})
+    (tmp_path / PRODUCTS_FILE).write_text("{ this is not JSON")
 
     summary = _make_service(session, tmp_path).run()
 
     assert summary.stored == 0
-    assert summary.skipped == 0
     assert _read_specifications(session) == []
 
 
-def test_source_language_file_is_loaded(
-    session: Session, tmp_path: Path
-) -> None:
-    """Unlike the translations, en.json is a file like the others."""
-    product = create_product(session, external_id=1)
-    _write_file(tmp_path, "en.json", {"1": [CAPACITY]})
-    _write_file(
-        tmp_path, "es.json", {"1": [{"label": "Capacidad", "value": "2 TB"}]}
+def test_bundled_files_are_complete_and_valid() -> None:
+    """The shipped files describe the 20 products within the taxonomy."""
+    taxonomy = Taxonomy.model_validate(
+        json.loads((SPECIFICATIONS_DIR / TAXONOMY_FILE).read_text("utf-8"))
+    )
+    products = json.loads(
+        (SPECIFICATIONS_DIR / PRODUCTS_FILE).read_text("utf-8")
     )
 
-    summary = _make_service(session, tmp_path).run()
-
-    # One product, counted once per language file.
-    assert summary.stored == 2
-    assert _read_specifications(session) == [
-        (product.id, "en", 1, "Capacity", "2 TB"),
-        (product.id, "es", 1, "Capacidad", "2 TB"),
-    ]
-
-
-def test_broken_file_does_not_stop_the_other_files(
-    session: Session, tmp_path: Path
-) -> None:
-    """A file that is not a JSON object is skipped as a whole."""
-    product = create_product(session, external_id=1)
-    (tmp_path / "en.json").write_text("{ this is not JSON")
-    _write_file(tmp_path, "es.json", {"1": [MATERIAL]})
-
-    summary = _make_service(session, tmp_path).run()
-
-    assert summary.stored == 1
-    assert _read_specifications(session) == [
-        (product.id, "es", 1, "Material", "Cotton")
-    ]
-
-
-def test_bundled_files_are_complete_and_valid() -> None:
-    """The shipped files have the same 20 products with lists of one size."""
-    lists: dict[Language, dict[str, Any]] = {}
-    for language in Language:
-        path = SPECIFICATIONS_DIR / f"{language.value}.json"
-        content = json.loads(path.read_text(encoding="utf-8"))
-        assert sorted(content, key=int) == [str(n) for n in range(1, 21)]
-        for value in content.values():
-            SpecificationList.model_validate(value)
-        lists[language] = content
-
-    assert len(list(SPECIFICATIONS_DIR.glob("*.json"))) == len(Language)
-    for key, english in lists[Language.EN].items():
-        assert len(lists[Language.ES][key]) == len(english)
+    assert sorted(products, key=int) == [str(n) for n in range(1, 21)]
+    used_families = set()
+    for entry in products.values():
+        values = ProductValues.model_validate(entry)
+        allowed = {key for _, key in taxonomy.attributes_of(values.family)}
+        assert set(values.values) <= allowed
+        # No product is a list of empty lines.
+        assert values.values
+        for language in Language:
+            for key in values.values:
+                assert values.value_in(key, language)
+        used_families.add(values.family)
+    # No family without a product.
+    assert used_families == set(taxonomy.families)
