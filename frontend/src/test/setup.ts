@@ -2,7 +2,10 @@
 import '@testing-library/jest-dom/vitest';
 
 import { cleanup } from '@testing-library/react';
-import { afterEach } from 'vitest';
+import { afterEach, beforeEach } from 'vitest';
+
+import { i18n } from '../i18n/i18n';
+import { DEFAULT_LANGUAGE } from '../i18n/languages';
 
 // jsdom does not implement scrolling and prints a warning when the router
 // restores the scroll position. In the tests scrolling does nothing.
@@ -45,6 +48,13 @@ class ImmediateIntersectionObserver implements IntersectionObserver {
   }
 }
 window.IntersectionObserver = ImmediateIntersectionObserver;
+
+beforeEach(async () => {
+  // Every test starts in English with no remembered language, whatever
+  // the previous test chose.
+  window.localStorage.clear();
+  await i18n.changeLanguage(DEFAULT_LANGUAGE);
+});
 
 afterEach(() => {
   // Unmount what the test rendered, so tests cannot affect each other.

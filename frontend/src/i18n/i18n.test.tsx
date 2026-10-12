@@ -1,0 +1,143 @@
+import { screen, waitFor } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+
+import { formatPrice, formatRating } from '../features/products/format';
+import { installFakeApi, makeProduct } from '../test/fakeApi';
+import { renderApp } from '../test/renderApp';
+import { categoryName } from './categoryNames';
+import { i18n } from './i18n';
+import { readStoredLanguage, SUPPORTED_LANGUAGES } from './languages';
+import { en } from './locales/en';
+import { es } from './locales/es';
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
+
+const catalogue = [
+  makeProduct(1, { title: 'Cotton shirt', category: "men's clothing" }),
+  makeProduct(2, { title: 'Gold ring', category: 'jewelery' }),
+];
+
+/** Every key of a message tree, as "section.key". */
+function keysOf(messages: object, prefix = ''): string[] {
+  return Object.entries(messages).flatMap(([key, value]) =>
+    typeof value === 'object'
+      ? keysOf(value, `${prefix}${key}.`)
+      : [`${prefix}${key}`],
+  );
+}
+
+describe('language switcher', () => {
+  it('shows the interface in Spanish and remembers the choice', async () => {
+    installFakeApi(catalogue);
+    const { user } = renderApp('/products');
+    await screen.findByRole('heading', { name: 'Gold ring' });
+    expect(screen.getByText('2 products')).toBeInTheDocument();
+
+    await user.selectOptions(
+      screen.getByRole('combobox', { name: 'Language' }),
+      'es',
+    );
+
+    // Interface copy, plurals and category names change...
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Productos' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('2 productos')).toBeInTheDocument();
+    expect(
+      screen.getByRole('textbox', { name: 'Buscar productos' }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Todas' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Joyería' })).toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: 'Idioma' })).toHaveValue('es');
+    // ...the catalogue text does not, and says which language it is in.
+    expect(screen.getByRole('heading', { name: 'Gold ring' })).toHaveAttribute(
+      'lang',
+      'en',
+    );
+
+    // The document and the next visit know the language.
+    expect(document.documentElement.lang).toBe('es');
+    expect(readStoredLanguage()).toBe('es');
+    expect(document.title).toBe('Productos | Product Explorer');
+  });
+
+  it('uses the singular and the translated category in the summary', async () => {
+    installFakeApi(catalogue);
+    await i18n.changeLanguage('es');
+    renderApp('/products?search=shirt&category=men%27s+clothing');
+
+    expect(
+      await screen.findByText('1 producto para "shirt" en Ropa de hombre'),
+    ).toBeInTheDocument();
+  });
+
+  it('translates error and empty states', async () => {
+    const api = installFakeApi(catalogue);
+    api.isBroken = true;
+    await i18n.changeLanguage('es');
+    renderApp('/products');
+
+    expect(
+      await screen.findByText('No se pudieron cargar los productos'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'El servidor no pudo responder. Vuelve a intentarlo en un momento.',
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Reintentar' }),
+    ).toBeInTheDocument();
+  });
+
+  it('keeps working after going back to English', async () => {
+    installFakeApi(catalogue);
+    const { user } = renderApp('/products');
+    await screen.findByRole('heading', { name: 'Gold ring' });
+
+    await user.selectOptions(screen.getByRole('combobox'), 'es');
+    await screen.findByText('2 productos');
+    await user.selectOptions(screen.getByRole('combobox'), 'en');
+
+    await waitFor(() =>
+      expect(screen.getByText('2 products')).toBeInTheDocument(),
+    );
+    expect(document.documentElement.lang).toBe('en');
+  });
+});
+
+describe('translations', () => {
+  it('has the same keys in every language', () => {
+    expect(keysOf(es).sort()).toEqual(keysOf(en).sort());
+  });
+
+  it('registers every supported language', () => {
+    for (const language of SUPPORTED_LANGUAGES) {
+      expect(i18n.hasResourceBundle(language.code, 'translation')).toBe(true);
+    }
+  });
+
+  it('ignores a stored language that is not supported', () => {
+    window.localStorage.setItem('product-explorer.language', 'xx');
+
+    expect(readStoredLanguage()).toBe('en');
+  });
+});
+
+describe('formatting by language', () => {
+  it('formats prices and ratings with the conventions of the language', () => {
+    expect(formatPrice(109.95, 'en')).toBe('$109.95');
+    // Spanish puts the symbol after the number, with a non-breaking space.
+    expect(formatPrice(109.95, 'es')).toMatch(/^109,95\sUS\$$/);
+    expect(formatRating(4, 'en')).toBe('4.0');
+    expect(formatRating(3.9, 'es')).toBe('3,9');
+  });
+
+  it('translates known categories and keeps unknown ones readable', () => {
+    expect(categoryName('jewelery', 'en')).toBe('Jewelery');
+    expect(categoryName('jewelery', 'es')).toBe('Joyería');
+    expect(categoryName('garden tools', 'es')).toBe('Garden tools');
+  });
+});
