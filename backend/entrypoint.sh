@@ -16,4 +16,6 @@ python -m app.commands.seed --if-empty \
     || echo "entrypoint: the catalogue import failed, starting the API anyway"
 
 # exec replaces the shell, so uvicorn receives the stop signal directly.
-exec uvicorn app.main:app --host 0.0.0.0 --port 8000
+# --no-access-log: the request middleware already writes one JSON line
+# per request, with the request id.
+exec uvicorn app.main:app --host 0.0.0.0 --port 8000 --no-access-log
