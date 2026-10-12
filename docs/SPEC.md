@@ -216,6 +216,7 @@ containers.
         ├── features/products/    # slice, thunks, selectors, hooks, components
         ├── pages/                # route-level components
         ├── components/           # shared layout and state components
+        ├── i18n/                 # languages, message files, category names
         └── test/                 # test setup and helpers
 ```
 
@@ -342,7 +343,7 @@ Base path `/api`. JSON only. Field names are `snake_case`.
 | `page` | integer | 1 | 1 to 1,000,000 |
 | `page_size` | integer | 12 | 1 to 48 |
 | `search` | string | none | At most 100 characters. Trimmed; blank means no search. Case-insensitive substring match on title or description; `%` and `_` are matched literally |
-| `category` | string | none | At most 100 characters. Exact match |
+| `category` | string | none | At most 100 characters. Trimmed; blank means no filter. Exact match |
 
 Results are ordered by `id` ascending. Response 200:
 
@@ -444,7 +445,7 @@ When the database cannot be reached: 503 with `status` and `database` set to
   interface ProductsState {
     byId: Record<number, Product>;          // products cached by id
     pages: Record<string, PageEntry>;       // list pages cached by query key
-    details: Record<number, RequestState>;  // status of single-product requests
+    details: Record<number, DetailEntry>;   // status of single-product requests
     categories: CategoriesState;            // loaded once
   }
   ```
@@ -486,9 +487,10 @@ When the database cannot be reached: 503 with `status` and `database` set to
   rating with a text equivalent. The whole card is one link.
 - Motion: one library (Motion). Durations of 150 to 300 ms, ease-out, subtle
   reveal on scroll, lift on hover and focus, short route transition, skeleton
-  shimmer. Disabled under `prefers-reduced-motion`.
+  shimmer. Under `prefers-reduced-motion` movement is removed; a short
+  fade remains.
 - Scroll: sticky header that becomes compact, filters reachable on desktop,
-  page change scrolls to the top of the grid, numbered pagination that
+  page change starts at the top of the page, numbered pagination that
   mirrors the URL. No infinite scroll.
 - Detail page: two columns on desktop, stacked on mobile, with a way back
   that preserves search, filter and page.

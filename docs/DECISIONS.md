@@ -372,8 +372,8 @@ trade-off that was accepted. New entries are appended as the work advances.
   respected.
 - **Decision.** Motion animates the card reveal and the page transition.
   The hover and focus lift and the compact header use CSS transitions. A
-  media query in the theme and `MotionConfig reducedMotion="user"` switch
-  everything off for people who ask for less motion.
+  media query in the theme and `MotionConfig reducedMotion="user"` remove
+  the movement for people who ask for less motion; a short fade remains.
 - **Alternatives.** Motion for every effect; no library at all.
 - **Trade-off.** Two mechanisms, each used for what it does most simply.
 
