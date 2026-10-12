@@ -4,6 +4,7 @@ import Button from '@mui/material/Button';
 import Skeleton from '@mui/material/Skeleton';
 import Typography from '@mui/material/Typography';
 import { useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Link as RouterLink,
   useLocation,
@@ -21,16 +22,15 @@ import { CATALOGUE_PATH } from '../features/products/catalogueUrl';
 import { ProductImage } from '../features/products/components/ProductImage';
 import { ProductRating } from '../features/products/components/ProductRating';
 import { TopRatedBadge } from '../features/products/components/TopRatedBadge';
-import {
-  formatCategory,
-  formatPrice,
-  isTopRated,
-} from '../features/products/format';
+import { formatPrice, isTopRated } from '../features/products/format';
 import { fetchProduct } from '../features/products/productsSlice';
 import {
   selectProduct,
   selectProductDetail,
 } from '../features/products/selectors';
+import { categoryName } from '../i18n/categoryNames';
+import { errorDescription } from '../i18n/errorDescription';
+import { CATALOGUE_LANGUAGE } from '../i18n/languages';
 
 /** "12" -> 12. Anything that is not a positive whole number -> null. */
 function parseProductId(value: string | undefined): number | null {
@@ -55,13 +55,14 @@ function cameFromCatalogue(state: unknown): boolean {
  * catalogue.
  */
 function BackToProducts() {
+  const { t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
 
   if (cameFromCatalogue(location.state)) {
     return (
       <Button startIcon={<ArrowBackIcon />} onClick={() => navigate(-1)}>
-        Back to products
+        {t('product.back')}
       </Button>
     );
   }
@@ -71,7 +72,7 @@ function BackToProducts() {
       to={CATALOGUE_PATH}
       startIcon={<ArrowBackIcon />}
     >
-      Back to products
+      {t('product.back')}
     </Button>
   );
 }
@@ -82,6 +83,8 @@ interface ProductViewProps {
 
 /** Two columns on desktop (image, then information), stacked on mobile. */
 function ProductView({ product }: ProductViewProps) {
+  const { i18n } = useTranslation();
+
   return (
     <Box
       component="article"
@@ -95,11 +98,12 @@ function ProductView({ product }: ProductViewProps) {
       <ProductImage src={product.image_url} alt={product.title} eager />
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
         <Typography color="text.secondary">
-          {formatCategory(product.category)}
+          {categoryName(product.category, i18n.language)}
         </Typography>
-        <PageHeading>{product.title}</PageHeading>
+        {/* Catalogue text is not translated: say which language it is. */}
+        <PageHeading lang={CATALOGUE_LANGUAGE}>{product.title}</PageHeading>
         <Typography sx={{ fontSize: '2rem', fontWeight: 'bold' }}>
-          {formatPrice(product.price)}
+          {formatPrice(product.price, i18n.language)}
         </Typography>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
           <ProductRating
@@ -108,7 +112,10 @@ function ProductView({ product }: ProductViewProps) {
           />
           {isTopRated(product) && <TopRatedBadge />}
         </Box>
-        <Typography sx={{ maxWidth: layout.readingWidth }}>
+        <Typography
+          lang={CATALOGUE_LANGUAGE}
+          sx={{ maxWidth: layout.readingWidth }}
+        >
           {product.description}
         </Typography>
       </Box>
@@ -118,9 +125,11 @@ function ProductView({ product }: ProductViewProps) {
 
 /** Same two-column shape as the product, shown while it loads. */
 function ProductViewSkeleton() {
+  const { t } = useTranslation();
+
   return (
     <Box
-      aria-label="Loading product"
+      aria-label={t('product.loading')}
       role="status"
       sx={{
         display: 'grid',
@@ -151,6 +160,7 @@ function ProductViewSkeleton() {
  * once. Unknown and malformed ids show a not-found message.
  */
 export function ProductDetailPage() {
+  const { t } = useTranslation();
   const dispatch = useAppDispatch();
   const productId = parseProductId(useParams().id);
 
@@ -165,7 +175,11 @@ export function ProductDetailPage() {
   const hasFailed = detail?.status === 'failed' && !isNotFound;
 
   useDocumentTitle(
-    product ? product.title : isNotFound ? 'Product not found' : 'Product',
+    product
+      ? product.title
+      : isNotFound
+        ? t('product.notFoundTitle')
+        : t('product.title'),
   );
 
   // The thunk skips the request when the product is already in the store.
@@ -182,9 +196,9 @@ export function ProductDetailPage() {
     if (isNotFound) {
       return (
         <>
-          <PageHeading>Product not found</PageHeading>
+          <PageHeading>{t('product.notFoundTitle')}</PageHeading>
           <Typography sx={{ mt: 2 }}>
-            This product does not exist or is no longer in the catalogue.
+            {t('product.notFoundDescription')}
           </Typography>
         </>
       );
@@ -193,9 +207,9 @@ export function ProductDetailPage() {
       return (
         <StatusMessage
           tone="error"
-          title="The product could not be loaded"
-          description={detail?.error ?? 'Please try again.'}
-          actionLabel="Try again"
+          title={t('product.errorTitle')}
+          description={errorDescription(detail?.errorCode ?? null, t)}
+          actionLabel={t('actions.tryAgain')}
           onAction={() => dispatch(fetchProduct(productId))}
         />
       );

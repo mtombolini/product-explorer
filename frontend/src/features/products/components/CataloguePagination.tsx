@@ -1,5 +1,6 @@
 import Pagination from '@mui/material/Pagination';
 import PaginationItem from '@mui/material/PaginationItem';
+import { useTranslation } from 'react-i18next';
 import { Link as RouterLink } from 'react-router';
 
 interface CataloguePaginationProps {
@@ -20,10 +21,22 @@ export function CataloguePagination({
   totalPages,
   pageUrl,
 }: CataloguePaginationProps) {
+  const { t } = useTranslation();
+
+  /** The accessible name of each item, in the current language. */
+  function itemLabel(type: string, itemPage: number | null, selected: boolean) {
+    if (type === 'previous') return t('pagination.previous');
+    if (type === 'next') return t('pagination.next');
+    const key = selected ? 'pagination.currentPage' : 'pagination.goToPage';
+    return t(key, { page: itemPage });
+  }
+
   return (
     <Pagination
       page={page}
       count={totalPages}
+      aria-label={t('pagination.label')}
+      getItemAriaLabel={itemLabel}
       color="primary"
       // Fewer neighbours, so the row fits a 360px screen.
       siblingCount={0}

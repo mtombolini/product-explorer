@@ -2,6 +2,9 @@ import StarIcon from '@mui/icons-material/Star';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import { visuallyHidden } from '@mui/utils';
+import { useTranslation } from 'react-i18next';
+
+import { formatRating } from '../format';
 
 interface ProductRatingProps {
   rate: number | null;
@@ -13,15 +16,17 @@ interface ProductRatingProps {
  * readers get a full sentence instead of the compact visual form.
  */
 export function ProductRating({ rate, count }: ProductRatingProps) {
+  const { t, i18n } = useTranslation();
+
   if (rate === null) {
     return (
       <Typography variant="body2" color="text.secondary">
-        No ratings yet
+        {t('product.noRatings')}
       </Typography>
     );
   }
 
-  const value = rate.toFixed(1);
+  const value = formatRating(rate, i18n.language);
   const ratings = count ?? 0;
 
   return (
@@ -31,7 +36,7 @@ export function ProductRating({ rate, count }: ProductRatingProps) {
         {value} ({ratings})
       </Typography>
       <Box component="span" sx={visuallyHidden}>
-        Rated {value} out of 5 by {ratings} customers
+        {t('product.ratingText', { rate: value, count: ratings })}
       </Box>
     </Box>
   );

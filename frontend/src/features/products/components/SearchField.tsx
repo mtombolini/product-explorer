@@ -6,6 +6,7 @@ import InputAdornment from '@mui/material/InputAdornment';
 import TextField from '@mui/material/TextField';
 import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router';
 
 import {
@@ -26,6 +27,7 @@ const SEARCH_DEBOUNCE_MS = 300;
  * so there is one request per pause instead of one per key.
  */
 export function SearchField() {
+  const { t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -85,13 +87,13 @@ export function SearchField() {
       <TextField
         value={text}
         onChange={(event) => setText(event.target.value)}
-        placeholder="Search products"
+        placeholder={t('search.label')}
         fullWidth
         size="small"
         sx={{ bgcolor: 'background.paper', borderRadius: 999 }}
         slotProps={{
           htmlInput: {
-            'aria-label': 'Search products',
+            'aria-label': t('search.label'),
             maxLength: MAX_FILTER_LENGTH,
             enterKeyHint: 'search',
           },
@@ -104,7 +106,7 @@ export function SearchField() {
             endAdornment: text && (
               <InputAdornment position="end">
                 <IconButton
-                  aria-label="Clear search"
+                  aria-label={t('search.clear')}
                   edge="end"
                   onClick={() => setText('')}
                 >

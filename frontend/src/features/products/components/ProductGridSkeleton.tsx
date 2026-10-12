@@ -1,5 +1,6 @@
 import Box from '@mui/material/Box';
 import Skeleton from '@mui/material/Skeleton';
+import { useTranslation } from 'react-i18next';
 
 import { PAGE_SIZE } from '../../../api/products';
 import { GridList } from './ProductGrid';
@@ -10,8 +11,10 @@ import { GridList } from './ProductGrid';
  * the products arrive.
  */
 export function ProductGridSkeleton() {
+  const { t } = useTranslation();
+
   return (
-    <GridList label="Loading products">
+    <GridList label={t('catalogue.loading')}>
       {Array.from({ length: PAGE_SIZE }, (_, index) => (
         <Box
           component="li"

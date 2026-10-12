@@ -1,5 +1,6 @@
 import Box from '@mui/material/Box';
 import { useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
 
 import { useAppDispatch, useAppSelector } from '../app/hooks';
@@ -25,6 +26,7 @@ import {
   selectPageProducts,
 } from '../features/products/selectors';
 import { useCatalogueQuery } from '../features/products/useCatalogueQuery';
+import { errorDescription } from '../i18n/errorDescription';
 
 /**
  * The catalogue: search (in the header), category filter, product grid
@@ -33,6 +35,7 @@ import { useCatalogueQuery } from '../features/products/useCatalogueQuery';
  * or the list.
  */
 export function ProductsPage() {
+  const { t } = useTranslation();
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const { query, setCategory, clearFilters, pageUrl } = useCatalogueQuery();
@@ -43,7 +46,7 @@ export function ProductsPage() {
   const products = useAppSelector((state) => selectPageProducts(state, key));
   const categories = useAppSelector(selectCategories);
 
-  useDocumentTitle('Products');
+  useDocumentTitle(t('catalogue.title'));
 
   // Load the page the address asks for. The thunk decides whether a
   // request is needed: a page already in the store is not fetched again.
@@ -67,9 +70,9 @@ export function ProductsPage() {
       return (
         <StatusMessage
           tone="error"
-          title="The products could not be loaded"
-          description={page.error ?? 'Please try again.'}
-          actionLabel="Try again"
+          title={t('catalogue.errorTitle')}
+          description={errorDescription(page.errorCode, t)}
+          actionLabel={t('actions.tryAgain')}
           onAction={() => dispatch(fetchProductPage({ query }))}
         />
       );
@@ -77,9 +80,9 @@ export function ProductsPage() {
     if (page.total === 0 && !hasFilters) {
       return (
         <StatusMessage
-          title="The catalogue is empty"
-          description="The products have not been imported yet. Run the import and try again."
-          actionLabel="Try again"
+          title={t('catalogue.emptyTitle')}
+          description={t('catalogue.emptyDescription')}
+          actionLabel={t('actions.tryAgain')}
           onAction={() => dispatch(fetchProductPage({ query, force: true }))}
         />
       );
@@ -87,9 +90,9 @@ export function ProductsPage() {
     if (page.total === 0) {
       return (
         <StatusMessage
-          title="No products found"
-          description="Nothing matches your search and category. Try other words or clear the filters."
-          actionLabel="Clear filters"
+          title={t('catalogue.noResultsTitle')}
+          description={t('catalogue.noResultsDescription')}
+          actionLabel={t('catalogue.clearFilters')}
           onAction={clearFilters}
         />
       );
@@ -98,9 +101,11 @@ export function ProductsPage() {
       // There are results, but not on this page number.
       return (
         <StatusMessage
-          title="This page does not exist"
-          description={`The results end at page ${page.totalPages}.`}
-          actionLabel="Go to the first page"
+          title={t('catalogue.pastEndTitle')}
+          description={t('catalogue.pastEndDescription', {
+            page: page.totalPages,
+          })}
+          actionLabel={t('catalogue.firstPage')}
           onAction={() => navigate(pageUrl(1))}
         />
       );
@@ -121,7 +126,7 @@ export function ProductsPage() {
 
   return (
     <>
-      <PageHeading>Products</PageHeading>
+      <PageHeading>{t('catalogue.title')}</PageHeading>
       <Box
         sx={{
           // On desktop the filters stay in view, right under the sticky

@@ -1,11 +1,14 @@
 import Box from '@mui/material/Box';
 import Link from '@mui/material/Link';
 import Typography from '@mui/material/Typography';
+import { useTranslation } from 'react-i18next';
 import { Link as RouterLink } from 'react-router';
 
 import type { Product } from '../../../api/types';
 import { motionTokens } from '../../../app/motion';
-import { formatCategory, formatPrice, isTopRated } from '../format';
+import { categoryName } from '../../../i18n/categoryNames';
+import { CATALOGUE_LANGUAGE } from '../../../i18n/languages';
+import { formatPrice, isTopRated } from '../format';
 import { ProductImage } from './ProductImage';
 import { ProductRating } from './ProductRating';
 import { TopRatedBadge } from './TopRatedBadge';
@@ -22,6 +25,8 @@ interface ProductCardProps {
  * for touch.
  */
 export function ProductCard({ product, listUrl }: ProductCardProps) {
+  const { i18n } = useTranslation();
+
   return (
     <Link
       component={RouterLink}
@@ -63,11 +68,13 @@ export function ProductCard({ product, listUrl }: ProductCardProps) {
         )}
       </Box>
       <Typography variant="body2" color="text.secondary">
-        {formatCategory(product.category)}
+        {categoryName(product.category, i18n.language)}
       </Typography>
       <Typography
         component="h2"
         variant="h3"
+        // The catalogue text is not translated: say which language it is.
+        lang={CATALOGUE_LANGUAGE}
         sx={{
           // At most two lines, then an ellipsis.
           display: '-webkit-box',
@@ -81,7 +88,7 @@ export function ProductCard({ product, listUrl }: ProductCardProps) {
         {product.title}
       </Typography>
       <Typography sx={{ fontSize: '1.375rem', fontWeight: 'bold' }}>
-        {formatPrice(product.price)}
+        {formatPrice(product.price, i18n.language)}
       </Typography>
       <ProductRating rate={product.rating_rate} count={product.rating_count} />
     </Link>
