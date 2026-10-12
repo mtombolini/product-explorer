@@ -19,14 +19,10 @@ const CONTROL_LINE = '#767676';
 const WHITE = '#FFFFFF';
 
 /**
- * Heights of controls, in pixels. With a mouse they are compact. On a
- * touch screen (the `pointer: coarse` media query) they grow to 44px,
- * the smallest size that is comfortable for a finger.
+ * Height of every control, in pixels: the smallest size that is
+ * comfortable for a finger, and the same with a mouse.
  */
-const CONTROL_HEIGHT = 40;
-const COMPACT_CONTROL_HEIGHT = 36;
-const TOUCH_TARGET = 44;
-const TOUCH_SCREEN = '@media (pointer: coarse)';
+const CONTROL_HEIGHT = 44;
 
 /** Layout values shared by several components. */
 export const layout = {
@@ -43,7 +39,7 @@ export const layout = {
   },
   /** Longest comfortable line of running text. */
   readingWidth: '68ch',
-  touchTarget: TOUCH_TARGET,
+  touchTarget: CONTROL_HEIGHT,
 } as const;
 
 export const theme = createTheme({
@@ -126,24 +122,22 @@ export const theme = createTheme({
         root: {
           minHeight: CONTROL_HEIGHT,
           backgroundColor: WHITE,
-          [TOUCH_SCREEN]: { minHeight: TOUCH_TARGET },
         },
         // The same edge as the category buttons, so the controls of the
         // toolbar read as one family.
         notchedOutline: { borderColor: CONTROL_LINE },
-        // On touch screens the field itself, not only the box around
-        // it, is 44px tall: 23px of text plus this padding.
-        input: { [TOUCH_SCREEN]: { paddingBlock: 10.5 } },
+        // The field itself, not only the box around it, is 44px tall:
+        // 23px of text plus this padding.
+        input: { paddingBlock: 10.5 },
       },
     },
     // The sort select of the toolbar: as tall as the buttons next to it.
     MuiSelect: {
       styleOverrides: {
         root: {
-          minHeight: COMPACT_CONTROL_HEIGHT,
-          [TOUCH_SCREEN]: { minHeight: TOUCH_TARGET },
+          minHeight: CONTROL_HEIGHT,
         },
-        select: { paddingBlock: 6.5 },
+        select: { paddingBlock: 10.5 },
       },
     },
     MuiSkeleton: {
@@ -156,7 +150,6 @@ export const theme = createTheme({
         root: {
           minHeight: CONTROL_HEIGHT,
           paddingInline: 20,
-          [TOUCH_SCREEN]: { minHeight: TOUCH_TARGET },
         },
       },
     },
@@ -165,7 +158,6 @@ export const theme = createTheme({
         root: {
           minWidth: CONTROL_HEIGHT,
           minHeight: CONTROL_HEIGHT,
-          [TOUCH_SCREEN]: { minWidth: TOUCH_TARGET, minHeight: TOUCH_TARGET },
         },
       },
     },
@@ -173,7 +165,7 @@ export const theme = createTheme({
     MuiToggleButton: {
       styleOverrides: {
         root: {
-          minHeight: COMPACT_CONTROL_HEIGHT,
+          minHeight: CONTROL_HEIGHT,
           paddingBlock: 0,
           paddingInline: 14,
           color: INK,
@@ -181,7 +173,6 @@ export const theme = createTheme({
           borderColor: CONTROL_LINE,
           fontWeight: 400,
           whiteSpace: 'nowrap',
-          [TOUCH_SCREEN]: { minHeight: TOUCH_TARGET },
           '&.Mui-selected, &.Mui-selected:hover': {
             backgroundColor: BLUE,
             borderColor: BLUE,
@@ -202,10 +193,9 @@ export const theme = createTheme({
     MuiPaginationItem: {
       styleOverrides: {
         root: {
-          minWidth: COMPACT_CONTROL_HEIGHT,
-          height: COMPACT_CONTROL_HEIGHT,
+          minWidth: CONTROL_HEIGHT,
+          height: CONTROL_HEIGHT,
           fontSize: '1rem',
-          [TOUCH_SCREEN]: { minWidth: TOUCH_TARGET, height: TOUCH_TARGET },
         },
       },
     },
@@ -213,7 +203,6 @@ export const theme = createTheme({
       styleOverrides: {
         root: {
           minHeight: CONTROL_HEIGHT,
-          [TOUCH_SCREEN]: { minHeight: TOUCH_TARGET },
         },
       },
     },

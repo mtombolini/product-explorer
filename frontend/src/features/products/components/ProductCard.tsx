@@ -7,8 +7,9 @@ import { Link as RouterLink } from 'react-router';
 import type { Product } from '../../../api/types';
 import { motionTokens } from '../../../app/motion';
 import { categoryName } from '../../../i18n/categoryNames';
-import { formatPrice, isTopRated } from '../format';
+import { isTopRated } from '../format';
 import { ProductImage } from './ProductImage';
+import { ProductPrice } from './ProductPrice';
 import { ProductRating } from './ProductRating';
 import { TopRatedBadge } from './TopRatedBadge';
 
@@ -86,9 +87,7 @@ export function ProductCard({ product, listUrl }: ProductCardProps) {
       >
         {product.title}
       </Typography>
-      <Typography sx={{ fontSize: '1.375rem', fontWeight: 'bold' }}>
-        {formatPrice(product.price, i18n.language)}
-      </Typography>
+      <ProductPrice price={product.price} />
       <ProductRating rate={product.rating_rate} count={product.rating_count} />
     </Link>
   );

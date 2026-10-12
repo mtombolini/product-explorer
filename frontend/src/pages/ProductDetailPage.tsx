@@ -20,10 +20,11 @@ import { PageHeading } from '../components/PageHeading';
 import { StatusMessage } from '../components/StatusMessage';
 import { CATALOGUE_PATH } from '../features/products/catalogueUrl';
 import { ProductImage } from '../features/products/components/ProductImage';
+import { ProductPrice } from '../features/products/components/ProductPrice';
 import { ProductRating } from '../features/products/components/ProductRating';
 import { ProductSpecifications } from '../features/products/components/ProductSpecifications';
 import { TopRatedBadge } from '../features/products/components/TopRatedBadge';
-import { formatPrice, isTopRated } from '../features/products/format';
+import { isTopRated } from '../features/products/format';
 import { fetchProduct } from '../features/products/productsSlice';
 import {
   selectProduct,
@@ -114,15 +115,18 @@ function ProductView({ product }: ProductViewProps) {
         {/* The text may be a translation or the original: the API says
             which language it is, for correct pronunciation. */}
         <PageHeading lang={product.language}>{product.title}</PageHeading>
-        <Typography sx={{ fontSize: '2rem', fontWeight: 'bold' }}>
-          {formatPrice(product.price, i18n.language)}
-        </Typography>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
           <ProductRating
             rate={product.rating_rate}
             count={product.rating_count}
+            detailed
           />
           {isTopRated(product) && <TopRatedBadge />}
+        </Box>
+        {/* Below the name and its rating, between two lines, so it does
+            not read as a second heading. */}
+        <Box sx={{ py: 2, borderBlock: 1, borderColor: 'divider' }}>
+          <ProductPrice price={product.price} large />
         </Box>
         {/* The facts first, as a list that can be scanned; then the
             description, for whoever wants to read on. */}

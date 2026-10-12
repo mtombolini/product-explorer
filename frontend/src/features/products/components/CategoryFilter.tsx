@@ -5,6 +5,7 @@ import { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { categoryName } from '../../../i18n/categoryNames';
+import { CategoryIcon } from './CategoryIcon';
 
 interface CategoryFilterProps {
   categories: string[];
@@ -78,7 +79,12 @@ export function CategoryFilter({
         }}
       >
         {options.map((option) => (
-          <ToggleButton key={option.value} value={option.value}>
+          <ToggleButton
+            key={option.value}
+            value={option.value}
+            sx={{ gap: 0.75 }}
+          >
+            <CategoryIcon category={option.value} />
             {option.label}
           </ToggleButton>
         ))}

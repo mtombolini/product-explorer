@@ -13,7 +13,7 @@ export const SUPPORTED_LANGUAGES = [
 
 export type LanguageCode = (typeof SUPPORTED_LANGUAGES)[number]['code'];
 
-/** Used on a first visit and whenever a stored value is not usable. */
+/** Used when neither a stored choice nor the browser gives a language. */
 export const DEFAULT_LANGUAGE: LanguageCode = 'en';
 
 const STORAGE_KEY = 'product-explorer.language';
@@ -22,15 +22,36 @@ export function isSupportedLanguage(value: unknown): value is LanguageCode {
   return SUPPORTED_LANGUAGES.some((language) => language.code === value);
 }
 
-/** The language the user chose on an earlier visit, or the default. */
-export function readStoredLanguage(): LanguageCode {
+/** The language the user chose on an earlier visit, or null. */
+function readStoredLanguage(): LanguageCode | null {
   try {
     const stored = window.localStorage.getItem(STORAGE_KEY);
-    return isSupportedLanguage(stored) ? stored : DEFAULT_LANGUAGE;
+    return isSupportedLanguage(stored) ? stored : null;
   } catch {
     // Storage can be blocked (private mode, strict settings).
-    return DEFAULT_LANGUAGE;
+    return null;
   }
+}
+
+/**
+ * The first language of the browser that the interface has, or null.
+ * The browser lists them by preference, with a region ("es-CL"): only
+ * the language part counts.
+ */
+function readBrowserLanguage(): LanguageCode | null {
+  for (const tag of window.navigator.languages) {
+    const code = tag.split('-')[0].toLowerCase();
+    if (isSupportedLanguage(code)) return code;
+  }
+  return null;
+}
+
+/**
+ * The language to start in: the one chosen on an earlier visit, then
+ * the one of the browser, then the default.
+ */
+export function initialLanguage(): LanguageCode {
+  return readStoredLanguage() ?? readBrowserLanguage() ?? DEFAULT_LANGUAGE;
 }
 
 /** Remember the chosen language for the next visit. */

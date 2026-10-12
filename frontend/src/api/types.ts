@@ -3,10 +3,18 @@
  * (snake_case). See "API contract" in docs/SPEC.md.
  */
 
-/** One fact about a product, for example "Capacity: 2 TB". */
+/**
+ * One fact about a product, for example "Capacity: 2 TB". The products
+ * of one family have the same facts in the same order.
+ */
 export interface ProductSpecification {
+  /** The attribute, the same in every language ("capacity"). */
+  key: string;
+  /** The name of its group: "General" or the product family. */
+  group: string;
   label: string;
-  value: string;
+  /** Null when the source says nothing about this attribute. */
+  value: string | null;
 }
 
 /** One product of the catalogue. */
@@ -25,7 +33,7 @@ export interface Product {
   image_url: string | null;
   rating_rate: number | null;
   rating_count: number | null;
-  /** Key facts in display order. Empty when the product has none. */
+  /** The facts in display order. Empty when the product has none. */
   specifications: ProductSpecification[];
   /** The language `specifications` are written in. */
   specifications_language: string;
