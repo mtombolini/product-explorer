@@ -81,12 +81,12 @@ flowchart LR
             nginx["Nginx<br/>serves the React build<br/>proxies /api and /images"]
         end
         subgraph backend["backend container"]
-            seed["Seed command<br/>imports when the table is empty,<br/>then loads the bundled translations"]
+            seed["Seed command<br/>imports when the table is empty,<br/>then loads the bundled translations<br/>and specifications"]
             api["FastAPI<br/>api → services → repositories"]
             images[("Image files<br/>volume product-images")]
         end
         subgraph db["db container"]
-            postgres[("PostgreSQL<br/>products, product_translations<br/>volume db-data")]
+            postgres[("PostgreSQL<br/>products, product_translations,<br/>product_specifications<br/>volume db-data")]
         end
     end
 
@@ -112,7 +112,8 @@ flowchart LR
   (business rules) → `repositories` (the only code that touches the
   database). This is the Repository Pattern the statement suggests.
 - **Frontend state.** Redux Toolkit keeps list pages cached by query key
-  and products cached by id. The URL holds search, category and page.
+  and products cached by id. The URL holds search, category, sort order
+  and page.
 
 More detail, including sequence diagrams of the import and of a request, is
 in [docs/architecture.md](docs/architecture.md).
@@ -133,7 +134,7 @@ in [docs/architecture.md](docs/architecture.md).
 │   ├── app/
 │   │   ├── main.py                     application factory
 │   │   ├── api/                        routes, dependencies, errors, middleware
-│   │   ├── services/                   business rules, the import and the translation loader
+│   │   ├── services/                   business rules, the import, the translation and specification loaders
 │   │   ├── repositories/               database queries and image files
 │   │   ├── clients/                    Fake Store HTTP client
 │   │   ├── models/  schemas/           tables, languages and sort orders; request and response shapes
@@ -408,8 +409,9 @@ empty state, with no failed audit.
 | Focus ring on white | `#0058A3` | `#FFFFFF` | 7.18:1 | 3:1 |
 | Focus ring on the header | `#FFDB00` | `#0058A3` | 5.26:1 | 3:1 |
 
-Yellow is only used as a background (brand mark, badge, focus ring on
-blue), never as text and never behind white text.
+Yellow is never text and never sits behind white text: it is the
+background of the badge and a graphic on the blue header (brand mark and
+focus ring).
 
 ## Languages
 

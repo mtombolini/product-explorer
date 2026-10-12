@@ -355,7 +355,8 @@ Behaviour of the command:
 
 - `python -m app.commands.seed` always runs the import. Exit code 0 on
   success, 1 when the source is unavailable.
-- `--if-empty` does nothing when the table already has rows. This is what the
+- `--if-empty` skips the import when the table already has rows, and
+  still loads the translations and the specifications. This is what the
   container runs on start, so a seeded database never contacts Fake Store.
 - When Fake Store is unavailable and the table is empty, the API still
   starts, the failure is logged, `/health` reports `catalogue_seeded: false`
@@ -540,7 +541,8 @@ When the database cannot be reached: 503 with `status` and `database` set to
 - MUI with one custom theme (palette, typography, spacing, shape, component
   overrides in a single file). No second UI kit or CSS framework.
 - Colour: primary blue near `#0058A3`, accent yellow near `#FFDB00` used
-  sparingly and only behind near-black text. White and light neutral
+  sparingly: behind near-black text, or as a graphic on the blue header
+  (brand mark, focus ring). Never as text. White and light neutral
   surfaces. Every text pair meets WCAG AA (4.5:1), interface elements 3:1.
 - Typography: self-hosted Noto Sans, weights 400 and 700. Sizes in `rem`,
   fluid headings with `clamp()`, body at least 16 px, descriptions limited to
@@ -559,11 +561,11 @@ When the database cannot be reached: 503 with `status` and `database` set to
   shimmer. Under `prefers-reduced-motion` movement is removed; a short
   fade remains.
 - Scroll: fixed header that becomes shorter after scrolling without moving
-  the page; on desktop a toolbar with the category filter and the result
-  count stays under it; page change starts at the top of the page;
+  the page; on desktop a toolbar with the category filter, the result
+  count and the sort order stays under it; page change starts at the top of the page;
   numbered pagination that mirrors the URL. No infinite scroll.
 - Detail page: two columns on desktop, stacked on mobile, with a way back
-  that preserves search, filter and page. The specifications come first,
+  that preserves search, filter, order and page. The specifications come first,
   as a list of label and value that can be scanned; the description
   follows under its own heading.
 - States: skeletons that match the layout, empty state with "clear filters",
@@ -702,3 +704,7 @@ does not ask for it.
 | 7 | Motion, responsive review, accessibility audit | Checked at 360, 768 and 1280 px; Lighthouse accessibility reported |
 | 8 | README, diagram, `AI_USAGE.md`, `FUTURE_IMPROVEMENTS.md`, CI | Final check from a clean clone against the statement |
 | 9 | Interface in English and Spanish (section 7.12) | Both languages verified in a browser; tests pass |
+| 10 | Interface refinements: filter toolbar, language menu, no native controls | Checked in a browser in both languages; lint and tests pass |
+| 11 | Sort by price through every layer (API, cache key, URL, select) | Stable order across pages; the order survives reload and back; tests pass |
+| 12 | Translated catalogue (`lang`), original brand mark, one contained toolbar | `lang=es` returns Spanish text with a per-product fallback; a change of language requests the page again; tests pass |
+| 13 | Specifications per product and language; the import keeps the image source URL | Specifications served in order with a fallback and shown above the description; tests pass |
