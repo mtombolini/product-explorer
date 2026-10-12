@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 
+import type { SortOrder } from '../../api/types';
 import { catalogueUrl, parseCatalogueQuery } from './catalogueUrl';
 
 /**
@@ -22,9 +23,14 @@ export function useCatalogueQuery() {
     navigate(catalogueUrl({ ...query, category, page: 1 }));
   }
 
+  /** A new order starts again from the first page. */
+  function setSort(sort: SortOrder): void {
+    navigate(catalogueUrl({ ...query, sort, page: 1 }));
+  }
+
   /** Remove search and category and go back to the first page. */
   function clearFilters(): void {
-    navigate(catalogueUrl({ search: '', category: '', page: 1 }));
+    navigate(catalogueUrl({ ...query, search: '', category: '', page: 1 }));
   }
 
   /** The address of another page of the same search and category. */
@@ -32,5 +38,5 @@ export function useCatalogueQuery() {
     return catalogueUrl({ ...query, page });
   }
 
-  return { query, setCategory, clearFilters, pageUrl };
+  return { query, setCategory, setSort, clearFilters, pageUrl };
 }

@@ -16,6 +16,7 @@ export function getProductPage(query: CatalogueQuery): Promise<ProductPage> {
     page_size: PAGE_SIZE,
     search: query.search,
     category: query.category,
+    sort: query.sort,
   });
 }
 
