@@ -78,7 +78,29 @@ export const theme = createTheme({
           outline: `3px solid ${BLUE}`,
           outlineOffset: 2,
         },
+        // People who ask their system for less motion get none of the
+        // non-essential animation: transitions, ripples, shimmer and
+        // smooth scrolling all become instant. (The Motion library is
+        // told the same thing through MotionConfig.)
+        '@media (prefers-reduced-motion: reduce)': {
+          '*, *::before, *::after': {
+            animationDuration: '0.01ms !important',
+            animationIterationCount: '1 !important',
+            transitionDuration: '0.01ms !important',
+            scrollBehavior: 'auto !important',
+          },
+        },
       },
+    },
+    MuiInputBase: {
+      styleOverrides: {
+        // The default placeholder is too pale to read comfortably.
+        input: { '&::placeholder': { color: INK_SOFT, opacity: 1 } },
+      },
+    },
+    MuiSkeleton: {
+      // A light sweep across the placeholder instead of a pulse.
+      defaultProps: { animation: 'wave' },
     },
     MuiButton: {
       defaultProps: { disableElevation: true },
@@ -98,6 +120,13 @@ export const theme = createTheme({
           borderRadius: 999,
           fontSize: '1rem',
           paddingInline: 4,
+          variants: [
+            {
+              // A darker edge, so an unselected chip is clearly a control.
+              props: { variant: 'outlined' },
+              style: { borderColor: INK_SOFT },
+            },
+          ],
         },
       },
     },
