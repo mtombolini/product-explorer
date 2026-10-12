@@ -1,5 +1,6 @@
 """Data access of the products, translations and specifications."""
 
+import unicodedata
 from typing import Any
 
 from sqlalchemy import (
@@ -63,8 +64,9 @@ class ProductRepository:
         Each product comes with its translation into ``language``, or
         with None when it has none, and with its specifications (see
         ``_specifications_by_product``). ``search`` is matched anywhere in
-        the title or the description of that language, ignoring case,
-        and in the original text of a product without a translation.
+        the title or the description of that language, ignoring case and
+        accents, and in the original text of a product without a
+        translation.
         ``category`` must match exactly. Without ``sort`` products are
         ordered by id.
         """
@@ -77,13 +79,8 @@ class ProductRepository:
             description = func.coalesce(
                 ProductTranslation.description, Product.description
             )
-            # autoescape: a % or _ typed by the user is matched as that
-            # character, not as a LIKE wildcard.
             filters.append(
-                or_(
-                    title.icontains(search, autoescape=True),
-                    description.icontains(search, autoescape=True),
-                )
+                or_(_contains(title, search), _contains(description, search))
             )
         if category:
             filters.append(Product.category == category)
@@ -292,6 +289,34 @@ class ProductRepository:
         )
         self._session.execute(insert(ProductSpecification).values(rows))
         self._session.commit()
+
+
+def _contains(text: ColumnElement[str], search: str) -> ColumnElement[bool]:
+    """Match ``search`` anywhere in ``text``, ignoring case and accents.
+
+    The accents are removed on both sides: from the stored text with the
+    unaccent function of PostgreSQL, and from the search with
+    ``_without_accents``. "algodon" therefore finds "algodón".
+    """
+    # autoescape: a % or _ typed by the user is matched as that
+    # character, not as a LIKE wildcard.
+    return func.unaccent(text).icontains(
+        _without_accents(search), autoescape=True
+    )
+
+
+def _without_accents(text: str) -> str:
+    """Return the text with its accents removed: "algodón" -> "algodon".
+
+    NFD separates each letter from its accent ("ó" becomes "o" plus a
+    combining mark), and the combining marks are then left out.
+    """
+    decomposed = unicodedata.normalize("NFD", text)
+    return "".join(
+        character
+        for character in decomposed
+        if not unicodedata.combining(character)
+    )
 
 
 def _translation_join(language: Language) -> ColumnElement[bool]:
