@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router';
 import { useAppDispatch, useAppSelector } from '../app/hooks';
 import { layout } from '../app/theme';
 import { useDocumentTitle } from '../app/useDocumentTitle';
+import { useIsScrolled } from '../app/useIsScrolled';
 import { PageHeading } from '../components/PageHeading';
 import { StatusMessage } from '../components/StatusMessage';
 import { catalogueUrl } from '../features/products/catalogueUrl';
@@ -36,6 +37,7 @@ export function ProductsPage() {
   const navigate = useNavigate();
   const { query, setCategory, clearFilters, pageUrl } = useCatalogueQuery();
   const key = queryKey(query);
+  const isScrolled = useIsScrolled();
 
   const page = useAppSelector((state) => selectPage(state, key));
   const products = useAppSelector((state) => selectPageProducts(state, key));
@@ -122,9 +124,14 @@ export function ProductsPage() {
       <PageHeading>Products</PageHeading>
       <Box
         sx={{
-          // On desktop the filters stay in view under the sticky header.
+          // On desktop the filters stay in view, right under the sticky
+          // header, whose height depends on whether it is compact.
           position: { md: 'sticky' },
-          top: { md: layout.headerHeight.regular },
+          top: {
+            md: isScrolled
+              ? layout.headerHeight.compact
+              : layout.headerHeight.regular,
+          },
           zIndex: 1,
           bgcolor: 'background.default',
           py: 2,
