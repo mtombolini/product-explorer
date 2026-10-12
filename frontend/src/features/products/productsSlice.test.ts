@@ -2,7 +2,12 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { createStore } from '../../app/store';
 import { installFakeApi, makeProduct } from '../../test/fakeApi';
-import { fetchProduct, fetchProductPage } from './productsSlice';
+import {
+  fetchCategories,
+  fetchProduct,
+  fetchProductPage,
+  languageChanged,
+} from './productsSlice';
 import { queryKey } from './queryKey';
 
 afterEach(() => {
@@ -16,7 +21,9 @@ describe('products slice: caching', () => {
     installFakeApi([makeProduct(1), makeProduct(2)]);
     const store = createStore();
 
-    await store.dispatch(fetchProductPage({ query: firstPage }));
+    await store.dispatch(
+      fetchProductPage({ query: firstPage, language: 'en' }),
+    );
 
     const { pages, byId } = store.getState().products;
     expect(pages[queryKey(firstPage)]).toEqual({
@@ -33,11 +40,17 @@ describe('products slice: caching', () => {
     const api = installFakeApi([makeProduct(1)]);
     const store = createStore();
 
-    await store.dispatch(fetchProductPage({ query: firstPage }));
-    await store.dispatch(fetchProductPage({ query: firstPage }));
+    await store.dispatch(
+      fetchProductPage({ query: firstPage, language: 'en' }),
+    );
+    await store.dispatch(
+      fetchProductPage({ query: firstPage, language: 'en' }),
+    );
     expect(api.requests).toHaveLength(1);
 
-    await store.dispatch(fetchProductPage({ query: firstPage, force: true }));
+    await store.dispatch(
+      fetchProductPage({ query: firstPage, language: 'en', force: true }),
+    );
     expect(api.requests).toHaveLength(2);
   });
 
@@ -46,8 +59,8 @@ describe('products slice: caching', () => {
     const store = createStore();
 
     await Promise.all([
-      store.dispatch(fetchProductPage({ query: firstPage })),
-      store.dispatch(fetchProductPage({ query: firstPage })),
+      store.dispatch(fetchProductPage({ query: firstPage, language: 'en' })),
+      store.dispatch(fetchProductPage({ query: firstPage, language: 'en' })),
     ]);
 
     expect(api.requests).toHaveLength(1);
@@ -58,14 +71,18 @@ describe('products slice: caching', () => {
     const store = createStore();
     api.isBroken = true;
 
-    await store.dispatch(fetchProductPage({ query: firstPage }));
+    await store.dispatch(
+      fetchProductPage({ query: firstPage, language: 'en' }),
+    );
     expect(store.getState().products.pages[queryKey(firstPage)]).toMatchObject({
       status: 'failed',
       errorCode: 'internal_error',
     });
 
     api.isBroken = false;
-    await store.dispatch(fetchProductPage({ query: firstPage }));
+    await store.dispatch(
+      fetchProductPage({ query: firstPage, language: 'en' }),
+    );
     expect(store.getState().products.pages[queryKey(firstPage)].status).toBe(
       'succeeded',
     );
@@ -74,9 +91,11 @@ describe('products slice: caching', () => {
   it('does not request a product that a list already brought', async () => {
     const api = installFakeApi([makeProduct(1)]);
     const store = createStore();
-    await store.dispatch(fetchProductPage({ query: firstPage }));
+    await store.dispatch(
+      fetchProductPage({ query: firstPage, language: 'en' }),
+    );
 
-    await store.dispatch(fetchProduct(1));
+    await store.dispatch(fetchProduct({ id: 1, language: 'en' }));
 
     expect(api.requestsTo('/api/products/')).toEqual([]);
   });
@@ -85,12 +104,61 @@ describe('products slice: caching', () => {
     installFakeApi([]);
     const store = createStore();
 
-    await store.dispatch(fetchProduct(7));
+    await store.dispatch(fetchProduct({ id: 7, language: 'en' }));
 
     expect(store.getState().products.details[7]).toEqual({
       status: 'failed',
       errorCode: 'product_not_found',
       notFound: true,
     });
+  });
+});
+
+describe('products slice: language', () => {
+  it('empties the cached text but keeps the categories', async () => {
+    installFakeApi([makeProduct(1)]);
+    const store = createStore('en');
+    await store.dispatch(
+      fetchProductPage({ query: firstPage, language: 'en' }),
+    );
+    await store.dispatch(fetchCategories());
+
+    store.dispatch(languageChanged('es'));
+
+    const state = store.getState().products;
+    expect(state.language).toBe('es');
+    expect(state.pages).toEqual({});
+    expect(state.byId).toEqual({});
+    expect(state.categories.items).toEqual(['electronics']);
+  });
+
+  it('does nothing when the language is the same', async () => {
+    installFakeApi([makeProduct(1)]);
+    const store = createStore('en');
+    await store.dispatch(
+      fetchProductPage({ query: firstPage, language: 'en' }),
+    );
+
+    store.dispatch(languageChanged('en'));
+
+    expect(Object.keys(store.getState().products.byId)).toEqual(['1']);
+  });
+
+  it('drops the answer to a request made before the language changed', async () => {
+    installFakeApi([makeProduct(1)]);
+    const store = createStore('en');
+
+    const list = store.dispatch(
+      fetchProductPage({ query: firstPage, language: 'en' }),
+    );
+    const single = store.dispatch(fetchProduct({ id: 1, language: 'en' }));
+    store.dispatch(languageChanged('es'));
+    await Promise.all([list, single]);
+
+    // The English answers arrived after the change: nothing is stored.
+    const state = store.getState().products;
+    expect(state.pages).toEqual({});
+    expect(state.byId).toEqual({});
+    expect(state.details).toEqual({});
   });
 });
