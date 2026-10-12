@@ -15,7 +15,9 @@ import { MAIN_CONTENT_ID, SkipLink } from './SkipLink';
 /**
  * After a change of page, move keyboard and screen reader focus to the
  * new page's heading (or to the main area while it is still loading).
- * Only the path counts: typing a search must not steal focus.
+ * Only the path counts: typing a search must not steal focus. A search
+ * typed on another page changes the path too, so focus that is inside
+ * the search form stays there.
  */
 function useFocusOnPageChange(): void {
   const { pathname } = useLocation();
@@ -26,6 +28,8 @@ function useFocusOnPageChange(): void {
       isFirstRender.current = false;
       return;
     }
+    // The user is still typing a search: do not take the focus away.
+    if (document.activeElement?.closest('[role="search"]')) return;
     const target =
       document.querySelector<HTMLElement>('main h1') ??
       document.getElementById(MAIN_CONTENT_ID);

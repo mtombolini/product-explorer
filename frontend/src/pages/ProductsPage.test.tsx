@@ -77,6 +77,43 @@ describe('catalogue: search and filter flow', () => {
     ).toHaveAttribute('aria-pressed', 'true');
   });
 
+  it('keeps the focus in the search box when a search changes page', async () => {
+    installFakeApi(catalogue);
+    const { user, router } = renderApp('/product/3');
+    await screen.findByRole('heading', { level: 1, name: 'Gold ring' });
+
+    const searchBox = screen.getByRole('textbox', { name: 'Search products' });
+    await user.type(searchBox, 'shi');
+    await waitFor(() =>
+      expect(currentAddress(router)).toBe('/products?search=shi'),
+    );
+
+    // The catalogue is on screen and the user goes on typing the word.
+    await screen.findByRole('heading', { level: 1, name: 'Products' });
+    expect(searchBox).toHaveFocus();
+    await user.keyboard('rt');
+    await waitFor(() =>
+      expect(currentAddress(router)).toBe('/products?search=shirt'),
+    );
+  });
+
+  it('drops a pending search when the user opens a product', async () => {
+    installFakeApi(catalogue);
+    const { user, router } = renderApp('/products');
+
+    const card = await screen.findByRole('link', { name: /Gold ring/ });
+    const searchBox = screen.getByRole('textbox', { name: 'Search products' });
+    await user.type(searchBox, 'ring');
+    // Before the pause ends, so the search has not been applied yet.
+    await user.click(card);
+
+    await screen.findByRole('heading', { level: 1, name: 'Gold ring' });
+    expect(searchBox).toHaveValue('');
+    // Longer than the pause: the search must not run after all.
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    expect(currentAddress(router)).toBe('/product/3');
+  });
+
   it('restores the view from the address', async () => {
     installFakeApi(catalogue);
     renderApp('/products?search=shirt&category=women%27s+clothing');

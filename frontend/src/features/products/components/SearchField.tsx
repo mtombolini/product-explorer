@@ -51,6 +51,17 @@ export function SearchField() {
     }
   }
 
+  // When the user moves to another page before the pause ends, the text
+  // that was not applied yet is dropped. Otherwise the pending search
+  // would pull the user off the page just opened.
+  const [lastPathname, setLastPathname] = useState(location.pathname);
+  if (location.pathname !== lastPathname) {
+    setLastPathname(location.pathname);
+    if (text.trim() !== appliedSearch) {
+      setText(appliedSearch);
+    }
+  }
+
   // Searching keeps the chosen category when the user is on the catalogue
   // and starts again from page 1.
   const category = isOnCatalogue ? query.category : '';
