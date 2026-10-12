@@ -198,7 +198,8 @@ rendering, and any service beyond the three containers.
 │   │   ├── repositories/         # data access, the only SQL in the app
 │   │   ├── services/             # business rules
 │   │   ├── clients/              # Fake Store HTTP client
-│   │   ├── api/                  # routers, dependencies, errors, middleware
+│   │   ├── api/                  # dependencies, errors, middleware
+│   │   │   └── routes/           # one router per resource
 │   │   └── commands/             # seed command
 │   └── tests/
 └── frontend/
@@ -336,7 +337,7 @@ Base path `/api`. JSON only. Field names are `snake_case`.
 
 | Parameter | Type | Default | Rules |
 | --- | --- | --- | --- |
-| `page` | integer | 1 | `>= 1` |
+| `page` | integer | 1 | 1 to 1,000,000 |
 | `page_size` | integer | 12 | 1 to 48 |
 | `search` | string | none | At most 100 characters. Trimmed; blank means no search. Case-insensitive substring match on title or description; `%` and `_` are matched literally |
 | `category` | string | none | At most 100 characters. Exact match |
@@ -357,7 +358,8 @@ Results are ordered by `id` ascending. Response 200:
 beyond the last one returns 200 with an empty `items` list.
 
 **`GET /api/products/{product_id}`**: 200 with a product, 404 when it does
-not exist, 422 when the id is not a positive integer.
+not exist, 422 when the id is not an integer between 1 and 2,147,483,647
+(the range of the id column).
 
 **`GET /api/categories`**: 200 with `{"items": ["electronics", "jewelery"]}`,
 distinct values sorted alphabetically.
@@ -541,6 +543,7 @@ Versions were read from the package registries on the day the work started.
 | Backend | httpx | 0.28.1 |
 | Backend dev | pytest | 9.1.1 |
 | Backend dev | ruff | 0.17.0 |
+| Backend dev | httpx2 (test client) | 2.13.1 |
 | Runtime | Node.js | 24 (LTS) |
 | Frontend | react, react-dom | 19.3.0 |
 | Frontend | react-router | 8.4.0 |

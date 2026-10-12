@@ -196,3 +196,68 @@ Representative excerpts from the master prompt:
     the Docker virtual machine was up to three minutes behind the host
     for a while, so the wall-clock duration of the unreachable-source
     start was read from the container log timestamps.
+
+## Phase 3: backend API
+
+- **Prompt or workflow.** The phase scope came from `docs/SPEC.md`
+  (sections 7.6, 7.7 and the API rows of 7.10). Unlike phases 1 and 2,
+  this phase was written by the main agent directly, one file at a time,
+  after reading all the existing backend code. The sub-agent runs were
+  being interrupted because the development machine kept going to sleep,
+  and work done in small steps survives that.
+- **Accepted.**
+  - Response schemas, the read queries of the repository, `ProductService`
+    and `HealthService`.
+  - The error envelope with handlers for validation errors, the domain
+    not-found error and the framework's own HTTP errors.
+  - The request middleware (request id, access log line, last-resort 500)
+    and the request id in every log line through a context variable.
+  - The routers under `app/api/routes` and the dependency wiring.
+  - 50 new tests: the list, detail, category and health endpoints, every
+    validation case, the error envelope, the request id and the service
+    with an in-memory repository.
+- **Rejected or changed.**
+  - A handler registered for `Exception` was rejected for the 500 case;
+    the middleware answers it (D-018).
+  - `page` and the product id had no upper bound. A huge value would have
+    reached PostgreSQL and failed there, so both are now bounded (D-019).
+  - Mounting the images with `check_dir=False` was rejected after a smoke
+    test: a missing directory answered 500. The directory is created at
+    start and a missing file is a normal 404.
+  - The first logging change made uvicorn's access logger propagate, which
+    printed a second access line next to ours. It is now left alone.
+  - Alembic logged in plain text through `alembic.ini`. The migrations now
+    use the JSON logging of the application.
+  - The test client warned that `httpx` is deprecated for it; `httpx2` was
+    added as a development dependency (D-022).
+  - A legacy `session.query` call in the test factory was replaced with a
+    `select` statement, like the rest of the code.
+- **Verification.**
+  - `ruff check .` and `ruff format --check .` in `backend/`: "All checks
+    passed!" and "47 files already formatted".
+  - `pycodestyle --max-line-length=79` over `backend/app`, `backend/tests`
+    and `backend/migrations`: no output, exit code 0.
+  - `docker compose --profile test run --rm --build backend-test`:
+    "60 passed".
+  - `docker compose up --build -d --wait`: three services healthy.
+  - Through the frontend port: `/api/products` returned 12 items, total 20
+    and 2 pages; `?page=2` returned ids 13 to 20; `?search=COTTON` returned
+    4 products; `?category=men%27s%20clothing` returned 4 products, all of
+    that category; `?search=%25` returned 5 products, not 20;
+    `?page_size=500` answered 422 with the envelope and the field name;
+    `/api/products/9999` answered 404 `product_not_found`;
+    `/api/categories` returned the four categories sorted;
+    `/images/1.png` answered 200 `image/png`.
+  - On the backend port: `/health` answered 200 with `catalogue_seeded`
+    true and 20 products; `/docs` answered 200; `/openapi.json` lists the
+    four paths and references `ErrorResponse` for 404 and 422.
+  - The `X-Request-ID` header of a response through Nginx appeared as
+    `request_id` in the backend access line for that request. Every one of
+    the last 30 backend log lines parsed as JSON, including the migration
+    and uvicorn lines, with one access line per request.
+  - A grep of the imports confirmed the layering: no FastAPI import in
+    services, repositories, clients or models, and no session call
+    outside `app/repositories`.
+  - Not verified against a real outage: the 503 of `/health` and the 500
+    path are covered by tests that replace a dependency, not by stopping
+    the database.
