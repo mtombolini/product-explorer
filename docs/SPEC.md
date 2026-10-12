@@ -601,7 +601,7 @@ All tests are deterministic and never call the real Fake Store API.
 | Backend | Service with a fake repository | Business rules without a database |
 | Frontend | Search and category filter flow | Requests carry the parameters, URL is updated, results announced |
 | Frontend | Sort by price | Order shown, URL updated, each order cached, page reset, unknown value ignored |
-| Frontend | Change of language | Interface copy, catalogue text requested again once, late answers in the old language ignored |
+| Frontend | Change of language | Interface copy, catalogue text requested again once, late answers to a request made before the change ignored |
 | Frontend | Specifications on the product page | Shown as labels and values in order; hidden when there are none |
 | Frontend | Open a product and go back | Same list state and no new request |
 | Frontend | Error and empty states | Retry and clear filters work |
@@ -678,8 +678,9 @@ does not ask for it.
   language.
 - The Redux store keeps the language the catalogue was requested in. When
   the user changes language the cached pages and products are dropped and
-  the visible page is requested again; an answer that arrives for the
-  previous language is ignored.
+  the visible page is requested again. Each cached entry remembers the id
+  of the request that wrote it, so an answer to an older request (made
+  before a change of language) is ignored, even after changing back.
 - Category values are keys (`men's clothing`). The four known ones are
   given a translated label in the frontend; any other is shown as it comes.
 - The language is not part of the URL.

@@ -342,7 +342,7 @@ HTTP transport with `httpx.MockTransport`, and the frontend replaces
 | Frontend, product page | Specifications as labels and values in order, hidden when there are none, marked with their language |
 | Frontend, states | Error with retry, filtered empty state with "Clear filters", empty catalogue, page past the end, product not found, malformed id, unknown route |
 | Frontend, units | API client errors, URL parsing, cache rules of the slice |
-| Frontend, languages | Switching to Spanish and back, plurals, translated states, same keys in every language, price and rating formats; catalogue text requested again in the new language, one request per language, a late answer in the old language ignored |
+| Frontend, languages | Switching to Spanish and back, plurals, translated states, same keys in every language, price and rating formats; catalogue text requested again in the new language, one request per language, a late answer to a request made before the change ignored |
 
 ## Development workflow
 
