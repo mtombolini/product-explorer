@@ -852,3 +852,35 @@ during the work, one section at a time.
     screenshot in Spanish was looked at.
   - Not verified: these fixes by another reviewer, and the toolbar on a
     real phone or in a browser other than Chrome.
+
+## After the final review
+
+- **Prompt or workflow.** The main agent read the result of the final
+  review and took up two findings that its triage step had not turned
+  into code changes.
+- **Accepted.**
+  - Search that ignores accents (D-053): the triage had confirmed the
+    finding and the fixer had documented it as a limitation.
+  - The Spanish catalogue text in neutral Latin American Spanish, with
+    nothing the source does not say (D-054): the triage had rejected
+    these two findings as taste.
+- **Rejected or changed.**
+  - The sentence about accents in the known limitations of the README
+    was removed again, since it is no longer true.
+  - Two more findings stay rejected: different labels for similar facts
+    in the specifications (Size and Sizing, Liner and Lining), and
+    "sudadera" for sweater, which was changed anyway while rewriting
+    that product.
+- **Verification.**
+  - `ruff check` and `ruff format --check` clean; `backend-test`:
+    "121 passed", two of them new (search without accents on the original
+    text and on a translation).
+  - After `docker compose up --build -d --wait`, with curl and `lang=es`:
+    `search=algodon`, `search=algodón` and `search=ALGODON` each returned
+    4 products; `search=poliester` returned 3. The database reported the
+    extension `unaccent` and the migration `0005_enable_unaccent`.
+  - `/api/products/1?lang=es` and `/api/products/16?lang=es` returned the
+    rewritten titles, descriptions and specifications.
+  - Not verified: these two changes by independent reviewers, and the
+    Spanish text by a second reader.
+

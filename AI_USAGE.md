@@ -131,7 +131,7 @@ A selection; the log has all of them.
 - **Static checks.** `ruff` and `pycodestyle` at 79 characters for Python;
   ESLint with accessibility rules, strict TypeScript and Prettier for the
   frontend.
-- **Tests.** 119 backend tests against PostgreSQL and 71 frontend tests,
+- **Tests.** 121 backend tests against PostgreSQL and 71 frontend tests,
   both run in containers. None calls the real Fake Store API.
 - **A clean clone.** With no `.env` file, `docker-compose up` gave three
   healthy containers, 20 products and 20 images. The import was run again
@@ -152,8 +152,9 @@ A selection; the log has all of them.
 - No screen reader session, and no browser other than Chrome.
 - The Spanish copy, the translated product text and the specifications
   were not read by a second person.
-- The fixes of the final review were checked by the agent that made
-  them (tests and a browser), not by another reviewer.
+- The fixes of the final review, and the two changes made after it
+  (search that ignores accents, the Spanish text in a neutral register),
+  were checked with tests and by hand, not by another reviewer.
 - One frontend test run failed once while the development machine was
   going to sleep, and the failing test was not identified. Every later
   run passed.

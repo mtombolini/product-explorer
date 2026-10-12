@@ -175,7 +175,7 @@ at <http://localhost:8000/docs>.
 | --- | --- | --- | --- |
 | `page` | integer | 1 | 1 to 1,000,000 |
 | `page_size` | integer | 12 | 1 to 48 |
-| `search` | string | none | At most 100 characters. Case-insensitive match in title or description. `%` and `_` are literal |
+| `search` | string | none | At most 100 characters. Match in title or description that ignores case and accents ("algodon" finds "algodón"). `%` and `_` are literal |
 | `category` | string | none | At most 100 characters. Trimmed; blank means no filter. Exact match |
 | `sort` | string | none | `price_asc` or `price_desc`. Without it the list is ordered by id |
 | `lang` | string | `en` | `en` or `es`. Language of titles and descriptions, and of the text `search` reads. Also accepted by `GET /api/products/{id}` |
@@ -311,7 +311,7 @@ and are not imported.
 No local toolchain is needed: both suites run in containers.
 
 ```bash
-# Backend: 119 tests (pytest) against PostgreSQL, in a database ending in _test
+# Backend: 121 tests (pytest) against PostgreSQL, in a database ending in _test
 docker compose --profile test run --rm --build backend-test
 
 # Frontend: 71 tests (Vitest + React Testing Library)
@@ -487,7 +487,6 @@ The full list, with the open questions and the defaults taken, is in
 
 - The catalogue has 20 products. Search uses `ILIKE` with a leading
   wildcard, which does not use an index and would be slow on a large table.
-  Search ignores case but not accents: "algodon" does not find "algodón".
 - Prices travel as JSON numbers. That is fine for display, not for money
   arithmetic.
 - The frontend ships as one JavaScript bundle of about 800 kB (255 kB

@@ -692,3 +692,34 @@ trade-off that was accepted. New entries are appended as the work advances.
   database, and an image can be traced or fetched again without asking
   Fake Store for the product list.
 
+## After the final review
+
+### D-053 Search ignores accents
+
+- **Context.** With the catalogue in Spanish, a reviewer showed that
+  "algodon" found nothing while "algodón" found four products. People
+  often type without accents.
+- **Decision.** The stored text goes through PostgreSQL's `unaccent`
+  function and the search loses its accents in Python before the
+  comparison. A migration enables the extension.
+- **Alternatives.** Document it as a limitation, which was the first
+  answer; a normalised copy of each text in its own column.
+- **Trade-off.** One extension, which ships with PostgreSQL and needs no
+  superuser. The comparison still scans the table, like before; an index
+  would need the normalised column.
+
+### D-054 The Spanish catalogue text is neutral and adds nothing
+
+- **Context.** The first Spanish text used words from Spain (for example
+  for laptop, bleach and denim) and, in two titles and one description,
+  words that Fake Store does not say. The reviewers' triage set this
+  aside as a matter of taste.
+- **Decision.** The text was rewritten in Latin American Spanish that is
+  understood across countries, and every title and description now says
+  only what its source says, even where the source is terse.
+- **Alternatives.** Leave it; write for one country.
+- **Trade-off.** Two titles read as oddly in Spanish as they do in
+  English ("Casual de corte ajustado para hombre"). The candidate and the
+  likely readers are in Latin America, and a translation that invents a
+  product type is a data error, not a style choice.
+
