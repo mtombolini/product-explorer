@@ -152,9 +152,11 @@ A selection; the log has all of them.
 - No screen reader session, and no browser other than Chrome.
 - The Spanish copy, the translated product text and the specifications
   were not read by a second person.
-- The fixes of the final review, and the two changes made after it
-  (search that ignores accents, the Spanish text in a neutral register),
-  were checked with tests and by hand, not by another reviewer.
+- The fixes of the final review, and the changes made after it (search
+  that ignores accents, the Spanish text in a neutral register, and the
+  repair of a regression that one of those fixes had caused in scroll
+  restoration on narrow screens), were checked with tests and in the
+  browser, not by another reviewer.
 - One frontend test run failed once while the development machine was
   going to sleep, and the failing test was not identified. Every later
   run passed.

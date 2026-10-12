@@ -884,3 +884,32 @@ during the work, one section at a time.
   - Not verified: these two changes by independent reviewers, and the
     Spanish text by a second reader.
 
+## A regression from the final review
+
+- **Prompt or workflow.** The main agent ran the browser session for
+  scroll restoration once more before closing the work.
+- **Accepted.** Nothing new from the model: the session found a fault in
+  a fix that had already been accepted.
+- **Rejected or changed.** The fixer of the final review brought the
+  pressed category into view with `scrollIntoView`. That call scrolls
+  the page too. Below 1200 px, where the toolbar does not stay in view,
+  coming back from a product scrolled the list up to the toolbar instead
+  of the position the user had left. The effect now sets the sideways
+  scroll of the row only.
+- **Verification.**
+  - Before the change, headless Chrome at 360 and 768 px: the list was
+    left at 900 px and came back at 201 and 175 px.
+  - After the change, eight sessions (360 px from two positions, 768 and
+    1280 px, each on the plain list and with a category and an order):
+    the position on return was the position at the click in all of
+    them, and at 360 px the row was still scrolled to the pressed
+    category.
+  - The position and size of the row of buttons were the same before
+    and after at the three widths.
+  - In `frontend/`: `npm run lint` and `npm run typecheck` clean;
+    `npm test`: "71 passed". The test of the category in the address now
+    also fails if `scrollIntoView` is called.
+  - Why the earlier checks missed it: the sessions that verified the fix
+    did not go to a product and back, and the test environment has no
+    layout, so the old test only saw that the call was made.
+
