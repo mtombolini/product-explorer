@@ -12,14 +12,18 @@ verified. It is updated during the work, not written at the end.
 - Phases 1 and 2 were written by builder sub-agents that the main agent
   briefed with the phase scope. Phases 3 to 8 were written by the main
   agent itself, one file at a time.
-- No AI code review by independent sub-agents took place. It was planned
-  for the backend and the frontend, but the sub-agent runs could not
-  finish: the development machine was asleep most of the time (lid closed,
-  on battery) and the orchestration tool stops an agent that makes no
-  progress for three minutes. The checks that did happen are listed in
-  each phase and are of two kinds: automated (lint, tests, builds, Docker
-  Compose runs) and behavioural (requests with curl, scripted sessions in
-  headless Chrome, Lighthouse).
+- An independent AI review took place at the end, once the development
+  machine stayed awake. Earlier attempts could not finish: the machine was
+  asleep most of the time (lid closed, on battery) and the orchestration
+  tool stops an agent that makes no progress for three minutes. The review
+  had three steps: seven read-only reviewer sub-agents, each with a
+  different concern, examined the finished project; a triage step tried to
+  refute every finding and kept the ones it could reproduce; a fixer agent
+  applied the confirmed ones. It is recorded in "Independent review"
+  below.
+- The other checks are listed in each phase and are of two kinds:
+  automated (lint, tests, builds, Docker Compose runs) and behavioural
+  (requests with curl, scripted sessions in headless Chrome, Lighthouse).
 
 ## Working method
 
@@ -467,6 +471,120 @@ Representative excerpts from the master prompt:
     interface in Spanish.
   - Not verified: the Spanish wording by a second reader, and languages
     with more plural forms than English and Spanish.
+
+## Independent review
+
+- **Prompt or workflow.** A workflow script ran after phase 9. Seven
+  reviewer sub-agents read the repository and exercised the running stack
+  without changing anything, each with a different concern. A triage agent
+  then tried to refute every finding against the code and the running
+  application, merged the duplicates and kept at most eight. A fixer agent
+  received the eight confirmed findings and the list of rejected ones, with
+  the instruction to make the smallest change for each and to leave the
+  code alone when a finding turned out to be wrong. The fixer saw the
+  triage result only: eight confirmed findings and 29 entries rejected or
+  merged, several of which stand for two or three reports.
+- **Accepted.** All eight confirmed findings were fixed, one commit each:
+  - A NUL character in `search` or `category` answered 500:
+    `fix(backend): answer 422 for a NUL character in search or category`.
+  - An id or rating count above the `INTEGER` range, or text with a NUL,
+    passed the import validation and failed the upsert for every record:
+    `fix(backend): skip import records the columns cannot store`.
+  - A search typed on another page lost the focus in the middle of the
+    word, and a search still inside the pause pulled the user off a
+    product opened in the meantime:
+    `fix(frontend): keep a header search steady across page changes`.
+  - A failed list announced "0 products", and "Try again" never reloaded
+    the category chips:
+    `fix(frontend): retry the categories and hide the count after a failure`.
+  - The search box, the language select, the chips and the pagination had
+    no visible focus ring:
+    `fix(frontend): show the focus ring on MUI controls`.
+  - A product id above 2147483647 showed a server error with a retry that
+    could never work:
+    `fix(frontend): show not found for ids above the API limit`.
+  - The text alternative of the product image was English text without
+    `lang="en"`:
+    `fix(frontend): mark the product image alt text as English`.
+  - The documents named a type that does not exist, left `i18n/` out of
+    the layout, said a page change scrolls to the top of the grid, called
+    the category an exact match without saying it is trimmed, and said
+    motion is switched off when a short fade remains:
+    `docs: correct statements the code does not match`.
+- **Rejected or changed.**
+  - Merged as duplicates of a confirmed finding: the NUL character (two
+    more reports), the import bounds (two more), the product id above the
+    limit, the pending search, the "0 products" summary, the trimmed
+    category and three inaccuracies of the specification.
+  - Fades that still run under `prefers-reduced-motion`: the movement is
+    dropped and a short fade is acceptable, so only the wording of the
+    documents changed.
+  - Overriding `IMAGES_DIR` breaks image storage: only when a working
+    default is changed, and the Dockerfile explains the ownership rule.
+  - A trailing-slash redirect through Nginx points to the wrong port, and
+    a trailing slash leaves the search box empty: no client of this
+    project requests those addresses.
+  - 405 responses carry no `Allow` header: the API is read-only and
+    nothing reads the header.
+  - `1.0` is accepted as an id or a page: it is the integer 1 for
+    Pydantic, and rejecting it needs a custom validator for no benefit.
+  - The Nginx access log has no request id: the id is returned in
+    `X-Request-ID` and logged by the backend; a log format is extra scope.
+  - An explicit `null` in an optional field skips the product: the record
+    is skipped and logged, and Fake Store never sends it.
+  - No test for a repeated id or for the seed command, and the "Verified
+    by" entries of the checklist paraphrase the tests: requests for more
+    tests or wording, not defects.
+  - `@mui/utils` is imported without being declared; the list address
+    passed to each card is never read; the category error code is stored
+    but never read; raw design values, repeated literals and unused
+    exports: no wrong behaviour, matters of taste or hygiene.
+  - The specification says one hook reads and writes the URL while the
+    search field does it too: the field uses the same helpers; a nuance.
+  - Changing page with the keyboard leaves the focus on the body: by
+    design only a change of path moves the focus, and the suggested fix
+    is new behaviour.
+  - The clone command of the README does not deliver the application yet,
+    and this file says the candidate has reviewed nothing: both are true,
+    disclosed, and for the candidate to resolve at submission.
+  - The sentence saying no AI review took place: stale only after this
+    review, so it was rewritten in this step.
+  - "Every error has the same body" against the 503 of `/health`: the
+    README lists that response with its own body.
+  - Changed while fixing: the first version of the focus test typed on
+    without waiting for the catalogue to render and lost a letter, because
+    the search box follows the address when a navigation lands. The test
+    now waits for the heading, as a person would see it. A key pressed in
+    the instant between the navigation and its render can still be
+    dropped; this was not changed.
+- **Verification.**
+  - `docker compose --profile test run --rm --build backend-test`:
+    "62 passed". In the same container `ruff check .`: "All checks
+    passed!", and `ruff format --check .`: "47 files already formatted"
+    (the first run asked to reformat one file, which was corrected).
+  - In `frontend/`: `npm run lint`, `npm run typecheck` and
+    `npm run format:check` clean; `npm test`: "51 passed". With the four
+    source fixes reverted, the four new tests failed and the other 47
+    passed.
+  - `docker compose up --build -d --wait`: three services healthy.
+    `curl` of `http://localhost:8080/api/products` and of
+    `http://localhost:8080/`: 200. `?search=a%00b` and `?category=%00`
+    through port 8080: 422 `validation_error` naming the field.
+  - Headless Chrome against the rebuilt stack. Nine presses of Tab on
+    `/products`: the skip link, the logo, the search box, the language
+    select and the five chips each computed a solid 3 px outline, yellow
+    inside the header and blue below it; a screenshot of the focused
+    search box was looked at. Typing "ja", waiting 900 ms and typing
+    "cket" on `/product/1` ended at `/products?search=jacket` with the
+    focus in the box. Typing "ring" on `/products` and opening a card at
+    once stayed on `/product/1` with an empty box. `/product/9999999999`
+    showed "Product not found". In Spanish the product image sat inside
+    an element with `lang="en"`. With `/api` answering 502 there was no
+    status region and no "0 products"; after "Try again" the five chips
+    and "20 products" were shown.
+  - Not verified in a browser: the focus ring of the pagination and of
+    the buttons (they share the selector of the chips), and the import
+    with a real out-of-range record (covered by the test only).
 
 ## Human review
 
