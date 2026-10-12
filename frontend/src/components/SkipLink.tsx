@@ -1,5 +1,7 @@
 import Link from '@mui/material/Link';
 
+import { layout } from '../app/theme';
+
 /** The id of the main landmark, the target of the skip link. */
 export const MAIN_CONTENT_ID = 'main-content';
 
@@ -16,8 +18,10 @@ export function SkipLink() {
         left: 16,
         top: 16,
         zIndex: 'tooltip',
+        display: 'inline-flex',
+        alignItems: 'center',
+        minHeight: layout.touchTarget,
         px: 2,
-        py: 1,
         borderRadius: 1,
         bgcolor: 'background.paper',
         color: 'primary.main',
