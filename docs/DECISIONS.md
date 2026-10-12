@@ -287,3 +287,111 @@ trade-off that was accepted. New entries are appended as the work advances.
   is unchanged, and the import code keeps the library it was built and
   tested with.
 
+
+## Phases 4 to 7: frontend
+
+### D-023 Official Vite template, with ESLint instead of Oxlint
+
+- **Context.** The current Vite React template lints with Oxlint by default
+  and offers ESLint as an option.
+- **Decision.** Generate the template with `--eslint` and add
+  `eslint-plugin-jsx-a11y` and Prettier.
+- **Alternatives.** Keep Oxlint; write the configuration by hand.
+- **Trade-off.** ESLint is slower, but it is the linter that has the
+  accessibility rules this project wants checked on every run.
+
+### D-024 Cache by query key and by id, guarded in the thunks
+
+- **Context.** "Store fetched data to prevent unnecessary refetching."
+- **Decision.** The slice keeps `pages[queryKey]` (ids and totals) and
+  `byId[id]` (products). Each thunk has a `condition` that cancels the
+  request when the data is already loaded or on its way. Components always
+  dispatch from `useEffect` and never check the cache themselves.
+- **Alternatives.** RTK Query; checking the cache in each component.
+- **Trade-off.** A little more code than RTK Query, which the statement
+  rules out by asking for `useEffect`. The rule "do I need to fetch?" lives
+  in one place and is unit tested.
+
+### D-025 The URL is the state of the catalogue
+
+- **Context.** "The current state should remain understandable when
+  navigating back."
+- **Decision.** Search, category and page live only in the query string.
+  Typing a search replaces the current history entry; choosing a category
+  or a page adds one.
+- **Alternatives.** Keeping the filters in Redux and syncing the URL.
+- **Trade-off.** One source of truth, so back, forward, reload and shared
+  links work without extra code. The search box needs a small piece of
+  local state for the text being typed.
+
+### D-026 The search box follows the URL during render, not in an effect
+
+- **Context.** The box must update when the applied search changes for
+  another reason (back button, "Clear filters"). The React lint rules
+  reject setting state inside an effect for this.
+- **Decision.** Use React's documented "adjust state when a value changes"
+  pattern: compare with the previous value during render.
+- **Alternatives.** An effect with a lint exception; remounting the input
+  with a `key`, which would lose focus while typing.
+- **Trade-off.** The pattern is less familiar than an effect, so it is
+  commented in the component.
+
+### D-027 "Back to products" goes back in history when possible
+
+- **Context.** Returning to the list must restore search, category, page
+  and scroll position without a request.
+- **Decision.** A card passes `state: { from }` with its link. When that
+  state is present the control calls `navigate(-1)`; on a direct visit it
+  is a link to `/products`.
+- **Alternatives.** Always link to the stored list address.
+- **Trade-off.** A link would add a history entry and start at the top of
+  the list. Going back behaves exactly like the browser button.
+
+### D-028 Card images have an empty text alternative
+
+- **Context.** A card is one link that contains the image and the title.
+- **Decision.** In cards the image uses `alt=""`; on the product page it
+  uses the product title.
+- **Alternatives.** Repeat the title as `alt` in every card.
+- **Trade-off.** Repeating it would make screen readers read each product
+  name twice. This follows the WCAG technique for an image and text that
+  share one link.
+
+### D-029 Yellow is only ever a background
+
+- **Context.** Yellow on white and white on yellow fail contrast.
+- **Decision.** Yellow appears in three places: the brand mark, the "Top
+  rated" badge (near-black text on it) and the focus ring inside the blue
+  header. Stars and text never use it.
+- **Alternatives.** Yellow stars; yellow for the selected filter.
+- **Trade-off.** Less yellow on screen, and every use passes WCAG AA.
+
+### D-030 Motion library for entrances, CSS for hover
+
+- **Context.** One motion library, subtle effects, reduced motion
+  respected.
+- **Decision.** Motion animates the card reveal and the page transition.
+  The hover and focus lift and the compact header use CSS transitions. A
+  media query in the theme and `MotionConfig reducedMotion="user"` switch
+  everything off for people who ask for less motion.
+- **Alternatives.** Motion for every effect; no library at all.
+- **Trade-off.** Two mechanisms, each used for what it does most simply.
+
+### D-031 Category filter as pressed buttons
+
+- **Context.** Exactly one category is active at a time.
+- **Decision.** A labelled group of buttons with `aria-pressed`, one of
+  them "All".
+- **Alternatives.** A radio group; a select.
+- **Trade-off.** A radio group would need arrow-key handling written by
+  hand. Buttons are operable with Tab, Enter and Space out of the box.
+
+### D-032 One JavaScript bundle
+
+- **Context.** The production build is a single file of about 600 kB
+  (190 kB compressed) and Vite warns about its size.
+- **Decision.** Leave it as one bundle for this version.
+- **Alternatives.** Split by route with lazy loading.
+- **Trade-off.** A slower first load than necessary, in exchange for no
+  loading states between two small pages. It is listed in
+  `FUTURE_IMPROVEMENTS.md`.
