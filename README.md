@@ -174,7 +174,7 @@ at <http://localhost:8000/docs>.
 | `page` | integer | 1 | 1 to 1,000,000 |
 | `page_size` | integer | 12 | 1 to 48 |
 | `search` | string | none | At most 100 characters. Case-insensitive match in title or description. `%` and `_` are literal |
-| `category` | string | none | At most 100 characters. Exact match |
+| `category` | string | none | At most 100 characters. Trimmed; blank means no filter. Exact match |
 
 ```bash
 curl "http://localhost:8080/api/products?search=cotton&category=women%27s%20clothing&page=1"
@@ -282,10 +282,10 @@ docker compose exec backend python -m app.commands.seed
 No local toolchain is needed: both suites run in containers.
 
 ```bash
-# Backend: 60 tests (pytest) against PostgreSQL, in a database ending in _test
+# Backend: 62 tests (pytest) against PostgreSQL, in a database ending in _test
 docker compose --profile test run --rm --build backend-test
 
-# Frontend: 47 tests (Vitest + React Testing Library)
+# Frontend: 51 tests (Vitest + React Testing Library)
 docker compose --profile test run --rm --build frontend-test
 ```
 
@@ -352,8 +352,8 @@ from the browser's network panel and search for it in the backend logs.
   count is a polite live region. The current page of the pagination has
   `aria-current`.
 - Product cards are single links. Ratings have a text equivalent.
-- Motion is short (150 to 300 ms) and is switched off under
-  `prefers-reduced-motion`.
+- Motion is short (150 to 300 ms). Under `prefers-reduced-motion`
+  movement is removed; a short fade remains.
 - The grid has 1 column below 480 px, 2 from 480 px, 3 from 768 px and 4
   from 1200 px. The header becomes compact after scrolling and the filters
   stay in view on desktop.
