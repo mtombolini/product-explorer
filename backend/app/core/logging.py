@@ -18,6 +18,8 @@ request_id_context: ContextVar[str | None] = ContextVar(
 _STANDARD_ATTRIBUTES = set(vars(logging.makeLogRecord({}))) | {
     "message",
     "asctime",
+    # A copy of the message with terminal colours, added by uvicorn.
+    "color_message",
 }
 
 
@@ -66,9 +68,10 @@ def configure_logging(level: str) -> None:
     # httpx logs every request at INFO. The client logs its own attempts.
     logging.getLogger("httpx").setLevel(logging.WARNING)
 
-    # uvicorn installs its own plain-text handlers. Removing them lets its
-    # records reach the root handler, so every line has the same format.
-    for name in ("uvicorn", "uvicorn.error", "uvicorn.access"):
-        uvicorn_logger = logging.getLogger(name)
-        uvicorn_logger.handlers = []
-        uvicorn_logger.propagate = True
+    # uvicorn installs its own plain-text handler. Without it, its records
+    # reach the root handler and share the JSON format. Its access log is
+    # switched off in entrypoint.sh: the request middleware writes that
+    # line, with the request id.
+    uvicorn_logger = logging.getLogger("uvicorn")
+    uvicorn_logger.handlers = []
+    uvicorn_logger.propagate = True

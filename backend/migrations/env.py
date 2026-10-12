@@ -1,21 +1,21 @@
 """Alembic environment: connects to the database and runs migrations."""
 
-from logging.config import fileConfig
+import logging
 
 from alembic import context
 from sqlalchemy import create_engine, pool
 
 from app.core.config import get_settings
 from app.core.database import Base
+from app.core.logging import configure_logging
 from app.models import Product  # noqa: F401  (registers the table)
 
-config = context.config
-
-if config.config_file_name is not None:
-    # disable_existing_loggers=False: loading alembic.ini must not switch
-    # off loggers that were created before (the tests run migrations
-    # inside the pytest process).
-    fileConfig(config.config_file_name, disable_existing_loggers=False)
+# Run as a command ("alembic upgrade head" in entrypoint.sh) nothing has
+# set up logging yet, so the migration lines get the JSON format of the
+# application. Inside the tests logging is already set up and is left
+# alone.
+if not logging.getLogger().handlers:
+    configure_logging(get_settings().log_level)
 
 # The model metadata, used by "alembic check" and "--autogenerate".
 target_metadata = Base.metadata
