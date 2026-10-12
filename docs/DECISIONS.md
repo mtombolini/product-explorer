@@ -154,3 +154,71 @@ trade-off that was accepted. New entries are appended as the work advances.
 - **Trade-off.** Depends on a recent Nginx, which the pinned
   `nginx:1.30-alpine` image guarantees. No Content-Security-Policy is set
   yet: it has to be written against the real frontend build.
+
+## Phase 2: backend data
+
+### D-014 Image checks split between the client and the image storage
+
+- **Context.** SPEC 7.5 step 4 lists three checks for an image: same host
+  as the source, `image/*` content type and a size limit of 5 MB.
+- **Decision.** The client refuses a URL on another host before any
+  request, and does not follow redirects. The image storage checks what
+  concerns the file: an allow-list of content types (JPEG, PNG, WebP, GIF)
+  that also gives the extension, a non-empty body and the size limit. The
+  file is written to a temporary name and renamed.
+- **Alternatives.** All three checks in the service; accepting any
+  `image/*` type and guessing the extension from the URL; streaming the
+  body to stop at 5 MB.
+- **Trade-off.** SVG is refused (it can carry scripts), and the size is
+  checked after the body was read into memory, which is acceptable for a
+  source that is trusted and small. The content is not inspected, only the
+  declared type.
+
+### D-015 The upsert and each image path are committed separately
+
+- **Context.** The import writes the products and then downloads the
+  images, which is slow and can fail half way.
+- **Decision.** The repository commits the upsert in one transaction, and
+  commits each `image_path` right after its file is stored. A record whose
+  `external_id` repeats inside one answer is skipped, because PostgreSQL
+  rejects an `ON CONFLICT` statement that touches the same row twice.
+- **Alternatives.** One transaction for the whole run; committing in the
+  service.
+- **Trade-off.** A run that is interrupted leaves products without image,
+  never an image path without file, and the next run downloads only what
+  is missing. The repository owns `commit`, so it is not a pure query
+  object. `INSERT ... ON CONFLICT` consumes a sequence value for every
+  row, so the generated `id` of a product added later is not contiguous.
+
+### D-016 Start period sized for the worst-case first import
+
+- **Context.** The API starts after the import, and the health check must
+  not fail while a slow import is still running.
+- **Decision.** `start_period: 180s` on the backend. With the defaults one
+  request that never answers takes about 17 seconds (three attempts of
+  5 seconds plus 0.5 and 1 second of backoff). The product list is one
+  request, and three image failures in a row stop the downloads.
+  `start_interval: 2s` reports a normal start as healthy within seconds.
+- **Alternatives.** Run the import in the background after the API
+  started; no retries for images.
+- **Trade-off.** A backend that is really broken is reported unhealthy
+  only after about four minutes. Failures that alternate with successes
+  are not bounded by the three-in-a-row rule; 180 seconds covers about
+  nine of them.
+
+### D-017 Test stage in the backend image, test database on the same server
+
+- **Context.** Tests must run with one Docker command, against PostgreSQL,
+  and must never touch the application data.
+- **Decision.** The Dockerfile has `base`, `test` and `runtime` stages;
+  `runtime` is last and has no development dependency. The `backend-test`
+  service (profile `test`) builds the `test` stage and uses the database
+  `${POSTGRES_DB}_test` on the `db` service. `conftest.py` stops the run
+  when the name does not end in `_test`, creates the database when it is
+  missing, applies the migrations once and truncates the table before each
+  test.
+- **Alternatives.** A second PostgreSQL container for tests; SQLite; one
+  transaction per test that is rolled back.
+- **Trade-off.** No fourth container and the real upsert syntax is
+  tested, at the cost of sharing the server with the application. The
+  rollback approach was not used because the repository commits (D-015).
