@@ -6,7 +6,7 @@ maths, filter clean-up, not found) can be checked in memory.
 
 import pytest
 
-from app.models import Product
+from app.models import Product, ProductSort
 from app.services.exceptions import ProductNotFoundError
 from app.services.product_service import ProductService
 
@@ -26,6 +26,7 @@ class FakeProductRepository:
         category: str | None,
         limit: int,
         offset: int,
+        sort: ProductSort | None = None,
     ) -> tuple[list[Product], int]:
         """Remember the arguments and return no rows with the total."""
         self.received = {
@@ -33,6 +34,7 @@ class FakeProductRepository:
             "category": category,
             "limit": limit,
             "offset": offset,
+            "sort": sort,
         }
         return [], self.total
 
@@ -78,6 +80,18 @@ def test_filters_are_trimmed_and_blank_means_none() -> None:
 
     assert repository.received["search"] == "shirt"
     assert repository.received["category"] is None
+
+
+def test_sort_is_passed_to_the_repository() -> None:
+    """The service does not order anything itself."""
+    repository = FakeProductRepository()
+    service = ProductService(repository)
+
+    service.list_products(page=1, page_size=12)
+    assert repository.received["sort"] is None
+
+    service.list_products(page=1, page_size=12, sort=ProductSort.PRICE_DESC)
+    assert repository.received["sort"] is ProductSort.PRICE_DESC
 
 
 def test_get_product_returns_the_product() -> None:
