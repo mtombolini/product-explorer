@@ -4,6 +4,7 @@ import Typography from '@mui/material/Typography';
 import { Link as RouterLink } from 'react-router';
 
 import type { Product } from '../../../api/types';
+import { motionTokens } from '../../../app/motion';
 import { formatCategory, formatPrice, isTopRated } from '../format';
 import { ProductImage } from './ProductImage';
 import { ProductRating } from './ProductRating';
@@ -39,6 +40,17 @@ export function ProductCard({ product, listUrl }: ProductCardProps) {
         border: 1,
         borderColor: 'divider',
         bgcolor: 'background.paper',
+        // The card rises slightly under the pointer and under keyboard
+        // focus, so it is clear which product is about to be opened.
+        transition: (theme) =>
+          theme.transitions.create(['transform', 'box-shadow'], {
+            duration: motionTokens.duration.base * 1000,
+            easing: theme.transitions.easing.easeOut,
+          }),
+        '&:hover, &:focus-visible': {
+          transform: `translateY(-${motionTokens.lift}px)`,
+          boxShadow: 3,
+        },
       }}
     >
       <Box sx={{ position: 'relative' }}>

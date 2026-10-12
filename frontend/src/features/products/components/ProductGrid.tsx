@@ -1,8 +1,13 @@
 import Box from '@mui/material/Box';
+import { motion } from 'motion/react';
 import type { ReactNode } from 'react';
 
 import type { Product } from '../../../api/types';
+import { motionTokens } from '../../../app/motion';
 import { ProductCard } from './ProductCard';
+
+/** The widest grid has four columns; the stagger restarts on each row. */
+const MAX_COLUMNS = 4;
 
 interface GridListProps {
   children: ReactNode;
@@ -47,10 +52,22 @@ interface ProductGridProps {
 export function ProductGrid({ products, listUrl }: ProductGridProps) {
   return (
     <GridList label="Products">
-      {products.map((product) => (
-        <li key={product.id}>
+      {products.map((product, index) => (
+        // Each card fades in and rises a little the first time it enters
+        // the viewport, slightly after its left neighbour.
+        <motion.li
+          key={product.id}
+          initial={{ opacity: 0, y: motionTokens.revealOffset }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{
+            duration: motionTokens.duration.slow,
+            ease: motionTokens.ease,
+            delay: (index % MAX_COLUMNS) * motionTokens.stagger,
+          }}
+        >
           <ProductCard product={product} listUrl={listUrl} />
-        </li>
+        </motion.li>
       ))}
     </GridList>
   );

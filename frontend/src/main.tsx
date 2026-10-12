@@ -5,6 +5,7 @@ import '@fontsource/noto-sans/latin-700.css';
 
 import CssBaseline from '@mui/material/CssBaseline';
 import { ThemeProvider } from '@mui/material/styles';
+import { MotionConfig } from 'motion/react';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { Provider } from 'react-redux';
@@ -28,7 +29,10 @@ createRoot(rootElement).render(
     <Provider store={store}>
       <ThemeProvider theme={theme}>
         <CssBaseline />
-        <RouterProvider router={router} />
+        {/* "user": follow the reduced-motion setting of the system. */}
+        <MotionConfig reducedMotion="user">
+          <RouterProvider router={router} />
+        </MotionConfig>
       </ThemeProvider>
     </Provider>
   </StrictMode>,
