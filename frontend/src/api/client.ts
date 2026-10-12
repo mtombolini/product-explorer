@@ -1,7 +1,8 @@
 import type { ApiErrorDetail, ApiErrorEnvelope } from './types';
 
-/** Status used when no response arrived at all (offline, server down). */
+/** Status and code used when no response arrived at all (offline, server down). */
 export const NETWORK_ERROR_STATUS = 0;
+export const NETWORK_ERROR_CODE = 'network_error';
 
 /**
  * The only error the API layer throws. It carries what the backend put in
@@ -75,7 +76,7 @@ export async function getJson<T>(
   } catch {
     throw new ApiError(
       NETWORK_ERROR_STATUS,
-      'network_error',
+      NETWORK_ERROR_CODE,
       'The server could not be reached.',
     );
   }
