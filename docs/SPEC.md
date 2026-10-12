@@ -44,7 +44,7 @@ section 4.
 
 Every requirement below is implemented, except DL-5 (the optional deployed
 demo). The column "Verified by" names the check that proves each one; the
-results of those checks are recorded phase by phase in `AI_USAGE.md`.
+results of those checks are recorded phase by phase in `docs/AI_LOG.md`.
 
 ### 2.1 Functional requirements (statement section 1)
 
@@ -97,7 +97,7 @@ results of those checks are recorded phase by phase in `AI_USAGE.md`.
 | DL-1 | Repository with meaningful commit history | Conventional Commits, one logical change per commit | `git log` |
 | DL-2 | README: prerequisites, setup, environment variables, architecture, tests, endpoints, assumptions, limitations | `README.md` | Documentation review |
 | DL-3 | Architecture diagram | Mermaid diagram in `docs/architecture.md`, embedded in the README | Rendered on GitHub |
-| DL-4 | `AI_USAGE.md` | Updated in every phase | Documentation review |
+| DL-4 | `AI_USAGE.md` | A short summary in `AI_USAGE.md`; the record of every phase in `docs/AI_LOG.md` | Documentation review |
 | DL-5 | Optional deployed demo | Out of scope | Not applicable |
 
 ### 2.6 Bonus points in scope (statement section 8)
@@ -183,6 +183,7 @@ containers.
 ├── docs/
 │   ├── SPEC.md
 │   ├── DECISIONS.md
+│   ├── AI_LOG.md
 │   └── architecture.md
 ├── .github/workflows/ci.yml
 ├── backend/

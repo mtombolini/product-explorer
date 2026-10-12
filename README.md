@@ -124,7 +124,7 @@ in [docs/architecture.md](docs/architecture.md).
 ├── docker-compose.yml          three services + two test runners (profile "test")
 ├── .env.example
 ├── README.md  AI_USAGE.md  FUTURE_IMPROVEMENTS.md
-├── docs/                       SPEC, DECISIONS, architecture
+├── docs/                       SPEC, DECISIONS, architecture, AI_LOG
 ├── .github/workflows/ci.yml    lint, tests and builds
 ├── backend/
 │   ├── Dockerfile  entrypoint.sh
@@ -440,7 +440,7 @@ The full list, with the open questions and the defaults taken, is in
 - The local default credentials are in `docker-compose.yml`. They are
   development values and must be replaced outside a local machine.
 - No end-to-end browser tests are part of the repository. The browser
-  checks described in `AI_USAGE.md` were run with throwaway scripts.
+  checks described in `docs/AI_LOG.md` were run with throwaway scripts.
 - Product titles and descriptions are shown in English in every interface
   language, and the browser language is not detected: a first visit is in
   English.
@@ -474,5 +474,6 @@ A short view of what would change. The prioritised plan is in
 | [docs/SPEC.md](docs/SPEC.md) | Requirements checklist mapped to the statement, assumptions, design contract |
 | [docs/architecture.md](docs/architecture.md) | Diagrams of the containers, the import and a request; the layers |
 | [docs/DECISIONS.md](docs/DECISIONS.md) | Each decision with its alternatives and trade-off |
-| [AI_USAGE.md](AI_USAGE.md) | How AI was used, what was rejected and how the output was verified |
+| [AI_USAGE.md](AI_USAGE.md) | How AI was used, what was rejected and how the output was verified (summary) |
+| [docs/AI_LOG.md](docs/AI_LOG.md) | The same, phase by phase, with every command and result |
 | [FUTURE_IMPROVEMENTS.md](FUTURE_IMPROVEMENTS.md) | Limitations and a prioritised improvement plan |
