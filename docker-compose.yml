@@ -1,4 +1,5 @@
-# Product Explorer: database, API and web server.
+# Product Explorer: database, API and web server. Exactly these three
+# services; the test runners are in docker-compose.test.yml.
 # Every value has a local default, so a .env file is optional (see
 # .env.example for the variables that can be overridden).
 
@@ -85,30 +86,6 @@ services:
       retries: 5
       start_period: 10s
       start_interval: 2s
-
-  # One-off test runner, only under the "test" profile:
-  #   docker compose --profile test run --rm --build backend-test
-  # It uses its own database (name ending in _test) on the same server, so
-  # the tests never touch the application data.
-  backend-test:
-    profiles: ["test"]
-    build:
-      context: ./backend
-      target: test
-    environment:
-      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-product_explorer}:${POSTGRES_PASSWORD:-product_explorer}@db:5432/${POSTGRES_DB:-product_explorer}_test
-    depends_on:
-      db:
-        condition: service_healthy
-
-  # One-off test runner of the frontend, also under the "test" profile:
-  #   docker compose --profile test run --rm --build frontend-test
-  # It needs no other service: the tests replace the API with a stub.
-  frontend-test:
-    profiles: ["test"]
-    build:
-      context: ./frontend
-      target: source
 
 volumes:
   db-data:

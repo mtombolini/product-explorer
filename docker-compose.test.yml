@@ -1,0 +1,26 @@
+# Test runners of Product Explorer. They are not part of the application,
+# so they live in this file, which is only read when it is named:
+#
+#   docker compose -f docker-compose.yml -f docker-compose.test.yml \
+#     run --rm --build backend-test
+#
+# "docker compose up" reads docker-compose.yml alone and never sees them.
+
+services:
+  # It uses its own database (name ending in _test) on the server of the
+  # application, so the tests never touch the application data.
+  backend-test:
+    build:
+      context: ./backend
+      target: test
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-product_explorer}:${POSTGRES_PASSWORD:-product_explorer}@db:5432/${POSTGRES_DB:-product_explorer}_test
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # It needs no other service: the tests replace the API with a stub.
+  frontend-test:
+    build:
+      context: ./frontend
+      target: source
