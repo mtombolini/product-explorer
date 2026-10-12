@@ -6,7 +6,7 @@ maths, filter clean-up, not found) can be checked in memory.
 
 import pytest
 
-from app.models import Product, ProductSort
+from app.models import Language, LocalizedProduct, Product, ProductSort
 from app.services.exceptions import ProductNotFoundError
 from app.services.product_service import ProductService
 
@@ -14,7 +14,9 @@ from app.services.product_service import ProductService
 class FakeProductRepository:
     """Stand-in for ProductRepository that records what it is asked."""
 
-    def __init__(self, total: int = 0, product: Product | None = None) -> None:
+    def __init__(
+        self, total: int = 0, product: LocalizedProduct | None = None
+    ) -> None:
         """Set what the repository will answer."""
         self.total = total
         self.product = product
@@ -26,20 +28,25 @@ class FakeProductRepository:
         category: str | None,
         limit: int,
         offset: int,
+        language: Language,
         sort: ProductSort | None = None,
-    ) -> tuple[list[Product], int]:
+    ) -> tuple[list[LocalizedProduct], int]:
         """Remember the arguments and return no rows with the total."""
         self.received = {
             "search": search,
             "category": category,
             "limit": limit,
             "offset": offset,
+            "language": language,
             "sort": sort,
         }
         return [], self.total
 
-    def get_by_id(self, product_id: int) -> Product | None:
-        """Return the configured product, whatever the id."""
+    def get_by_id(
+        self, product_id: int, language: Language
+    ) -> LocalizedProduct | None:
+        """Remember the language and return the configured product."""
+        self.received = {"product_id": product_id, "language": language}
         return self.product
 
 
@@ -94,15 +101,29 @@ def test_sort_is_passed_to_the_repository() -> None:
     assert repository.received["sort"] is ProductSort.PRICE_DESC
 
 
+def test_language_is_passed_to_the_repository() -> None:
+    """The service does not translate: it asks for the source or for lang."""
+    repository = FakeProductRepository()
+    service = ProductService(repository)
+
+    service.list_products(page=1, page_size=12)
+    assert repository.received["language"] is Language.EN
+
+    service.list_products(page=1, page_size=12, language=Language.ES)
+    assert repository.received["language"] is Language.ES
+
+
 def test_get_product_returns_the_product() -> None:
-    """An existing product is passed through."""
-    product = Product(id=5, title="Backpack")
+    """An existing product is passed through, in the language asked."""
+    product = LocalizedProduct(
+        product=Product(id=5, title="Backpack"), translation=None
+    )
+    repository = FakeProductRepository(product=product)
 
-    service = ProductService(FakeProductRepository(product=product))
-
-    found = service.get_product(5)
+    found = ProductService(repository).get_product(5, language=Language.ES)
 
     assert found is product
+    assert repository.received == {"product_id": 5, "language": Language.ES}
 
 
 def test_get_product_raises_when_it_does_not_exist() -> None:

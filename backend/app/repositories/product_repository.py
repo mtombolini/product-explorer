@@ -1,12 +1,18 @@
-"""Data access of the products table."""
+"""Data access of the products and their translations."""
 
 from typing import Any
 
-from sqlalchemy import func, or_, select, update
+from sqlalchemy import ColumnElement, and_, func, or_, select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
-from app.models import Product, ProductSort
+from app.models import (
+    Language,
+    LocalizedProduct,
+    Product,
+    ProductSort,
+    ProductTranslation,
+)
 
 # The columns that an import run overwrites when the product already
 # exists. image_path is not in the list: it belongs to the image step.
@@ -38,29 +44,45 @@ class ProductRepository:
         category: str | None,
         limit: int,
         offset: int,
+        language: Language,
         sort: ProductSort | None = None,
-    ) -> tuple[list[Product], int]:
+    ) -> tuple[list[LocalizedProduct], int]:
         """Return one page of products and the total that match.
 
-        ``search`` is matched anywhere in the title or the description,
-        ignoring case. ``category`` must match exactly. Without ``sort``
-        products are ordered by id.
+        Each product comes with its translation into ``language``, or
+        with None when it has none. ``search`` is matched anywhere in
+        the title or the description of that language, ignoring case,
+        and in the original text of a product without a translation.
+        ``category`` must match exactly. Without ``sort`` products are
+        ordered by id.
         """
+        translation_join = _translation_join(language)
         filters = []
         if search:
+            # COALESCE: the translated text when the join found a row,
+            # otherwise the original.
+            title = func.coalesce(ProductTranslation.title, Product.title)
+            description = func.coalesce(
+                ProductTranslation.description, Product.description
+            )
             # autoescape: a % or _ typed by the user is matched as that
             # character, not as a LIKE wildcard.
             filters.append(
                 or_(
-                    Product.title.icontains(search, autoescape=True),
-                    Product.description.icontains(search, autoescape=True),
+                    title.icontains(search, autoescape=True),
+                    description.icontains(search, autoescape=True),
                 )
             )
         if category:
             filters.append(Product.category == category)
 
+        # The join never repeats a product: a product has at most one
+        # translation per language, so the count stays correct.
         count_statement = (
-            select(func.count()).select_from(Product).where(*filters)
+            select(func.count())
+            .select_from(Product)
+            .outerjoin(ProductTranslation, translation_join)
+            .where(*filters)
         )
         total = self._session.scalar(count_statement) or 0
 
@@ -75,18 +97,36 @@ class ProductRepository:
             order = (Product.id,)
 
         page_statement = (
-            select(Product)
+            select(Product, ProductTranslation)
+            .outerjoin(ProductTranslation, translation_join)
             .where(*filters)
             .order_by(*order)
             .limit(limit)
             .offset(offset)
         )
-        products = list(self._session.scalars(page_statement))
+        products = [
+            LocalizedProduct(product=product, translation=translation)
+            for product, translation in self._session.execute(page_statement)
+        ]
         return products, total
 
-    def get_by_id(self, product_id: int) -> Product | None:
-        """Return one product, or None when the id does not exist."""
-        return self._session.get(Product, product_id)
+    def get_by_id(
+        self, product_id: int, language: Language
+    ) -> LocalizedProduct | None:
+        """Return one product with its translation into ``language``.
+
+        Return None when the id does not exist.
+        """
+        statement = (
+            select(Product, ProductTranslation)
+            .outerjoin(ProductTranslation, _translation_join(language))
+            .where(Product.id == product_id)
+        )
+        row = self._session.execute(statement).first()
+        if row is None:
+            return None
+        product, translation = row
+        return LocalizedProduct(product=product, translation=translation)
 
     def list_categories(self) -> list[str]:
         """Return the distinct categories, sorted by name."""
@@ -131,3 +171,44 @@ class ProductRepository:
         )
         self._session.execute(statement)
         self._session.commit()
+
+    def get_ids_by_external_id(self) -> dict[int, int]:
+        """Return the id of every product, by external_id."""
+        statement = select(Product.external_id, Product.id)
+        rows = self._session.execute(statement).all()
+        return {row.external_id: row.id for row in rows}
+
+    def upsert_translations(self, rows: list[dict[str, Any]]) -> None:
+        """Insert or update translations in one transaction.
+
+        Each row is a dictionary with ``product_id``, ``language``,
+        ``title`` and ``description``. The pair (product_id, language)
+        decides whether a row is inserted or updated.
+        """
+        if not rows:
+            return
+        statement = insert(ProductTranslation).values(rows)
+        statement = statement.on_conflict_do_update(
+            index_elements=[
+                ProductTranslation.product_id,
+                ProductTranslation.language,
+            ],
+            set_={
+                "title": statement.excluded.title,
+                "description": statement.excluded.description,
+            },
+        )
+        self._session.execute(statement)
+        self._session.commit()
+
+
+def _translation_join(language: Language) -> ColumnElement[bool]:
+    """Return the condition that joins a product with its translation.
+
+    The language is part of the join and not of the WHERE: with a left
+    join a product without a translation is then kept, with NULLs.
+    """
+    return and_(
+        ProductTranslation.product_id == Product.id,
+        ProductTranslation.language == language.value,
+    )

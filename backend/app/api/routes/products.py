@@ -6,7 +6,7 @@ from fastapi import APIRouter, Path, Query
 
 from app.api.dependencies import ProductServiceDependency
 from app.api.errors import NOT_FOUND_RESPONSE, VALIDATION_ERROR_RESPONSE
-from app.models import ProductSort
+from app.models import SOURCE_LANGUAGE, Language, ProductSort
 from app.schemas.product import ProductListResponse, ProductResponse
 
 DEFAULT_PAGE_SIZE = 12
@@ -18,6 +18,10 @@ MAX_PRODUCT_ID = 2_147_483_647
 MAX_FILTER_LENGTH = 100
 # PostgreSQL text cannot hold the NUL character: reject it as bad input.
 NO_NUL_PATTERN = r"^[^\x00]*$"
+LANG_DESCRIPTION = (
+    "Language of the title and the description. A product without a "
+    "translation is returned in the source language."
+)
 
 router = APIRouter(prefix="/api/products", tags=["products"])
 
@@ -41,7 +45,7 @@ def list_products(
             max_length=MAX_FILTER_LENGTH,
             pattern=NO_NUL_PATTERN,
             description="Text to find in the title or the description, "
-            "ignoring case. Blank means no search.",
+            "in the language of lang, ignoring case. Blank means no search.",
         ),
     ] = None,
     category: Annotated[
@@ -56,6 +60,9 @@ def list_products(
         ProductSort | None,
         Query(description="Order of the list. Without it: by id."),
     ] = None,
+    lang: Annotated[
+        Language, Query(description=LANG_DESCRIPTION)
+    ] = SOURCE_LANGUAGE,
 ) -> ProductListResponse:
     """Return one page of the catalogue.
 
@@ -67,6 +74,7 @@ def list_products(
         search=search,
         category=category,
         sort=sort,
+        language=lang,
     )
     return ProductListResponse(
         items=[ProductResponse.from_product(item) for item in result.items],
@@ -85,6 +93,10 @@ def list_products(
 def read_product(
     service: ProductServiceDependency,
     product_id: Annotated[int, Path(ge=1, le=MAX_PRODUCT_ID)],
+    lang: Annotated[
+        Language, Query(description=LANG_DESCRIPTION)
+    ] = SOURCE_LANGUAGE,
 ) -> ProductResponse:
     """Return the product with the given id, or 404."""
-    return ProductResponse.from_product(service.get_product(product_id))
+    product = service.get_product(product_id, language=lang)
+    return ProductResponse.from_product(product)
