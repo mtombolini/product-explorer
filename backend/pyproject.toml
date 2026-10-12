@@ -13,4 +13,6 @@ select = ["E", "W", "F", "I", "N", "UP", "B", "SIM", "C4"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+# Makes the "app" package importable from the tests.
+pythonpath = ["."]
 addopts = "-ra"
