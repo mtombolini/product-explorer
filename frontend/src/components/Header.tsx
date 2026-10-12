@@ -8,6 +8,7 @@ import { Link as RouterLink } from 'react-router';
 import { motionTokens } from '../app/motion';
 import { layout } from '../app/theme';
 import { useIsScrolled } from '../app/useIsScrolled';
+import { BrandMark } from './BrandMark';
 import { LanguageSwitcher } from './LanguageSwitcher';
 
 interface HeaderProps {
@@ -55,7 +56,7 @@ export function Header({ search }: HeaderProps) {
               easing: theme.transitions.easing.easeOut,
             }),
           // The blue focus ring would not show on the blue header.
-          '& :focus-visible, & .MuiButtonBase-root.Mui-focusVisible, & .MuiInputBase-root.Mui-focused':
+          '& :focus-visible, & .MuiButtonBase-root.Mui-focusVisible, & .MuiInputBase-root:has(:focus-visible)':
             { outlineColor: 'secondary.main' },
         }}
       >
@@ -84,31 +85,27 @@ export function Header({ search }: HeaderProps) {
               alignItems: 'center',
               gap: 1.5,
               minHeight: layout.touchTarget,
-              fontWeight: 'bold',
               fontSize: '1.25rem',
               // On phones the brand has its own row until the header is
               // compact; then search and language sit next to the mark.
               flexBasis: { xs: isScrolled ? 'auto' : '100%', sm: 'auto' },
             }}
           >
-            {/* Original mark: a plain yellow tile, decorative only. */}
-            <Box
-              aria-hidden
-              sx={{
-                width: 28,
-                height: 28,
-                borderRadius: 0.75,
-                bgcolor: 'secondary.main',
-                flexShrink: 0,
-              }}
-            />
+            <BrandMark />
+            {/* The name in two weights. On phones it gives its place to
+                the search field once the header is compact. */}
             <Box
               component="span"
               sx={{
                 display: { xs: isScrolled ? 'none' : 'inline', sm: 'inline' },
+                fontWeight: 'regular',
+                letterSpacing: '-0.01em',
               }}
             >
-              Product Explorer
+              <Box component="span" sx={{ fontWeight: 'bold' }}>
+                Product
+              </Box>{' '}
+              Explorer
             </Box>
           </Link>
           <Box
