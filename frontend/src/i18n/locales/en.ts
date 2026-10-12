@@ -18,7 +18,7 @@ export const en = {
     clear: 'Clear search',
   },
   filter: {
-    label: 'Filter by category',
+    title: 'Category',
     all: 'All',
   },
   catalogue: {

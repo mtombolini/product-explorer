@@ -1,20 +1,16 @@
-import Box from '@mui/material/Box';
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
 
 import { useAppDispatch, useAppSelector } from '../app/hooks';
-import { layout } from '../app/theme';
 import { useDocumentTitle } from '../app/useDocumentTitle';
-import { useIsScrolled } from '../app/useIsScrolled';
 import { PageHeading } from '../components/PageHeading';
 import { StatusMessage } from '../components/StatusMessage';
 import { catalogueUrl } from '../features/products/catalogueUrl';
 import { CataloguePagination } from '../features/products/components/CataloguePagination';
-import { CategoryFilter } from '../features/products/components/CategoryFilter';
+import { CatalogueToolbar } from '../features/products/components/CatalogueToolbar';
 import { ProductGrid } from '../features/products/components/ProductGrid';
 import { ProductGridSkeleton } from '../features/products/components/ProductGridSkeleton';
-import { ResultSummary } from '../features/products/components/ResultSummary';
 import {
   fetchCategories,
   fetchProductPage,
@@ -40,7 +36,6 @@ export function ProductsPage() {
   const navigate = useNavigate();
   const { query, setCategory, clearFilters, pageUrl } = useCatalogueQuery();
   const key = queryKey(query);
-  const isScrolled = useIsScrolled();
 
   const page = useAppSelector((state) => selectPage(state, key));
   const products = useAppSelector((state) => selectPageProducts(state, key));
@@ -133,35 +128,15 @@ export function ProductsPage() {
   return (
     <>
       <PageHeading>{t('catalogue.title')}</PageHeading>
-      <Box
-        sx={{
-          // On desktop the filters stay in view, right under the sticky
-          // header, whose height depends on whether it is compact.
-          position: { md: 'sticky' },
-          top: {
-            md: isScrolled
-              ? layout.headerHeight.compact
-              : layout.headerHeight.regular,
-          },
-          zIndex: 1,
-          bgcolor: 'background.default',
-          py: 2,
-          mb: 1,
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 1.5,
-        }}
-      >
-        <CategoryFilter
-          categories={categories.items}
-          selected={query.category}
-          onSelect={setCategory}
-        />
-        {/* A failed request has no total to announce. */}
-        {page?.status !== 'failed' && (
-          <ResultSummary total={isLoading ? null : page.total} query={query} />
-        )}
-      </Box>
+      <CatalogueToolbar
+        categories={categories.items}
+        query={query}
+        // null while loading; a failed request has no total to announce.
+        total={
+          isLoading ? null : page.status === 'failed' ? undefined : page.total
+        }
+        onSelectCategory={setCategory}
+      />
       {renderContent()}
     </>
   );

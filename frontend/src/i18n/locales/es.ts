@@ -14,7 +14,7 @@ export const es: Messages = {
     clear: 'Borrar búsqueda',
   },
   filter: {
-    label: 'Filtrar por categoría',
+    title: 'Categoría',
     all: 'Todas',
   },
   catalogue: {
