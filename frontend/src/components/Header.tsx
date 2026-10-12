@@ -34,7 +34,8 @@ export function Header({ search }: HeaderProps) {
         bgcolor: 'primary.main',
         color: 'primary.contrastText',
         // The blue focus ring would not show on the blue header.
-        '& :focus-visible': { outlineColor: 'secondary.main' },
+        '& :focus-visible, & .MuiButtonBase-root.Mui-focusVisible, & .MuiInputBase-root.Mui-focused':
+          { outlineColor: 'secondary.main' },
       }}
     >
       <Container

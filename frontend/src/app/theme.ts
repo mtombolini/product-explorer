@@ -74,10 +74,13 @@ export const theme = createTheme({
     MuiCssBaseline: {
       styleOverrides: {
         // One clearly visible focus ring for every interactive element.
-        ':focus-visible': {
-          outline: `3px solid ${BLUE}`,
-          outlineOffset: 2,
-        },
+        // MUI removes the outline of its own controls and marks keyboard
+        // focus with a class instead, so those classes are listed too.
+        ':focus-visible, .MuiButtonBase-root.Mui-focusVisible, .MuiInputBase-root.Mui-focused':
+          {
+            outline: `3px solid ${BLUE}`,
+            outlineOffset: 2,
+          },
         // People who ask their system for less motion get none of the
         // non-essential animation: transitions, ripples, shimmer and
         // smooth scrolling all become instant. (The Motion library is
