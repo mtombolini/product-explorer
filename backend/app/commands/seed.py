@@ -23,7 +23,9 @@ from app.repositories.image_storage import ImageStorage
 from app.repositories.product_repository import ProductRepository
 from app.services.import_service import CatalogueImportService
 
-logger = logging.getLogger(__name__)
+# A fixed name: with "python -m" this module's __name__ is "__main__",
+# which would say nothing in the log lines.
+logger = logging.getLogger("app.commands.seed")
 
 
 def main() -> int:
