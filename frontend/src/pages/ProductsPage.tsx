@@ -34,7 +34,8 @@ export function ProductsPage() {
   const { t } = useTranslation();
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
-  const { query, setCategory, clearFilters, pageUrl } = useCatalogueQuery();
+  const { query, setCategory, setSort, clearFilters, pageUrl } =
+    useCatalogueQuery();
   const key = queryKey(query);
 
   const page = useAppSelector((state) => selectPage(state, key));
@@ -136,6 +137,7 @@ export function ProductsPage() {
           isLoading ? null : page.status === 'failed' ? undefined : page.total
         }
         onSelectCategory={setCategory}
+        onSelectSort={setSort}
       />
       {renderContent()}
     </>
