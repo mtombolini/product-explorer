@@ -19,6 +19,15 @@ const catalogue = [
   makeProduct(2, { title: 'Gold ring', category: 'jewelery' }),
 ];
 
+/** Open the language menu in the header and pick a language by name. */
+async function chooseLanguage(
+  user: ReturnType<typeof renderApp>['user'],
+  name: string,
+): Promise<void> {
+  await user.click(screen.getByRole('button', { name: /^(Language|Idioma):/ }));
+  await user.click(await screen.findByRole('menuitemradio', { name }));
+}
+
 /** Every key of a message tree, as "section.key". */
 function keysOf(messages: object, prefix = ''): string[] {
   return Object.entries(messages).flatMap(([key, value]) =>
@@ -35,10 +44,10 @@ describe('language switcher', () => {
     await screen.findByRole('heading', { name: 'Gold ring' });
     expect(screen.getByText('2 products')).toBeInTheDocument();
 
-    await user.selectOptions(
-      screen.getByRole('combobox', { name: 'Language' }),
-      'es',
-    );
+    expect(
+      screen.getByRole('button', { name: 'Language: English' }),
+    ).toBeInTheDocument();
+    await chooseLanguage(user, 'Español');
 
     // Interface copy, plurals and category names change...
     expect(
@@ -50,7 +59,9 @@ describe('language switcher', () => {
     ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Todas' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Joyería' })).toBeInTheDocument();
-    expect(screen.getByRole('combobox', { name: 'Idioma' })).toHaveValue('es');
+    expect(
+      screen.getByRole('button', { name: 'Idioma: Español' }),
+    ).toBeInTheDocument();
     // ...the catalogue text does not, and says which language it is in.
     expect(screen.getByRole('heading', { name: 'Gold ring' })).toHaveAttribute(
       'lang',
@@ -97,9 +108,9 @@ describe('language switcher', () => {
     const { user } = renderApp('/products');
     await screen.findByRole('heading', { name: 'Gold ring' });
 
-    await user.selectOptions(screen.getByRole('combobox'), 'es');
+    await chooseLanguage(user, 'Español');
     await screen.findByText('2 productos');
-    await user.selectOptions(screen.getByRole('combobox'), 'en');
+    await chooseLanguage(user, 'English');
 
     await waitFor(() =>
       expect(screen.getByText('2 products')).toBeInTheDocument(),
@@ -139,5 +150,32 @@ describe('formatting by language', () => {
     expect(categoryName('jewelery', 'en')).toBe('Jewelery');
     expect(categoryName('jewelery', 'es')).toBe('Joyería');
     expect(categoryName('garden tools', 'es')).toBe('Garden tools');
+  });
+});
+
+describe('language menu', () => {
+  it('marks the current language and closes after a choice', async () => {
+    installFakeApi(catalogue);
+    const { user } = renderApp('/products');
+    const button = screen.getByRole('button', { name: 'Language: English' });
+
+    await user.click(button);
+
+    expect(button).toHaveAttribute('aria-expanded', 'true');
+    expect(
+      await screen.findByRole('menuitemradio', { name: 'English' }),
+    ).toHaveAttribute('aria-checked', 'true');
+    expect(
+      screen.getByRole('menuitemradio', { name: 'Español' }),
+    ).toHaveAttribute('aria-checked', 'false');
+
+    await user.click(screen.getByRole('menuitemradio', { name: 'Español' }));
+
+    await waitFor(() =>
+      expect(screen.queryByRole('menu')).not.toBeInTheDocument(),
+    );
+    expect(
+      screen.getByRole('button', { name: 'Idioma: Español' }),
+    ).toHaveAttribute('aria-expanded', 'false');
   });
 });
