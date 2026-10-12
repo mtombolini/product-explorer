@@ -5,6 +5,7 @@ import { AppLayout } from '../components/AppLayout';
 import { NotFoundPage } from '../pages/NotFoundPage';
 import { ProductDetailPage } from '../pages/ProductDetailPage';
 import { ProductsPage } from '../pages/ProductsPage';
+import { UnexpectedErrorPage } from '../pages/UnexpectedErrorPage';
 
 /**
  * The route table. The application gives it to a browser router and the
@@ -13,6 +14,8 @@ import { ProductsPage } from '../pages/ProductsPage';
 export const routes: RouteObject[] = [
   {
     element: <AppLayout />,
+    // Replaces the router's technical error screen if a page crashes.
+    errorElement: <UnexpectedErrorPage />,
     children: [
       { path: '/', element: <Navigate to="/products" replace /> },
       { path: '/products', element: <ProductsPage /> },
