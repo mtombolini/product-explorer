@@ -227,3 +227,44 @@ def test_deleting_a_product_removes_its_translations(
     remaining = session.scalars(select(ProductTranslation.product_id)).all()
     assert remaining == [other.id]
     assert session.scalar(select(func.count()).select_from(Product)) == 1
+
+
+def test_search_ignores_accents_in_both_directions(
+    client: TestClient, session: Session
+) -> None:
+    """A search without the accent finds the accented text, and back."""
+    create_product(session, title="Camiseta de algodón")
+    create_product(session, title="Cotton shirt")
+    create_product(session, title="Pantalon de lino")
+
+    without_accent = client.get("/api/products", params={"search": "algodon"})
+    upper_case = client.get("/api/products", params={"search": "ALGODÓN"})
+    with_accent = client.get("/api/products", params={"search": "pantalón"})
+
+    assert [p["title"] for p in without_accent.json()["items"]] == [
+        "Camiseta de algodón"
+    ]
+    assert upper_case.json()["total"] == 1
+    assert [p["title"] for p in with_accent.json()["items"]] == [
+        "Pantalon de lino"
+    ]
+
+
+def test_search_without_accents_reads_the_translation(
+    client: TestClient, session: Session
+) -> None:
+    """The accent rule applies to the translated text as well."""
+    product = create_product(session, title="Cotton jacket")
+    create_translation(
+        session, product, title="Chaqueta de algodón", description=""
+    )
+
+    spanish = client.get(
+        "/api/products", params={"lang": "es", "search": "algodon"}
+    )
+    english = client.get(
+        "/api/products", params={"lang": "en", "search": "algodon"}
+    )
+
+    assert spanish.json()["total"] == 1
+    assert english.json()["total"] == 0
