@@ -54,6 +54,8 @@ USER app
 
 EXPOSE 8000
 
-# Migrations, import when the table is empty, the bundled translations
-# and specifications (every start), then the API.
-CMD ["./entrypoint.sh"]
+# The entry point takes a subcommand: serve (the default below), migrate
+# or seed, so "docker compose run --rm backend migrate" runs a one-off
+# job with the same image. See entrypoint.sh.
+ENTRYPOINT ["./entrypoint.sh"]
+CMD ["serve"]

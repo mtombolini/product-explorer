@@ -40,6 +40,9 @@ services:
       FAKESTORE_MAX_RETRIES: ${FAKESTORE_MAX_RETRIES:-2}
       IMAGES_DIR: ${IMAGES_DIR:-/data/images}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      # true: the container migrates and imports before starting the API.
+      # docker-compose.prod.yml sets it to false and runs both as jobs.
+      RUN_STARTUP_TASKS: ${RUN_STARTUP_TASKS:-true}
     ports:
       # Loopback only: the API is for local inspection (for example /docs).
       # The browser reaches it through the frontend proxy.
