@@ -19,5 +19,9 @@ export default defineConfig({
     // jsdom gives the tests a browser-like document.
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
+    // The first test of a file renders the whole application: about 2.5 s
+    // on a laptop, twice that in a container or on a CI runner. The
+    // default limit of 5 s made those tests fail now and then.
+    testTimeout: 15_000,
   },
 });
