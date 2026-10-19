@@ -113,3 +113,24 @@ def test_sort_applies_to_the_filtered_list(
     titles = _titles(client, sort="price_asc", category="jewelery")
 
     assert titles == ["Chain", "Ring"]
+
+
+def test_sort_by_rating_puts_the_best_rated_first(
+    client: TestClient, session: Session
+) -> None:
+    """Higher score first; on a tie more ratings first; none last."""
+    create_product(session, title="Unrated", rating_rate=None)
+    create_product(
+        session, title="Good, few", rating_rate=Decimal("4.5"), rating_count=3
+    )
+    create_product(session, title="Poor", rating_rate=Decimal("2.0"))
+    create_product(
+        session,
+        title="Good, many",
+        rating_rate=Decimal("4.5"),
+        rating_count=300,
+    )
+
+    titles = _titles(client, sort="rating_desc")
+
+    assert titles == ["Good, many", "Good, few", "Poor", "Unrated"]

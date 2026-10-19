@@ -1,8 +1,10 @@
 """Product endpoints: the paginated list and one product."""
 
+from decimal import Decimal
 from typing import Annotated
 
 from fastapi import APIRouter, Path, Query
+from fastapi.exceptions import RequestValidationError
 
 from app.api.dependencies import ProductServiceDependency
 from app.api.errors import NOT_FOUND_RESPONSE, VALIDATION_ERROR_RESPONSE
@@ -16,6 +18,8 @@ MAX_PAGE_SIZE = 48
 MAX_PAGE = 1_000_000
 MAX_PRODUCT_ID = 2_147_483_647
 MAX_FILTER_LENGTH = 100
+# The largest price the products.price column holds: NUMERIC(10, 2).
+MAX_PRICE = Decimal("99999999.99")
 # PostgreSQL text cannot hold the NUL character: reject it as bad input.
 NO_NUL_PATTERN = r"^[^\x00]*$"
 LANG_DESCRIPTION = (
@@ -56,6 +60,22 @@ def list_products(
             description="Exact category name, as returned by /api/categories.",
         ),
     ] = None,
+    min_price: Annotated[
+        Decimal | None,
+        Query(
+            ge=0,
+            le=MAX_PRICE,
+            description="Lowest price to include, inclusive.",
+        ),
+    ] = None,
+    max_price: Annotated[
+        Decimal | None,
+        Query(
+            ge=0,
+            le=MAX_PRICE,
+            description="Highest price to include, inclusive.",
+        ),
+    ] = None,
     sort: Annotated[
         ProductSort | None,
         Query(description="Order of the list. Without it: by id."),
@@ -68,11 +88,28 @@ def list_products(
 
     A page after the last one answers 200 with an empty list.
     """
+    if (
+        min_price is not None
+        and max_price is not None
+        and min_price > max_price
+    ):
+        # The same 422 envelope as any other invalid parameter.
+        raise RequestValidationError(
+            [
+                {
+                    "loc": ("query", "min_price"),
+                    "msg": "min_price must not be greater than max_price",
+                    "type": "value_error",
+                }
+            ]
+        )
     result = service.list_products(
         page=page,
         page_size=page_size,
         search=search,
         category=category,
+        min_price=min_price,
+        max_price=max_price,
         sort=sort,
         language=lang,
     )

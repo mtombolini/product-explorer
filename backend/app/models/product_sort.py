@@ -12,3 +12,5 @@ class ProductSort(StrEnum):
 
     PRICE_ASC = "price_asc"
     PRICE_DESC = "price_desc"
+    # Best rated first; products without a rating go last.
+    RATING_DESC = "rating_desc"

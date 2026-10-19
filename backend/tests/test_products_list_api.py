@@ -1,8 +1,12 @@
 """GET /api/products: pagination, category filter and search."""
 
 from fastapi.testclient import TestClient
+from sqlalchemy import select, text
+from sqlalchemy.dialects import postgresql
 from sqlalchemy.orm import Session
 
+from app.models import Product, ProductTranslation
+from app.repositories.product_repository import _contains
 from tests.factories import create_product, create_products
 
 
@@ -158,3 +162,32 @@ def test_search_and_category_are_combined(
 
     assert [item["title"] for item in body["items"]] == ["Slim shirt"]
     assert body["total"] == 1
+
+
+def test_search_can_use_the_trigram_indexes(session: Session) -> None:
+    """The search expression is the one the indexes are built on.
+
+    With a few rows a sequential scan is cheaper, so PostgreSQL would not
+    choose an index. Disabling sequential scans for this transaction
+    shows whether an index can serve the condition at all.
+    """
+    columns = {
+        "ix_products_title_trgm": Product.title,
+        "ix_products_description_trgm": Product.description,
+        "ix_product_translations_title_trgm": ProductTranslation.title,
+        "ix_product_translations_description_trgm": (
+            ProductTranslation.description
+        ),
+    }
+    session.execute(text("SET LOCAL enable_seqscan = off"))
+    for index, column in columns.items():
+        statement = select(column).where(_contains(column, "algodon"))
+        sql = statement.compile(
+            dialect=postgresql.dialect(),
+            compile_kwargs={"literal_binds": True},
+        )
+        plan = " ".join(
+            row[0] for row in session.execute(text(f"EXPLAIN {sql}"))
+        )
+        assert index in plan
+    session.rollback()
