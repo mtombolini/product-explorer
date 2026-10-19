@@ -1,11 +1,16 @@
 // Adds matchers such as toBeInTheDocument() to Vitest's expect.
 import '@testing-library/jest-dom/vitest';
 
-import { cleanup } from '@testing-library/react';
+import { cleanup, configure } from '@testing-library/react';
 import { afterEach, beforeEach } from 'vitest';
 
 import { i18n } from '../i18n/i18n';
 import { DEFAULT_LANGUAGE } from '../i18n/languages';
+
+// findBy... and waitFor give up after 1 s by default. A search waits
+// 300 ms before it runs and the first render of a file is slow in a
+// container or on a CI runner, so they get 3 s.
+configure({ asyncUtilTimeout: 3000 });
 
 // jsdom does not implement scrolling and prints a warning when the router
 // restores the scroll position. In the tests scrolling does nothing.
