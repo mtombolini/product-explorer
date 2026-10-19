@@ -4,6 +4,8 @@ The service only talks to its repository, so its rules (pagination
 maths, filter clean-up, not found) can be checked in memory.
 """
 
+from decimal import Decimal
+
 import pytest
 
 from app.models import Language, LocalizedProduct, Product, ProductSort
@@ -30,6 +32,8 @@ class FakeProductRepository:
         offset: int,
         language: Language,
         sort: ProductSort | None = None,
+        min_price: Decimal | None = None,
+        max_price: Decimal | None = None,
     ) -> tuple[list[LocalizedProduct], int]:
         """Remember the arguments and return no rows with the total."""
         self.received = {
@@ -39,6 +43,8 @@ class FakeProductRepository:
             "offset": offset,
             "language": language,
             "sort": sort,
+            "min_price": min_price,
+            "max_price": max_price,
         }
         return [], self.total
 

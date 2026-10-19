@@ -2,6 +2,7 @@
 
 import math
 from dataclasses import dataclass
+from decimal import Decimal
 
 from app.models import (
     SOURCE_LANGUAGE,
@@ -37,6 +38,8 @@ class ProductService:
         page_size: int,
         search: str | None = None,
         category: str | None = None,
+        min_price: Decimal | None = None,
+        max_price: Decimal | None = None,
         sort: ProductSort | None = None,
         language: Language = SOURCE_LANGUAGE,
     ) -> ProductPage:
@@ -51,6 +54,8 @@ class ProductService:
         products, total = self._repository.list_page(
             search=_clean(search),
             category=_clean(category),
+            min_price=min_price,
+            max_price=max_price,
             limit=page_size,
             offset=(page - 1) * page_size,
             language=language,

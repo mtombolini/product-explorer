@@ -1,6 +1,7 @@
 """Data access of the products, translations and specifications."""
 
 import unicodedata
+from decimal import Decimal
 from typing import Any
 
 from sqlalchemy import (
@@ -58,6 +59,8 @@ class ProductRepository:
         offset: int,
         language: Language,
         sort: ProductSort | None = None,
+        min_price: Decimal | None = None,
+        max_price: Decimal | None = None,
     ) -> tuple[list[LocalizedProduct], int]:
         """Return one page of products and the total that match.
 
@@ -67,23 +70,19 @@ class ProductRepository:
         the title or the description of that language, ignoring case and
         accents, and in the original text of a product without a
         translation.
-        ``category`` must match exactly. Without ``sort`` products are
-        ordered by id.
+        ``category`` must match exactly. ``min_price`` and ``max_price``
+        are inclusive bounds. Without ``sort`` products are ordered by id.
         """
         translation_join = _translation_join(language)
         filters = []
         if search:
-            # COALESCE: the translated text when the join found a row,
-            # otherwise the original.
-            title = func.coalesce(ProductTranslation.title, Product.title)
-            description = func.coalesce(
-                ProductTranslation.description, Product.description
-            )
-            filters.append(
-                or_(_contains(title, search), _contains(description, search))
-            )
+            filters.append(_matches_search(search, language))
         if category:
             filters.append(Product.category == category)
+        if min_price is not None:
+            filters.append(Product.price >= min_price)
+        if max_price is not None:
+            filters.append(Product.price <= max_price)
 
         # The join never repeats a product: a product has at most one
         # translation per language, so the count stays correct.
@@ -102,6 +101,13 @@ class ProductRepository:
             order = (Product.price.asc(), Product.id)
         elif sort is ProductSort.PRICE_DESC:
             order = (Product.price.desc(), Product.id)
+        elif sort is ProductSort.RATING_DESC:
+            # Between equal scores, the one with more ratings first.
+            order = (
+                Product.rating_rate.desc().nulls_last(),
+                Product.rating_count.desc().nulls_last(),
+                Product.id,
+            )
         else:
             order = (Product.id,)
 
@@ -292,18 +298,51 @@ class ProductRepository:
         self._session.commit()
 
 
+def _matches_search(search: str, language: Language) -> ColumnElement[bool]:
+    """Return the condition of a product whose text contains ``search``.
+
+    The text is the translation into ``language`` when the product has
+    one (the outer join found it), otherwise the original. Each side is
+    a subquery on one table, so it can use that table's trigram index
+    (migration 0007); a condition on a mix of the two tables could not.
+    """
+    matching_translations = select(ProductTranslation.product_id).where(
+        ProductTranslation.language == language.value,
+        or_(
+            _contains(ProductTranslation.title, search),
+            _contains(ProductTranslation.description, search),
+        ),
+    )
+    matching_originals = select(Product.id).where(
+        or_(
+            _contains(Product.title, search),
+            _contains(Product.description, search),
+        )
+    )
+    has_translation = ProductTranslation.product_id.is_not(None)
+    return or_(
+        and_(has_translation, Product.id.in_(matching_translations)),
+        and_(~has_translation, Product.id.in_(matching_originals)),
+    )
+
+
 def _contains(text: ColumnElement[str], search: str) -> ColumnElement[bool]:
     """Match ``search`` anywhere in ``text``, ignoring case and accents.
 
     The accents are removed on both sides: from the stored text with the
-    unaccent function of PostgreSQL, and from the search with
-    ``_without_accents``. "algodon" therefore finds "algodón".
+    immutable_unaccent function of the database (migration 0007), and
+    from the search with ``_without_accents``. "algodon" therefore finds
+    "algodón". ILIKE ignores case, and the expression is the one the
+    trigram indexes are built on, so they can be used.
     """
-    # autoescape: a % or _ typed by the user is matched as that
-    # character, not as a LIKE wildcard.
-    return func.unaccent(text).icontains(
-        _without_accents(search), autoescape=True
+    return func.immutable_unaccent(text).ilike(
+        f"%{_escape_like(_without_accents(search))}%", escape="\\"
     )
+
+
+def _escape_like(text: str) -> str:
+    """Make a % or _ typed by the user match itself, not any text."""
+    return text.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
 
 
 def _without_accents(text: str) -> str:
