@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- Original mark: a catalogue grid whose fourth cell is a magnifier. -->
+  <rect width="32" height="32" rx="7" fill="#0058A3" />
+  <g fill="#FFDB00">
+    <rect x="6" y="6" width="8.5" height="8.5" rx="2" />
+    <rect x="17.5" y="6" width="8.5" height="8.5" rx="2" />
+    <rect x="6" y="17.5" width="8.5" height="8.5" rx="2" />
+  </g>
+  <circle cx="21.2" cy="21.2" r="3.4" fill="none" stroke="#FFDB00" stroke-width="2.4" />
+  <path d="M23.9 23.9 26.4 26.4" stroke="#FFDB00" stroke-width="2.4" stroke-linecap="round" />
+</svg>

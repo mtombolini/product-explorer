@@ -1,0 +1,40 @@
+# Production override of Product Explorer. It is only read when it is
+# named, on top of docker-compose.yml:
+#
+#   export POSTGRES_USER=... POSTGRES_PASSWORD=... POSTGRES_DB=...
+#   export DATABASE_URL=postgresql+psycopg://USER:PASSWORD@HOST:5432/DB
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml run --rm backend migrate
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml run --rm backend seed
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --wait
+#
+# What changes compared with the local setup:
+# - Secrets come only from the environment (a secret manager or the CI/CD
+#   platform). There are no defaults here: ${VAR:?message} makes Compose
+#   refuse to start when one is missing or empty.
+# - The backend container does not migrate or import on start. Both run
+#   once as one-off jobs before "up", so several replicas never race on
+#   the same migration or import. The seed job exits with code 1 when Fake
+#   Store is unavailable, so the failure is visible to whoever runs it.
+# - The API port is not published: the API is reached only through Nginx,
+#   at /api/ on the frontend.
+#
+# TLS is terminated at the edge, by the load balancer or reverse proxy of
+# the platform in front of the frontend container, so there is no
+# certificate here and Nginx listens on plain HTTP inside the private
+# network. The edge also adds Strict-Transport-Security, because HSTS is
+# a property of the HTTPS hostname and browsers ignore it over HTTP.
+
+services:
+  db:
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER must be set}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
+      POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB must be set}
+
+  backend:
+    environment:
+      DATABASE_URL: ${DATABASE_URL:?DATABASE_URL must be set (postgresql+psycopg://user:password@host:5432/name)}
+      RUN_STARTUP_TASKS: "false"
+    # !reset removes the port list of docker-compose.yml instead of merging
+    # with it.
+    ports: !reset []

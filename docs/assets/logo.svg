@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 96" role="img" aria-label="Product Explorer">
+  <!-- Original mark: a catalogue grid whose fourth cell is a magnifier. -->
+  <rect width="96" height="96" rx="21" fill="#0058A3" />
+  <g fill="#FFDB00">
+    <rect x="18" y="18" width="25.5" height="25.5" rx="6" />
+    <rect x="52.5" y="18" width="25.5" height="25.5" rx="6" />
+    <rect x="18" y="52.5" width="25.5" height="25.5" rx="6" />
+  </g>
+  <circle cx="63.6" cy="63.6" r="10.2" fill="none" stroke="#FFDB00" stroke-width="7.2" />
+  <path d="M71.7 71.7 79.2 79.2" stroke="#FFDB00" stroke-width="7.2" stroke-linecap="round" />
+  <text x="116" y="62" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="40" fill="#0058A3"><tspan font-weight="700">Product</tspan> Explorer</text>
+</svg>

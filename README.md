@@ -1,2 +1,635 @@
-# product-explorer
-Fullstack product catalogue with search, filters and pagination. React + TypeScript + Redux Toolkit frontend, custom REST API and database seeded from Fake Store API. Runs with a single Docker Compose command.
+<p align="center">
+  <img src="docs/assets/logo.svg" alt="Product Explorer" width="360">
+</p>
+
+<p align="center"><strong>A fullstack product catalogue: search, filter and order a list, and open each product, on our own API and database.</strong></p>
+
+<p align="center">
+  <a href="https://github.com/mtombolini/product-explorer/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/mtombolini/product-explorer/actions/workflows/ci.yml/badge.svg"></a>
+  <img alt="React 19" src="https://img.shields.io/badge/react-19-0058A3?logo=react&logoColor=white">
+  <img alt="TypeScript 6" src="https://img.shields.io/badge/typescript-6-0058A3?logo=typescript&logoColor=white">
+  <img alt="FastAPI" src="https://img.shields.io/badge/fastapi-0.143-0058A3?logo=fastapi&logoColor=white">
+  <img alt="Python 3.13" src="https://img.shields.io/badge/python-3.13-0058A3?logo=python&logoColor=white">
+  <img alt="PostgreSQL 17" src="https://img.shields.io/badge/postgresql-17-0058A3?logo=postgresql&logoColor=white">
+  <img alt="Docker Compose" src="https://img.shields.io/badge/docker-compose-0058A3?logo=docker&logoColor=white">
+</p>
+
+<p align="center"><strong>English</strong> | <a href="README.es.md">Español</a></p>
+
+---
+
+## Contents
+
+[Quick start](#quick-start) ·
+[Environment variables](#environment-variables) ·
+[Architecture](#architecture-overview) ·
+[Project structure](#project-structure) ·
+[API](#api-endpoints) ·
+[Import](#import-strategy) ·
+[Tests](#tests) ·
+[Development](#development-workflow) ·
+[Accessibility](#accessibility-and-responsive-behaviour) ·
+[Languages](#languages) ·
+[Assumptions](#assumptions) ·
+[Limitations](#known-limitations) ·
+[Production](#path-to-production) ·
+[Further documents](#further-documents)
+
+## Purpose
+
+A small fullstack product catalogue: a paginated list with search and a
+category filter, and a page for each product. The React frontend talks only
+to our own REST API, which serves data that was imported once from
+[Fake Store API](https://fakestoreapi.com) into PostgreSQL.
+
+| | |
+| --- | --- |
+| Frontend | React 19, TypeScript, Vite, React Router, Redux Toolkit, MUI, i18next |
+| Backend | Python 3.13, FastAPI, SQLAlchemy 2, Alembic, Pydantic |
+| Database | PostgreSQL 17 |
+| Runtime | Docker Compose: `frontend` (Nginx), `backend`, `db` |
+
+## Quick start
+
+**Prerequisites**
+
+- Docker with Compose v2 (Docker Desktop or Docker Engine).
+- Ports 8080 and 8000 free on your machine (both can be changed, see
+  [Environment variables](#environment-variables)).
+- Internet access on the first start: Docker pulls the base images and the
+  backend imports the catalogue from Fake Store API.
+
+**Run**
+
+```bash
+git clone https://github.com/mtombolini/product-explorer.git
+cd product-explorer
+docker compose up --build
+```
+
+`docker-compose up --build` works as well. No `.env` file is needed.
+
+The first start builds the images and imports 20 products with their
+images, which takes about a minute. After that:
+
+| What | Address |
+| --- | --- |
+| Application | <http://localhost:8080> |
+| API documentation (Swagger UI) | <http://localhost:8000/docs> |
+| OpenAPI document | <http://localhost:8000/openapi.json> |
+| Health check | <http://localhost:8000/health> |
+
+**Stop and reset**
+
+```bash
+docker compose down        # stop, keep the database and the images
+docker compose down -v     # stop and delete the data (next start imports again)
+```
+
+## Environment variables
+
+Every variable has a local default in `docker-compose.yml`, so a `.env`
+file is optional. To change a value, copy `.env.example` to `.env` and
+edit it. The defaults are development values, not secrets.
+
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `POSTGRES_USER` | `product_explorer` | Database user |
+| `POSTGRES_PASSWORD` | `product_explorer` | Database password (local only) |
+| `POSTGRES_DB` | `product_explorer` | Database name |
+| `DATABASE_URL` | built from the three above | SQLAlchemy URL used by the backend |
+| `FAKESTORE_BASE_URL` | `https://fakestoreapi.com` | Source of the import |
+| `FAKESTORE_TIMEOUT_SECONDS` | `5` | Timeout of each request to Fake Store |
+| `FAKESTORE_MAX_RETRIES` | `2` | Retries after the first failed request |
+| `IMAGES_DIR` | `/data/images` | Where the backend stores product images |
+| `LOG_LEVEL` | `INFO` | Log level of the backend |
+| `RUN_STARTUP_TASKS` | `true` | Whether the backend migrates and imports (when the table is empty) before it starts the API. `false` in production, where both run as one-off jobs |
+| `FRONTEND_PORT` | `8080` | Host port of the application |
+| `BACKEND_PORT` | `8000` | Host port of the API (bound to 127.0.0.1) |
+
+## Architecture overview
+
+```mermaid
+flowchart LR
+    browser([Browser])
+    fakestore[(Fake Store API)]
+
+    subgraph compose["Docker Compose: product-explorer"]
+        subgraph frontend["frontend container"]
+            nginx["Nginx<br/>serves the React build<br/>proxies /api and /images"]
+        end
+        subgraph backend["backend container"]
+            seed["Seed command<br/>imports when the table is empty,<br/>then loads the bundled translations<br/>and specifications"]
+            api["FastAPI<br/>api → services → repositories"]
+            images[("Image files<br/>volume product-images")]
+        end
+        subgraph db["db container"]
+            postgres[("PostgreSQL<br/>products, product_translations,<br/>product_specifications<br/>volume db-data")]
+        end
+    end
+
+    browser -- "1. HTML, JS, CSS, fonts" --> nginx
+    browser -- "2. /api/* and /images/*" --> nginx
+    nginx -- "3. proxy + X-Request-ID" --> api
+    api -- "4. SQL" --> postgres
+    api -- "read" --> images
+
+    seed -. "A. GET /products and images<br/>(import only)" .-> fakestore
+    seed -. "B. upsert by external_id" .-> postgres
+    seed -. "C. write files" .-> images
+```
+
+- **One origin.** The browser only talks to the frontend container. Nginx
+  serves the built React application and forwards `/api` and `/images` to
+  the backend, so there is no CORS and the browser never contacts Fake
+  Store, not even for images.
+- **Import, then local data.** Fake Store is contacted only by the seed
+  command (dotted arrows). Once the table has rows the application has no
+  external dependency.
+- **Backend layers.** `api` (HTTP, validation, errors) → `services`
+  (business rules) → `repositories` (the only code that touches the
+  database). This is the Repository Pattern the statement suggests.
+- **Frontend state.** Redux Toolkit keeps list pages cached by query key
+  and products cached by id. The URL holds search, category, sort order
+  and page.
+
+More detail, including sequence diagrams of the import and of a request, is
+in [docs/architecture.md](docs/architecture.md).
+
+## Project structure
+
+```text
+.
+├── docker-compose.yml          the three services of the application
+├── docker-compose.test.yml     the two test runners
+├── docker-compose.prod.yml     production override: required secrets, no published API port, no start-up tasks
+├── e2e/                        end-to-end tests (Playwright) against the running stack
+├── .env.example
+├── README.md  AI_USAGE.md  FUTURE_IMPROVEMENTS.md
+├── docs/                       SPEC, DECISIONS, architecture, AI_LOG
+├── .github/workflows/ci.yml    lint, tests and builds
+├── backend/
+│   ├── Dockerfile  entrypoint.sh
+│   ├── requirements.txt  requirements-dev.txt  pyproject.toml
+│   ├── alembic.ini  migrations/        database migrations
+│   ├── app/
+│   │   ├── main.py                     application factory
+│   │   ├── api/                        routes, dependencies, errors, middleware
+│   │   ├── services/                   business rules, the import, the translation and specification loaders
+│   │   ├── repositories/               database queries and image files
+│   │   ├── clients/                    Fake Store HTTP client
+│   │   ├── models/  schemas/           tables, languages and sort orders; request and response shapes
+│   │   ├── data/                       bundled Spanish text, and the taxonomy and values of the specifications
+│   │   ├── core/                       settings, database session, logging
+│   │   └── commands/seed.py            the import command (products, translations, specifications)
+│   └── tests/
+└── frontend/
+    ├── Dockerfile  nginx/default.conf
+    ├── package.json  vite.config.ts  eslint.config.js
+    └── src/
+        ├── main.tsx                    providers and router
+        ├── app/                        store, routes, theme, hooks
+        ├── api/                        fetch client and endpoint functions
+        ├── features/products/          slice, URL state, product components
+        ├── i18n/                       interface languages (English, Spanish)
+        ├── pages/                      one component per route
+        ├── components/                 layout shell and shared pieces
+        └── test/                       test setup and in-memory API
+```
+
+## API endpoints
+
+Base path `/api`, JSON only, read-only. The interactive documentation is
+at <http://localhost:8000/docs>.
+
+| Method and path | Description | Success | Errors |
+| --- | --- | --- | --- |
+| `GET /api/products` | One page of products | 200 | 422 |
+| `GET /api/products/{id}` | One product | 200 | 404, 422 |
+| `GET /api/categories` | Distinct categories, sorted | 200 | |
+| `GET /health` | API, database and catalogue state | 200 | 503 |
+| `GET /images/{file}` | A stored product image | 200 | 404 |
+
+**Query parameters of `GET /api/products`**
+
+| Parameter | Type | Default | Rules |
+| --- | --- | --- | --- |
+| `page` | integer | 1 | 1 to 1,000,000 |
+| `page_size` | integer | 12 | 1 to 48 |
+| `search` | string | none | At most 100 characters. Match in title or description that ignores case and accents ("algodon" finds "algodón"). `%` and `_` are literal |
+| `category` | string | none | At most 100 characters. Trimmed; blank means no filter. Exact match |
+| `min_price`, `max_price` | number | none | 0 to 99,999,999.99, inclusive bounds. A minimum above the maximum is a 422 |
+| `sort` | string | none | `price_asc`, `price_desc` or `rating_desc` (best rated first, unrated last). Without it the list is ordered by id |
+| `lang` | string | `en` | `en` or `es`. Language of titles and descriptions, and of the text `search` reads. Also accepted by `GET /api/products/{id}` |
+
+```bash
+curl "http://localhost:8080/api/products?search=cotton&category=women%27s%20clothing&page=1"
+```
+
+```json
+{
+  "items": [
+    {
+      "id": 20,
+      "title": "DANVOUY Womens T Shirt Casual Cotton Short",
+      "description": "95%Cotton,5%Spandex, Features: Casual, Short Sle...",
+      "language": "en",
+      "price": 12.99,
+      "category": "women's clothing",
+      "image_url": "/images/20.webp",
+      "rating_rate": 3.6,
+      "rating_count": 145,
+      "specifications": [
+        { "key": "brand", "group": "General", "label": "Brand", "value": "DANVOUY" },
+        { "key": "material", "group": "Tops", "label": "Material", "value": "95% cotton, 5% spandex" },
+        { "key": "fit", "group": "Tops", "label": "Fit", "value": null }
+      ],
+      "specifications_language": "en"
+    }
+  ],
+  "total": 3,
+  "page": 1,
+  "page_size": 12,
+  "total_pages": 1
+}
+```
+
+(Three products match; one is shown here.) `language` says which language
+the title and description are in: the one asked for with `lang` when the
+catalogue has a translation, otherwise `en`. `specifications` are the
+attributes of the product's family (three of seven are shown here), in
+the requested language; `value` is `null` when the source says nothing
+about an attribute. A page after the last one answers 200 with an empty `items` list, so the
+client can still show the totals.
+
+**Errors.** Every error has the same body:
+
+```json
+{
+  "error": {
+    "code": "validation_error",
+    "message": "The request is not valid.",
+    "details": [
+      { "field": "page_size", "message": "Input should be less than or equal to 48" }
+    ]
+  }
+}
+```
+
+| Status | `code` | When |
+| --- | --- | --- |
+| 422 | `validation_error` | A query or path parameter is invalid. `details` names each field |
+| 404 | `product_not_found` | The product id does not exist |
+| 404 | `not_found` | Unknown route or image |
+| 405 | `method_not_allowed` | Wrong HTTP method |
+| 500 | `internal_error` | Unexpected error. Generic message, the cause is only in the logs |
+
+Every response carries an `X-Request-ID` header. The same id is in the
+backend log lines of that request (`request_id`), which are JSON.
+
+## Import strategy
+
+**Approach.** A dedicated command, `python -m app.commands.seed`, that also
+runs automatically when the backend container starts and the `products`
+table is empty. It is implemented in
+`backend/app/services/import_service.py`.
+
+```bash
+# Run the import by hand (always imports, safe to repeat):
+docker compose exec backend python -m app.commands.seed
+# or as a one-off job, which is how production runs it:
+docker compose run --rm backend seed
+```
+
+**What one run does**
+
+1. **Fetch** `GET {FAKESTORE_BASE_URL}/products` with a timeout and retries
+   with backoff.
+2. **Validate** every record with a Pydantic model. `id`, `title`, `price`
+   and `category` are required; `description`, `image` and `rating` are
+   optional. An invalid or repeated record is logged and skipped.
+3. **Upsert** the valid records in one statement:
+   `INSERT ... ON CONFLICT (external_id) DO UPDATE`.
+4. **Download images** that are not stored yet into a Docker volume, after
+   checking the host, the content type and the size. The backend serves
+   them under `/images`.
+5. **Log a summary**: fetched, imported, skipped, images downloaded and
+   failed.
+
+Then, on every start and with no network, the **translations** are loaded:
+the Spanish titles and descriptions of the catalogue are bundled in
+`backend/app/data/translations/es.json` and upserted into the
+`product_translations` table (see [Languages](#languages)). The
+**specifications** follow in the same way, from
+`backend/app/data/specifications/`.
+
+**Is everything Fake Store sends kept?** Yes. A product there has seven
+fields and all of them are stored for all 20 products: `id` (as
+`external_id`), `title`, `price`, `description`, `category`, `rating`
+(its `rate` and its `count`) and `image`, which is kept twice: the file
+is downloaded and its original URL is stored in `image_source_url`. The
+other Fake Store resources (carts and users) are not part of a catalogue
+and are not imported.
+
+| Topic | How it is handled |
+| --- | --- |
+| **Advantages** | Reproducible with one command; runs by itself on a clean start; the running application never depends on Fake Store; easy to test because the HTTP transport can be replaced |
+| **Limitations** | The first start needs internet access and waits for the import; there is no schedule, so later changes in Fake Store only arrive when the command is run again; products removed at the source are not removed here; with several backend replicas the start-up import should become a separate job |
+| **Idempotency** | The Fake Store id is stored as `external_id` with a unique constraint and is the key of the upsert. Running the import any number of times leaves the same rows with the same ids. Images already on disk are not downloaded again |
+| **Validation** | Each record is validated on its own, with bounds that match the table columns. One bad record never stops the run |
+| **Error handling** | Transport errors and HTTP 5xx are retried. If the product list cannot be fetched, nothing is written and the command exits with code 1. A failed image is logged and the product keeps a placeholder; after three image failures in a row the remaining images are left for the next run |
+
+**When Fake Store API is unavailable**
+
+- *During the first import (empty database):* the failure is logged, the
+  API still starts, `GET /health` answers 200 with
+  `"catalogue_seeded": false`, and the application shows "The catalogue is
+  empty" with a "Try again" button. Running the seed command later fills
+  the catalogue without a restart.
+- *After a successful import:* nothing happens. A start with rows in the
+  table skips the import and makes no network call, and all pages keep
+  working from the local database and the stored images.
+- *Images only:* products are imported, the missing images show a
+  placeholder, and the next run of the command downloads them.
+
+## Tests
+
+No local toolchain is needed: both suites run in containers. The test
+runners are in their own Compose file, so `docker-compose.yml` holds only
+the three services of the application.
+
+```bash
+# Backend: 133 tests (pytest) against PostgreSQL, in a database ending in _test
+docker compose -f docker-compose.yml -f docker-compose.test.yml run --rm --build backend-test
+
+# Frontend: 78 tests (Vitest + React Testing Library)
+docker compose -f docker-compose.yml -f docker-compose.test.yml run --rm --build frontend-test
+```
+
+Lint and format checks:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.test.yml run --rm backend-test ruff check .
+docker compose -f docker-compose.yml -f docker-compose.test.yml run --rm backend-test ruff format --check .
+docker compose -f docker-compose.yml -f docker-compose.test.yml run --rm frontend-test npm run lint
+docker compose -f docker-compose.yml -f docker-compose.test.yml run --rm frontend-test npm run format:check
+docker compose -f docker-compose.yml -f docker-compose.test.yml run --rm frontend-test npm run typecheck
+```
+
+End-to-end tests (Playwright, Chromium) run against the started stack.
+They cover search, category, order, pagination, opening a product and
+coming back with the scroll position and no new request, the languages
+and the not-found pages. CI runs them after `docker compose up`:
+
+```bash
+docker compose up --build -d --wait
+cd e2e && npm ci && npx playwright install chromium && npx playwright test
+```
+
+The tests never call the real Fake Store API: the backend replaces the
+HTTP transport with `httpx.MockTransport`, and the frontend replaces
+`fetch` with an in-memory copy of our API.
+
+| Suite | What is covered |
+| --- | --- |
+| Backend, import | Idempotency (two runs, same rows), update in place, invalid records skipped, failed image keeps the placeholder, three failures stop the downloads, source unavailable leaves the table untouched, retries |
+| Backend, API | Pagination metadata and edge pages, category filter, search (case, title or description, `%` and `_`), order by price (both directions, ties, sorted pages), every validation rule (422), 404, 405, 500 without internals, request id, health with and without products and with the database down |
+| Backend, languages | Translated text with `lang=es`, fallback to English per product, search in the requested language, invalid `lang` (422); the translation loader (idempotent, invalid, unknown and repeated entries, unsupported files); the bundled Spanish file |
+| Backend, specifications | Lists in order by language, fallback to English, empty list, a fixed number of queries for any page size; the loader (idempotent, a shorter list replaces the old one, invalid, unknown and repeated entries); the two bundled files; the image source URL kept by the import and absent from the API |
+| Backend, service | Pagination maths and filter clean-up with an in-memory repository, no database |
+| Frontend, flows | Search after a pause and category filter (requests, URL, announced count); sort by price (order, URL, cache); pagination; opening a product and going back with no new request; direct visit fetches once |
+| Frontend, product page | Specifications as labels and values in order, hidden when there are none, marked with their language |
+| Frontend, states | Error with retry, filtered empty state with "Clear filters", empty catalogue, page past the end, product not found, malformed id, unknown route |
+| Frontend, units | API client errors, URL parsing, cache rules of the slice |
+| Frontend, languages | Switching to Spanish and back, plurals, translated states, same keys in every language, price and rating formats; catalogue text requested again in the new language, one request per language, a late answer to a request made before the change ignored |
+
+## Development workflow
+
+The full stack in Docker is the reference. For a faster loop while
+changing code:
+
+```bash
+# Frontend with hot reload on http://localhost:5173.
+# Vite proxies /api and /images to the backend container on port 8000.
+docker compose up -d
+cd frontend && npm ci && npm run dev
+
+# Backend: rebuild and restart only that container after a change.
+docker compose up -d --build backend
+```
+
+Useful commands when investigating a problem:
+
+```bash
+docker compose ps                                  # state and health of the services
+docker compose logs -f backend                     # JSON logs, one line per request
+docker compose logs backend | grep <request-id>    # every line of one request
+docker compose exec db psql -U product_explorer    # inspect the database
+docker compose exec backend python -m app.commands.seed   # run the import again
+curl -i "http://localhost:8080/api/products?page_size=500" # see an error envelope
+```
+
+To follow one request end to end: copy the `X-Request-ID` response header
+from the browser's network panel and search for it in the backend logs.
+
+## Accessibility and responsive behaviour
+
+- Landmarks (`header`, `main`, `footer`, a `search` form), one `h1` per
+  page, a skip link as the first focusable element.
+- Every control has a name and a visible 3 px focus ring. Controls are
+  44 px tall, with a mouse and on touch screens.
+  Everything works with the keyboard alone: the category buttons are one
+  Tab stop and the arrow keys move between them, and the language menu
+  opens with Enter and closes with Escape.
+- After a change of page, focus moves to the new page's heading. The result
+  count is a polite live region. The current page of the pagination has
+  `aria-current`.
+- Product cards are single links. Ratings are five stars with the score
+  and a text equivalent; each category button has an icon next to its
+  name.
+- Motion is short (150 to 300 ms). Under `prefers-reduced-motion`
+  movement is removed; a short fade remains.
+- The grid has 1 column below 480 px, 2 from 480 px, 3 from 768 px and 4
+  from 1200 px. The header is fixed and becomes shorter after scrolling
+  without moving the page. A toolbar holds the category filter, the
+  result count and the order; on desktop it stays in view under the
+  header.
+
+**Measured** on the Docker stack with Lighthouse 13.5.0 (accessibility
+category, headless Chrome): **100** on `/products`, `/product/1` and the
+empty state, with no failed audit.
+
+| Use | Foreground | Background | Contrast | Required |
+| --- | --- | --- | --- | --- |
+| Body text | `#111111` | `#FFFFFF` | 18.88:1 | 4.5:1 |
+| Secondary text, placeholder | `#484848` | `#FFFFFF` | 9.15:1 | 4.5:1 |
+| Header text, primary buttons | `#FFFFFF` | `#0058A3` | 7.18:1 | 4.5:1 |
+| Links and text buttons | `#0058A3` | `#FFFFFF` | 7.18:1 | 4.5:1 |
+| "Top rated" badge | `#111111` | `#FFDB00` | 13.83:1 | 4.5:1 |
+| Focus ring on white | `#0058A3` | `#FFFFFF` | 7.18:1 | 3:1 |
+| Focus ring on the header | `#FFDB00` | `#0058A3` | 5.26:1 | 3:1 |
+
+Yellow is never text and never sits behind white text: it is the
+background of the badge and a graphic on the blue header (brand mark and
+focus ring).
+
+## Languages
+
+The interface is available in **English and Spanish**. A first visit
+starts in the language of the browser when it is one of the two, otherwise
+in English; the menu in the header changes it and the choice is remembered
+in the browser.
+
+- All interface copy is in `frontend/src/i18n/locales/`, one file per
+  language. English defines the shape, so a missing translation is a
+  compile error.
+- Plurals and word order come from the message files ("1 product",
+  "2 productos"), and prices and ratings are formatted with `Intl`
+  for the chosen language (`$109.95` and `109,95 US$`).
+- The API is language-neutral: it returns stable error codes and the
+  interface chooses the wording.
+- `<html lang>` follows the chosen language.
+
+**The catalogue is translated too.** Fake Store only has English text, so
+the Spanish titles and descriptions of the 20 products were written for
+this project (with AI) and are stored in our own database:
+
+- A table `product_translations` holds one row per product and language.
+  The rows come from `backend/app/data/translations/es.json`, loaded on
+  every start by the seed command with an idempotent upsert.
+- `GET /api/products?lang=es` and `GET /api/products/{id}?lang=es` return
+  the translated text. A product without a translation comes back in
+  English, and the `language` field of each product says which language it
+  is in. `search` reads the text of the requested language.
+- In the frontend, changing language drops the cached catalogue text and
+  requests the visible page again; categories are keys and keep their
+  cache. The four known category names get a translated label in the
+  frontend.
+
+**Specifications.** Fake Store describes each product with one
+paragraph. To make the facts quick to scan and comparable, the
+specifications follow a small taxonomy
+(`backend/app/data/specifications/taxonomy.json`): two general attributes
+that every product has (brand, product type) and the attributes of each
+of six product families (bags, tops, outerwear, jewelry, storage,
+monitors), with their names in both languages. `products.json` gives each
+product its family and the values its description states. The products
+of one family therefore show the same lines in the same order, and a line
+the source says nothing about shows a dash. The product page shows the
+groups first and the description below them.
+
+To add an interface language: copy `locales/en.ts` to a new file and
+translate it, add the language to `SUPPORTED_LANGUAGES` in
+`i18n/languages.ts` and to `resources` in `i18n/i18n.ts`, and add its code
+to the `Language` enum in the backend
+(`backend/app/models/language.py`). The backend step is required: the
+frontend sends the language with every request, and the API answers 422
+to a `lang` it does not know. Translating the catalogue is optional: a
+file next to `translations/es.json`, and the new language in the labels
+of `specifications/taxonomy.json` and in the translated values of
+`specifications/products.json`. The specifications need every language
+of the enum: the loader rejects a taxonomy or a value that lacks one.
+
+## Assumptions
+
+- **No authentication.** The catalogue is public and read-only.
+- **Catalogue content.** The statement mentions home furnishing products;
+  Fake Store returns clothing, electronics and jewellery. The data is kept
+  as it is and the interface copy stays neutral ("products").
+- **Currency.** Fake Store prices have no currency; they are shown as US
+  dollars.
+- **Search** matches title and description. **Category** is the single
+  filter. The list can be **sorted by price**; products with the same
+  price keep the order of their ids.
+- **Images** belong to the catalogue data, so they are imported and served
+  from our backend like the rest.
+- **Cache lifetime.** Data fetched by the frontend is kept until the page
+  is reloaded, because the catalogue only changes when the import runs.
+- **Reviewer environment.** A current Docker installation where
+  `docker-compose` is Compose v2.
+
+The full list, with the open questions and the defaults taken, is in
+[docs/SPEC.md](docs/SPEC.md).
+
+## Known limitations
+
+- The catalogue has 20 products. Search uses `ILIKE` with a leading
+  wildcard on trigram indexes (migration 0007); with 20 rows PostgreSQL
+  still prefers a sequential scan, and a test checks the indexes can be
+  used. Results are not ranked by relevance.
+- Prices travel as JSON numbers. That is fine for display, not for money
+  arithmetic.
+- The first visit loads about 760 kB of JavaScript (246 kB compressed):
+  a 37 kB application file and a vendor file with React, MUI, the router
+  and the other libraries. The product page is a separate small file.
+- The import is manual after the first start and never deletes products.
+- The first start needs internet access; an offline first start gives an
+  empty catalogue until the seed command is run.
+- The local default credentials are in `docker-compose.yml`. They are
+  development values and must be replaced outside a local machine.
+- No end-to-end browser tests are part of the repository. The browser
+  checks described in `docs/AI_LOG.md` were run with throwaway scripts.
+- The Spanish catalogue text and the specifications in both languages
+  were written with AI for the 20 current products, from what Fake Store
+  says about each one, and are bundled with the code. A product that appears in the
+  source later is shown in English until a translation is added, and
+  category names are translated in the frontend, not in the database.
+- Tested in Chrome only. No screen reader session was run.
+- The CI workflow was written and linted but has not run on GitHub yet.
+
+## Path to production
+
+A short view of what would change. The prioritised plan is in
+[FUTURE_IMPROVEMENTS.md](FUTURE_IMPROVEMENTS.md).
+
+**Already in the repository**
+
+- `docker-compose.prod.yml` refuses to start without the database
+  secrets (no defaults), does not publish the API port (the API is only
+  reached through Nginx at `/api/`) and turns off the start-up tasks, so
+  migrations and the import run as one-off jobs and replicas never race:
+
+  ```bash
+  export POSTGRES_USER=... POSTGRES_PASSWORD=... POSTGRES_DB=...
+  export DATABASE_URL=postgresql+psycopg://USER:PASSWORD@HOST:5432/DB
+  docker compose -f docker-compose.yml -f docker-compose.prod.yml config     # fails if a secret is missing
+  docker compose -f docker-compose.yml -f docker-compose.prod.yml run --rm backend migrate
+  docker compose -f docker-compose.yml -f docker-compose.prod.yml run --rm backend seed    # exit code 1 if Fake Store is down
+  docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build --wait
+  ```
+
+- Nginx sends a Content-Security-Policy (scripts only from the same
+  origin; inline styles are allowed because MUI injects them),
+  `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy` and
+  `Permissions-Policy` on every response. `index.html` is never cached,
+  the hashed build files are cached for a year and images for a day.
+- TLS and HSTS belong to the load balancer or reverse proxy in front of
+  the frontend container: Nginx speaks plain HTTP behind it, and browsers
+  ignore HSTS sent over HTTP.
+- Images are stored as WebP of at most 1000 px (644 kB for the 20
+  products instead of 4.7 MB). Their URL comes from the API, so a CDN in
+  front of `/images/` needs no frontend change.
+
+**Next**
+
+- **Security.** Secrets from a secret manager; rate limiting on the API;
+  dependency and image scanning in CI; a read-only database role for the
+  API and a separate one for migrations and the import.
+- **Scalability.** The API is stateless, so it scales horizontally behind
+  the proxy. Images move to object storage behind a CDN. A managed
+  PostgreSQL with backups replaces the container.
+- **Monitoring.** The JSON logs and request ids are ready for a log
+  platform. Next would be metrics (request rate, errors, latency), traces
+  with OpenTelemetry, alerts on `/health` and error rate, and separate
+  liveness and readiness probes.
+
+## Further documents
+
+| Document | Content |
+| --- | --- |
+| [docs/SPEC.md](docs/SPEC.md) | Requirements checklist mapped to the statement, assumptions, design contract |
+| [docs/architecture.md](docs/architecture.md) | Diagrams of the containers, the import and a request; the layers |
+| [docs/DECISIONS.md](docs/DECISIONS.md) | Each decision with its alternatives and trade-off |
+| [AI_USAGE.md](AI_USAGE.md) | How AI was used, what was rejected and how the output was verified (summary) |
+| [docs/AI_LOG.md](docs/AI_LOG.md) | The same, phase by phase, with every command and result |
+| [FUTURE_IMPROVEMENTS.md](FUTURE_IMPROVEMENTS.md) | Limitations and a prioritised improvement plan |

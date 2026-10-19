@@ -1,0 +1,449 @@
+import { screen, waitFor, within } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+
+import { installFakeApi, makeProduct } from '../test/fakeApi';
+import { renderApp } from '../test/renderApp';
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
+
+const catalogue = [
+  makeProduct(1, { title: 'Cotton shirt', category: "men's clothing" }),
+  makeProduct(2, { title: 'Silk shirt', category: "women's clothing" }),
+  makeProduct(3, { title: 'Gold ring', category: 'jewelery' }),
+];
+
+/** 20 products named "Item 01" to "Item 20": two pages of 12 and 8. */
+const twoPages = Array.from({ length: 20 }, (_, index) =>
+  makeProduct(index + 1, {
+    title: `Item ${String(index + 1).padStart(2, '0')}`,
+  }),
+);
+
+function currentAddress(router: ReturnType<typeof renderApp>['router']) {
+  const { pathname, search } = router.state.location;
+  return pathname + search;
+}
+
+describe('catalogue: search and filter flow', () => {
+  it('searches after a pause, then filters by category', async () => {
+    const api = installFakeApi(catalogue);
+    const { user, router } = renderApp('/products');
+
+    // The list loads with every product.
+    expect(
+      await screen.findByRole('heading', { name: 'Gold ring' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('3 products')).toBeInTheDocument();
+
+    // Typing searches once, after the pause, not once per key.
+    await user.type(
+      screen.getByRole('textbox', { name: 'Search products' }),
+      'shirt',
+    );
+    // Wait for the result, not for the ring to go: it also goes while
+    // the new page loads.
+    expect(
+      await screen.findByText('2 products for "shirt"'),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('heading', { name: 'Gold ring' }),
+    ).not.toBeInTheDocument();
+    expect(api.requests.filter((url) => url.includes('search='))).toEqual([
+      '/api/products?page=1&page_size=12&search=shirt&lang=en',
+    ]);
+    expect(currentAddress(router)).toBe('/products?search=shirt');
+
+    // Choosing a category sends both filters and updates the address.
+    await user.click(screen.getByRole('button', { name: "Men's clothing" }));
+    expect(
+      await screen.findByText('1 product for "shirt" in Men\'s clothing'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: 'Cotton shirt' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('heading', { name: 'Silk shirt' }),
+    ).not.toBeInTheDocument();
+    expect(api.requests).toContain(
+      '/api/products?page=1&page_size=12&search=shirt&category=men%27s+clothing&lang=en',
+    );
+    expect(currentAddress(router)).toBe(
+      '/products?search=shirt&category=men%27s+clothing',
+    );
+    expect(
+      screen.getByRole('button', { name: "Men's clothing" }),
+    ).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('keeps the focus in the search box when a search changes page', async () => {
+    installFakeApi(catalogue);
+    const { user, router } = renderApp('/product/3');
+    await screen.findByRole('heading', { level: 1, name: 'Gold ring' });
+
+    const searchBox = screen.getByRole('textbox', { name: 'Search products' });
+    await user.type(searchBox, 'shi');
+    await waitFor(() =>
+      expect(currentAddress(router)).toBe('/products?search=shi'),
+    );
+
+    // The catalogue is on screen and the user goes on typing the word.
+    await screen.findByRole('heading', { level: 1, name: 'Products' });
+    expect(searchBox).toHaveFocus();
+    await user.keyboard('rt');
+    await waitFor(() =>
+      expect(currentAddress(router)).toBe('/products?search=shirt'),
+    );
+  });
+
+  it('drops a pending search when the user opens a product', async () => {
+    installFakeApi(catalogue);
+    const { user, router } = renderApp('/products');
+
+    const card = await screen.findByRole('link', { name: /Gold ring/ });
+    const searchBox = screen.getByRole('textbox', { name: 'Search products' });
+    await user.type(searchBox, 'ring');
+    // Before the pause ends, so the search has not been applied yet.
+    await user.click(card);
+
+    await screen.findByRole('heading', { level: 1, name: 'Gold ring' });
+    expect(searchBox).toHaveValue('');
+    // Longer than the pause: the search must not run after all.
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    expect(currentAddress(router)).toBe('/product/3');
+  });
+
+  it('restores the view from the address', async () => {
+    installFakeApi(catalogue);
+    renderApp('/products?search=shirt&category=women%27s+clothing');
+
+    expect(
+      await screen.findByRole('heading', { name: 'Silk shirt' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('textbox', { name: 'Search products' }),
+    ).toHaveValue('shirt');
+    expect(
+      screen.queryByRole('heading', { name: 'Cotton shirt' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('brings the category of the address into view', async () => {
+    installFakeApi(catalogue);
+    // jsdom has no layout. Here the row of buttons shows 300 px and the
+    // pressed button ends 120 px beyond its right edge.
+    const getBoundingClientRect = vi
+      .spyOn(Element.prototype, 'getBoundingClientRect')
+      .mockImplementation(function (this: Element) {
+        const isPressed = this.getAttribute('aria-pressed') === 'true';
+        return isPressed
+          ? new DOMRect(320, 0, 100, 40)
+          : new DOMRect(0, 0, 300, 40);
+      });
+    const scrollIntoView = vi.spyOn(Element.prototype, 'scrollIntoView');
+    renderApp('/products?category=jewelery');
+
+    const pressed = await screen.findByRole('button', { name: 'Jewelery' });
+    expect(pressed).toHaveAttribute('aria-pressed', 'true');
+    const row = screen.getByRole('group', { name: 'Category' }).parentElement;
+    expect(row?.scrollLeft).toBe(120);
+    // scrollIntoView would move the page too, and lose the scroll
+    // position restored when coming back from a product.
+    expect(scrollIntoView).not.toHaveBeenCalled();
+    getBoundingClientRect.mockRestore();
+    scrollIntoView.mockRestore();
+  });
+});
+
+describe('catalogue: pagination and cache', () => {
+  it('requests a new page once and reuses it afterwards', async () => {
+    const api = installFakeApi(twoPages);
+    const { user, router } = renderApp('/products');
+    expect(
+      await screen.findByRole('heading', { name: 'Item 01' }),
+    ).toBeInTheDocument();
+
+    await user.click(screen.getByRole('link', { name: 'Go to page 2' }));
+    expect(
+      await screen.findByRole('heading', { name: 'Item 13' }),
+    ).toBeInTheDocument();
+    expect(currentAddress(router)).toBe('/products?page=2');
+    expect(screen.getByRole('link', { name: 'page 2' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
+
+    // Back to page 1 and forward to page 2 again: both come from the store.
+    await user.click(screen.getByRole('link', { name: 'Go to page 1' }));
+    expect(
+      await screen.findByRole('heading', { name: 'Item 01' }),
+    ).toBeInTheDocument();
+    await user.click(screen.getByRole('link', { name: 'Go to page 2' }));
+    expect(
+      await screen.findByRole('heading', { name: 'Item 13' }),
+    ).toBeInTheDocument();
+
+    expect(api.requestsTo('/api/products')).toEqual([
+      '/api/products?page=1&page_size=12&lang=en',
+      '/api/products?page=2&page_size=12&lang=en',
+    ]);
+    expect(api.requestsTo('/api/categories')).toHaveLength(1);
+  });
+});
+
+/** The product titles of the grid, in the order they are shown. */
+function shownTitles(): (string | null)[] {
+  const grid = screen.getByRole('list', { name: 'Products' });
+  return within(grid)
+    .getAllByRole('heading')
+    .map((heading) => heading.textContent);
+}
+
+/** Open the "Sort by" select and pick an option by its name. */
+async function chooseOrder(
+  user: ReturnType<typeof renderApp>['user'],
+  name: string,
+): Promise<void> {
+  await user.click(screen.getByRole('combobox', { name: /^Sort by/ }));
+  await user.click(await screen.findByRole('option', { name }));
+}
+
+describe('catalogue: sort by price', () => {
+  const byPrice = [
+    makeProduct(1, { title: 'Middle', price: 20 }),
+    makeProduct(2, { title: 'Cheap', price: 5 }),
+    makeProduct(3, { title: 'Expensive', price: 100 }),
+  ];
+
+  it('orders the list, updates the address and caches each order', async () => {
+    const api = installFakeApi(byPrice);
+    const { user, router } = renderApp('/products');
+    await screen.findByRole('heading', { name: 'Middle' });
+    expect(shownTitles()).toEqual(['Middle', 'Cheap', 'Expensive']);
+
+    await chooseOrder(user, 'Price: low to high');
+    await waitFor(() =>
+      expect(shownTitles()).toEqual(['Cheap', 'Middle', 'Expensive']),
+    );
+    expect(currentAddress(router)).toBe('/products?sort=price_asc');
+
+    await chooseOrder(user, 'Price: high to low');
+    await waitFor(() =>
+      expect(shownTitles()).toEqual(['Expensive', 'Middle', 'Cheap']),
+    );
+    expect(currentAddress(router)).toBe('/products?sort=price_desc');
+
+    // Back to the default order: it is still in the store.
+    await chooseOrder(user, 'Default order');
+    await waitFor(() =>
+      expect(shownTitles()).toEqual(['Middle', 'Cheap', 'Expensive']),
+    );
+    expect(currentAddress(router)).toBe('/products');
+    expect(api.requestsTo('/api/products')).toEqual([
+      '/api/products?page=1&page_size=12&lang=en',
+      '/api/products?page=1&page_size=12&sort=price_asc&lang=en',
+      '/api/products?page=1&page_size=12&sort=price_desc&lang=en',
+    ]);
+  });
+
+  it('goes back to page 1 and keeps the search and the category', async () => {
+    installFakeApi(twoPages);
+    const { user, router } = renderApp(
+      '/products?search=item&category=electronics&page=2',
+    );
+    await screen.findByRole('heading', { name: 'Item 13' });
+
+    await chooseOrder(user, 'Price: high to low');
+
+    // The most expensive of the 20 is the last one created.
+    expect(
+      await screen.findByRole('heading', { name: 'Item 20' }),
+    ).toBeInTheDocument();
+    expect(currentAddress(router)).toBe(
+      '/products?search=item&category=electronics&sort=price_desc',
+    );
+  });
+
+  it('restores the order from the address and keeps it while searching', async () => {
+    const api = installFakeApi(byPrice);
+    const { user, router } = renderApp('/products?sort=price_desc');
+
+    await screen.findByRole('heading', { name: 'Middle' });
+    expect(shownTitles()).toEqual(['Expensive', 'Middle', 'Cheap']);
+    expect(
+      screen.getByRole('combobox', { name: /^Sort by/ }),
+    ).toHaveTextContent('Price: high to low');
+
+    await user.type(
+      screen.getByRole('textbox', { name: 'Search products' }),
+      'e',
+    );
+    await waitFor(() =>
+      expect(currentAddress(router)).toBe('/products?search=e&sort=price_desc'),
+    );
+    await waitFor(() =>
+      expect(api.requests).toContain(
+        '/api/products?page=1&page_size=12&search=e&sort=price_desc&lang=en',
+      ),
+    );
+  });
+
+  it('ignores an order the application does not know', async () => {
+    const api = installFakeApi(byPrice);
+    renderApp('/products?sort=cheapest');
+
+    await screen.findByRole('heading', { name: 'Middle' });
+    expect(shownTitles()).toEqual(['Middle', 'Cheap', 'Expensive']);
+    expect(api.requestsTo('/api/products')).toEqual([
+      '/api/products?page=1&page_size=12&lang=en',
+    ]);
+  });
+});
+
+describe('catalogue: states', () => {
+  it('shows an error with a retry that works', async () => {
+    const api = installFakeApi(catalogue);
+    api.isBroken = true;
+    const { user } = renderApp('/products');
+
+    expect(
+      await screen.findByText('The products could not be loaded'),
+    ).toBeInTheDocument();
+
+    api.isBroken = false;
+    await user.click(screen.getByRole('button', { name: 'Try again' }));
+
+    expect(
+      await screen.findByRole('heading', { name: 'Gold ring' }),
+    ).toBeInTheDocument();
+  });
+
+  it('announces no count after a failure and reloads the categories', async () => {
+    const api = installFakeApi(catalogue);
+    api.isBroken = true;
+    const { user } = renderApp('/products');
+
+    await screen.findByText('The products could not be loaded');
+    expect(screen.queryByText('0 products')).not.toBeInTheDocument();
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+
+    api.isBroken = false;
+    await user.click(screen.getByRole('button', { name: 'Try again' }));
+
+    // The category request had failed too: the retry repeats it.
+    expect(
+      await screen.findByRole('button', { name: 'Jewelery' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('3 products')).toBeInTheDocument();
+  });
+
+  it('offers to clear the filters when nothing matches', async () => {
+    installFakeApi(catalogue);
+    const { user, router } = renderApp('/products?search=zzz');
+
+    expect(await screen.findByText('No products found')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Clear filters' }));
+
+    expect(
+      await screen.findByRole('heading', { name: 'Gold ring' }),
+    ).toBeInTheDocument();
+    expect(currentAddress(router)).toBe('/products');
+    expect(
+      screen.getByRole('textbox', { name: 'Search products' }),
+    ).toHaveValue('');
+  });
+
+  it('explains an empty catalogue and can ask again', async () => {
+    const api = installFakeApi([]);
+    const { user } = renderApp('/products');
+
+    expect(
+      await screen.findByText('The catalogue is empty'),
+    ).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Try again' }));
+
+    await waitFor(() =>
+      expect(api.requestsTo('/api/products')).toHaveLength(2),
+    );
+  });
+
+  it('handles a page number past the end', async () => {
+    installFakeApi(catalogue);
+    const { user, router } = renderApp('/products?page=7');
+
+    expect(
+      await screen.findByText('This page does not exist'),
+    ).toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole('button', { name: 'Go to the first page' }),
+    );
+
+    expect(
+      await screen.findByRole('heading', { name: 'Gold ring' }),
+    ).toBeInTheDocument();
+    expect(currentAddress(router)).toBe('/products');
+  });
+});
+
+describe('catalogue: rating order and price range', () => {
+  const products = [
+    makeProduct(1, { title: 'Middle', price: 20, rating_rate: 3.1 }),
+    makeProduct(2, { title: 'Cheap', price: 5, rating_rate: 4.8 }),
+    makeProduct(3, { title: 'Expensive', price: 100, rating_rate: null }),
+  ];
+
+  it('orders by rating, best first and unrated last', async () => {
+    installFakeApi(products);
+    const { user, router } = renderApp('/products');
+    await screen.findByRole('heading', { name: 'Middle' });
+
+    await chooseOrder(user, 'Best rated');
+
+    await waitFor(() =>
+      expect(shownTitles()).toEqual(['Cheap', 'Middle', 'Expensive']),
+    );
+    expect(currentAddress(router)).toBe('/products?sort=rating_desc');
+  });
+
+  it('applies a price range from its form and shows it on the button', async () => {
+    const api = installFakeApi(products);
+    const { user, router } = renderApp('/products');
+    await screen.findByRole('heading', { name: 'Middle' });
+
+    await user.click(screen.getByRole('button', { name: 'Price' }));
+    const form = await screen.findByRole('dialog', { name: 'Price' });
+    await user.type(within(form).getByRole('textbox', { name: 'Min' }), '5');
+    await user.type(within(form).getByRole('textbox', { name: 'Max' }), '20');
+    // Typing sends nothing: the range applies when the form is sent.
+    expect(api.requests.some((url) => url.includes('price'))).toBe(false);
+    await user.click(within(form).getByRole('button', { name: 'Apply' }));
+
+    await waitFor(() => expect(shownTitles()).toEqual(['Middle', 'Cheap']));
+    expect(currentAddress(router)).toBe('/products?min_price=5&max_price=20');
+    expect(api.requests).toContain(
+      '/api/products?page=1&page_size=12&min_price=5&max_price=20&lang=en',
+    );
+    expect(
+      screen.getByRole('button', { name: /^Price: \$5\s?–\s?\$20$/ }),
+    ).toBeInTheDocument();
+  });
+
+  it('does not apply a minimum above the maximum', async () => {
+    installFakeApi(products);
+    const { user, router } = renderApp('/products');
+    await screen.findByRole('heading', { name: 'Middle' });
+
+    await user.click(screen.getByRole('button', { name: 'Price' }));
+    const form = await screen.findByRole('dialog', { name: 'Price' });
+    await user.type(within(form).getByRole('textbox', { name: 'Min' }), '50');
+    await user.type(within(form).getByRole('textbox', { name: 'Max' }), '10');
+
+    expect(within(form).getByRole('alert')).toBeInTheDocument();
+    expect(within(form).getByRole('button', { name: 'Apply' })).toBeDisabled();
+    expect(currentAddress(router)).toBe('/products');
+  });
+});

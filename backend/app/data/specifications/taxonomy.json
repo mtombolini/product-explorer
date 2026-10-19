@@ -1,0 +1,131 @@
+{
+  "general": [
+    "brand",
+    "product_type"
+  ],
+  "families": {
+    "bags": [
+      "laptop_size",
+      "use"
+    ],
+    "tops": [
+      "material",
+      "fit",
+      "sleeves",
+      "neckline",
+      "care"
+    ],
+    "outerwear": [
+      "material",
+      "lining",
+      "hood",
+      "pockets",
+      "closure",
+      "seasons",
+      "care"
+    ],
+    "jewelry": [
+      "material",
+      "finish",
+      "stone",
+      "motif",
+      "occasions"
+    ],
+    "storage": [
+      "capacity",
+      "interface",
+      "read_speed",
+      "write_speed",
+      "compatibility",
+      "warranty"
+    ],
+    "monitors": [
+      "screen_size",
+      "resolution",
+      "panel",
+      "refresh_rate",
+      "response_time",
+      "aspect_ratio"
+    ]
+  },
+  "labels": {
+    "en": {
+      "general": "General",
+      "bags": "Bags",
+      "tops": "Tops",
+      "outerwear": "Outerwear",
+      "jewelry": "Jewelry",
+      "storage": "Storage",
+      "monitors": "Monitors",
+      "brand": "Brand",
+      "product_type": "Product type",
+      "laptop_size": "Laptop size",
+      "use": "Use",
+      "material": "Material",
+      "fit": "Fit",
+      "sleeves": "Sleeves",
+      "neckline": "Neckline",
+      "care": "Care",
+      "lining": "Lining",
+      "hood": "Hood",
+      "pockets": "Pockets",
+      "closure": "Closure",
+      "seasons": "Seasons",
+      "finish": "Finish",
+      "stone": "Stone",
+      "motif": "Motif",
+      "occasions": "Occasions",
+      "capacity": "Capacity",
+      "interface": "Interface",
+      "read_speed": "Read speed",
+      "write_speed": "Write speed",
+      "compatibility": "Compatibility",
+      "warranty": "Warranty",
+      "screen_size": "Screen size",
+      "resolution": "Resolution",
+      "panel": "Panel",
+      "refresh_rate": "Refresh rate",
+      "response_time": "Response time",
+      "aspect_ratio": "Aspect ratio"
+    },
+    "es": {
+      "general": "General",
+      "bags": "Bolsos y mochilas",
+      "tops": "Camisetas",
+      "outerwear": "Chaquetas y abrigos",
+      "jewelry": "Joyería",
+      "storage": "Almacenamiento",
+      "monitors": "Monitores",
+      "brand": "Marca",
+      "product_type": "Tipo de producto",
+      "laptop_size": "Tamaño de laptop",
+      "use": "Uso",
+      "material": "Material",
+      "fit": "Corte",
+      "sleeves": "Mangas",
+      "neckline": "Cuello",
+      "care": "Cuidado",
+      "lining": "Forro",
+      "hood": "Capucha",
+      "pockets": "Bolsillos",
+      "closure": "Cierre",
+      "seasons": "Temporadas",
+      "finish": "Acabado",
+      "stone": "Piedra",
+      "motif": "Motivo",
+      "occasions": "Ocasiones",
+      "capacity": "Capacidad",
+      "interface": "Interfaz",
+      "read_speed": "Velocidad de lectura",
+      "write_speed": "Velocidad de escritura",
+      "compatibility": "Compatibilidad",
+      "warranty": "Garantía",
+      "screen_size": "Tamaño de pantalla",
+      "resolution": "Resolución",
+      "panel": "Panel",
+      "refresh_rate": "Frecuencia de actualización",
+      "response_time": "Tiempo de respuesta",
+      "aspect_ratio": "Relación de aspecto"
+    }
+  }
+}
