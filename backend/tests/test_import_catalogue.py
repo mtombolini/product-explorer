@@ -31,11 +31,11 @@ def test_import_stores_products_and_images(
     assert first.category == "electronics"
     assert first.rating_rate == Decimal("4.1")
     assert first.rating_count == 25
-    assert first.image_path == "1.png"
-    assert second.image_path == "2.png"
+    assert first.image_path == "1.webp"
+    assert second.image_path == "2.webp"
     assert sorted(path.name for path in tmp_path.iterdir()) == [
-        "1.png",
-        "2.png",
+        "1.webp",
+        "2.webp",
     ]
 
 
@@ -82,7 +82,7 @@ def test_second_import_updates_products_in_place(
     assert after.id == before.id
     assert after.title == "New title"
     assert after.price == Decimal("99.99")
-    assert after.image_path == "1.png"
+    assert after.image_path == "1.webp"
     assert after.created_at == before.created_at
     assert after.updated_at > before.updated_at
 
@@ -127,7 +127,7 @@ def test_import_stores_the_image_source_url(
 
     first, second = read_products(session)
     assert first.image_source_url == f"{BASE_URL}/img/1.png"
-    assert first.image_path == "1.png"
+    assert first.image_path == "1.webp"
     assert second.image_source_url is None
     assert second.image_path is None
 
@@ -162,6 +162,6 @@ def test_image_source_url_is_not_in_the_api_response(
 
     assert "image_source_url" not in one.json()
     assert "image_source_url" not in page.json()["items"][0]
-    assert one.json()["image_url"] == "/images/1.png"
+    assert one.json()["image_url"] == "/images/1.webp"
     assert BASE_URL not in one.text
     assert BASE_URL not in page.text

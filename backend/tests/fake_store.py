@@ -4,15 +4,23 @@ The tests never touch the network: ``FakeStoreStub.handle`` is given to
 ``httpx.MockTransport`` and answers the requests of the client.
 """
 
+import io
 from typing import Any
 
 import httpx
+from PIL import Image
 
 BASE_URL = "https://fakestore.test"
 
-# The content does not have to be a real picture: the import checks the
-# content type and the size, not the pixels.
-IMAGE_BYTES = b"fake image content"
+
+def make_image_bytes(width: int = 4, height: int = 3) -> bytes:
+    """Return a small real PNG: the import decodes every image."""
+    output = io.BytesIO()
+    Image.new("RGB", (width, height), "navy").save(output, format="PNG")
+    return output.getvalue()
+
+
+IMAGE_BYTES = make_image_bytes()
 
 
 def make_record(external_id: int, **overrides: Any) -> dict[str, Any]:

@@ -24,8 +24,8 @@ def test_failed_image_keeps_the_placeholder(
     assert summary.images_failed == 1
     first, second = read_products(session)
     assert first.image_path is None
-    assert second.image_path == "2.png"
-    assert [path.name for path in tmp_path.iterdir()] == ["2.png"]
+    assert second.image_path == "2.webp"
+    assert [path.name for path in tmp_path.iterdir()] == ["2.webp"]
 
 
 def test_image_from_another_host_is_not_downloaded(
