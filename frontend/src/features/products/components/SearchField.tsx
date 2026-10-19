@@ -7,7 +7,7 @@ import TextField from '@mui/material/TextField';
 import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useLocation, useNavigate } from 'react-router';
+import { useLocation, useNavigate, useNavigation } from 'react-router';
 
 import {
   CATALOGUE_PATH,
@@ -30,6 +30,9 @@ export function SearchField() {
   const { t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
+  // Not idle while the router changes page, for example while it loads
+  // the file of the product page.
+  const isChangingPage = useNavigation().state !== 'idle';
 
   const isOnCatalogue = location.pathname === CATALOGUE_PATH;
   const query = parseCatalogueQuery(new URLSearchParams(location.search));
@@ -72,6 +75,9 @@ export function SearchField() {
   useEffect(() => {
     const search = text.trim();
     if (search === appliedSearch) return;
+    // The user opened another page before the pause ended: no search.
+    // Once that page is shown, the text not yet applied is dropped.
+    if (isChangingPage) return;
 
     const timer = setTimeout(() => {
       // On the catalogue the current history entry is replaced, so "back"
@@ -92,6 +98,7 @@ export function SearchField() {
     maxPrice,
     sort,
     isOnCatalogue,
+    isChangingPage,
     navigate,
   ]);
 
