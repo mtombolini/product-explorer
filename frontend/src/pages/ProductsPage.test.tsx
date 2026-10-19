@@ -42,12 +42,14 @@ describe('catalogue: search and filter flow', () => {
       screen.getByRole('textbox', { name: 'Search products' }),
       'shirt',
     );
-    await waitFor(() =>
-      expect(
-        screen.queryByRole('heading', { name: 'Gold ring' }),
-      ).not.toBeInTheDocument(),
-    );
-    expect(screen.getByText('2 products for "shirt"')).toBeInTheDocument();
+    // Wait for the result, not for the ring to go: it also goes while
+    // the new page loads.
+    expect(
+      await screen.findByText('2 products for "shirt"'),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('heading', { name: 'Gold ring' }),
+    ).not.toBeInTheDocument();
     expect(api.requests.filter((url) => url.includes('search='))).toEqual([
       '/api/products?page=1&page_size=12&search=shirt&lang=en',
     ]);
@@ -55,17 +57,15 @@ describe('catalogue: search and filter flow', () => {
 
     // Choosing a category sends both filters and updates the address.
     await user.click(screen.getByRole('button', { name: "Men's clothing" }));
-    await waitFor(() =>
-      expect(
-        screen.queryByRole('heading', { name: 'Silk shirt' }),
-      ).not.toBeInTheDocument(),
-    );
+    expect(
+      await screen.findByText('1 product for "shirt" in Men\'s clothing'),
+    ).toBeInTheDocument();
     expect(
       screen.getByRole('heading', { name: 'Cotton shirt' }),
     ).toBeInTheDocument();
     expect(
-      screen.getByText('1 product for "shirt" in Men\'s clothing'),
-    ).toBeInTheDocument();
+      screen.queryByRole('heading', { name: 'Silk shirt' }),
+    ).not.toBeInTheDocument();
     expect(api.requests).toContain(
       '/api/products?page=1&page_size=12&search=shirt&category=men%27s+clothing&lang=en',
     );

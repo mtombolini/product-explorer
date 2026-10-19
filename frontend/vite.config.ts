@@ -23,5 +23,9 @@ export default defineConfig({
     // on a laptop, twice that in a container or on a CI runner. The
     // default limit of 5 s made those tests fail now and then.
     testTimeout: 15_000,
+    // One file at a time. Most files render the whole application, and
+    // several at once on a busy machine left a navigation waiting for
+    // seconds, so a test failed now and then. Each file alone never did.
+    fileParallelism: false,
   },
 });
