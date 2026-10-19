@@ -1,6 +1,6 @@
 import Box from '@mui/material/Box';
 import Container from '@mui/material/Container';
-import { motion } from 'motion/react';
+import { domAnimation, LazyMotion, m } from 'motion/react';
 import { useEffect, useRef } from 'react';
 import { Outlet, ScrollRestoration, useLocation } from 'react-router';
 import type { Location } from 'react-router';
@@ -59,7 +59,11 @@ export function AppLayout() {
   useFocusOnPageChange();
 
   return (
-    <>
+    // LazyMotion with the DOM animation features only: the full motion
+    // library would add about 30 kB (compressed) that the app never uses.
+    // strict: a full "motion" component would be an error, so it cannot
+    // bring the whole library back by accident.
+    <LazyMotion features={domAnimation} strict>
       <SkipLink />
       <Header search={<SearchField />} />
       <Box
@@ -75,7 +79,7 @@ export function AppLayout() {
         >
           {/* The key restarts the short fade when the page (not the
               search or the filter) changes. */}
-          <motion.div
+          <m.div
             key={pathname}
             initial={{ opacity: 0, y: motionTokens.revealOffset / 2 }}
             animate={{ opacity: 1, y: 0 }}
@@ -85,13 +89,13 @@ export function AppLayout() {
             }}
           >
             <Outlet />
-          </motion.div>
+          </m.div>
         </Container>
       </Box>
       <Footer />
       {/* Back and forward restore the scroll position; a new page
           starts at the top. */}
       <ScrollRestoration getKey={scrollKey} />
-    </>
+    </LazyMotion>
   );
 }
