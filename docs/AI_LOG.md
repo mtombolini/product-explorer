@@ -1046,3 +1046,10 @@ during the work, one section at a time.
     1920 px were looked at.
   - Not verified: TLS and HSTS at a real edge; Lighthouse after these
     changes.
+  - On GitHub, CI run 39271087460 failed in the frontend job: "drops a
+    pending search when the user opens a product" ended on
+    `/products?search=ring`. Loading the product page on demand had made
+    the click wait for a file while the 300 ms search pause ran out. The
+    search field now waits while a page change is in progress. The next
+    run passed its three jobs (backend, frontend, Docker Compose with the
+    end-to-end tests).
