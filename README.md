@@ -103,6 +103,7 @@ edit it. The defaults are development values, not secrets.
 | `FAKESTORE_MAX_RETRIES` | `2` | Retries after the first failed request |
 | `IMAGES_DIR` | `/data/images` | Where the backend stores product images |
 | `LOG_LEVEL` | `INFO` | Log level of the backend |
+| `RUN_STARTUP_TASKS` | `true` | Whether the backend migrates and imports (when the table is empty) before it starts the API. `false` in production, where both run as one-off jobs |
 | `FRONTEND_PORT` | `8080` | Host port of the application |
 | `BACKEND_PORT` | `8000` | Host port of the API (bound to 127.0.0.1) |
 
@@ -161,6 +162,8 @@ in [docs/architecture.md](docs/architecture.md).
 .
 ├── docker-compose.yml          the three services of the application
 ├── docker-compose.test.yml     the two test runners
+├── docker-compose.prod.yml     production override: required secrets, no published API port, no start-up tasks
+├── e2e/                        end-to-end tests (Playwright) against the running stack
 ├── .env.example
 ├── README.md  AI_USAGE.md  FUTURE_IMPROVEMENTS.md
 ├── docs/                       SPEC, DECISIONS, architecture, AI_LOG
@@ -215,7 +218,8 @@ at <http://localhost:8000/docs>.
 | `page_size` | integer | 12 | 1 to 48 |
 | `search` | string | none | At most 100 characters. Match in title or description that ignores case and accents ("algodon" finds "algodón"). `%` and `_` are literal |
 | `category` | string | none | At most 100 characters. Trimmed; blank means no filter. Exact match |
-| `sort` | string | none | `price_asc` or `price_desc`. Without it the list is ordered by id |
+| `min_price`, `max_price` | number | none | 0 to 99,999,999.99, inclusive bounds. A minimum above the maximum is a 422 |
+| `sort` | string | none | `price_asc`, `price_desc` or `rating_desc` (best rated first, unrated last). Without it the list is ordered by id |
 | `lang` | string | `en` | `en` or `es`. Language of titles and descriptions, and of the text `search` reads. Also accepted by `GET /api/products/{id}` |
 
 ```bash
@@ -232,7 +236,7 @@ curl "http://localhost:8080/api/products?search=cotton&category=women%27s%20clot
       "language": "en",
       "price": 12.99,
       "category": "women's clothing",
-      "image_url": "/images/20.png",
+      "image_url": "/images/20.webp",
       "rating_rate": 3.6,
       "rating_count": 145,
       "specifications": [
@@ -293,6 +297,8 @@ table is empty. It is implemented in
 ```bash
 # Run the import by hand (always imports, safe to repeat):
 docker compose exec backend python -m app.commands.seed
+# or as a one-off job, which is how production runs it:
+docker compose run --rm backend seed
 ```
 
 **What one run does**
@@ -353,10 +359,10 @@ runners are in their own Compose file, so `docker-compose.yml` holds only
 the three services of the application.
 
 ```bash
-# Backend: 122 tests (pytest) against PostgreSQL, in a database ending in _test
+# Backend: 133 tests (pytest) against PostgreSQL, in a database ending in _test
 docker compose -f docker-compose.yml -f docker-compose.test.yml run --rm --build backend-test
 
-# Frontend: 74 tests (Vitest + React Testing Library)
+# Frontend: 78 tests (Vitest + React Testing Library)
 docker compose -f docker-compose.yml -f docker-compose.test.yml run --rm --build frontend-test
 ```
 
@@ -368,6 +374,16 @@ docker compose -f docker-compose.yml -f docker-compose.test.yml run --rm backend
 docker compose -f docker-compose.yml -f docker-compose.test.yml run --rm frontend-test npm run lint
 docker compose -f docker-compose.yml -f docker-compose.test.yml run --rm frontend-test npm run format:check
 docker compose -f docker-compose.yml -f docker-compose.test.yml run --rm frontend-test npm run typecheck
+```
+
+End-to-end tests (Playwright, Chromium) run against the started stack.
+They cover search, category, order, pagination, opening a product and
+coming back with the scroll position and no new request, the languages
+and the not-found pages. CI runs them after `docker compose up`:
+
+```bash
+docker compose up --build -d --wait
+cd e2e && npm ci && npx playwright install chromium && npx playwright test
 ```
 
 The tests never call the real Fake Store API: the backend replaces the
@@ -538,12 +554,14 @@ The full list, with the open questions and the defaults taken, is in
 ## Known limitations
 
 - The catalogue has 20 products. Search uses `ILIKE` with a leading
-  wildcard, which does not use an index and would be slow on a large table.
+  wildcard on trigram indexes (migration 0007); with 20 rows PostgreSQL
+  still prefers a sequential scan, and a test checks the indexes can be
+  used. Results are not ranked by relevance.
 - Prices travel as JSON numbers. That is fine for display, not for money
   arithmetic.
-- The frontend ships as one JavaScript bundle of about 800 kB (255 kB
-  compressed). React, MUI, the router and the motion library account for
-  most of it.
+- The first visit loads about 760 kB of JavaScript (246 kB compressed):
+  a 37 kB application file and a vendor file with React, MUI, the router
+  and the other libraries. The product page is a separate small file.
 - The import is manual after the first start and never deletes products.
 - The first start needs internet access; an offline first start gives an
   empty catalogue until the seed command is run.
@@ -564,16 +582,42 @@ The full list, with the open questions and the defaults taken, is in
 A short view of what would change. The prioritised plan is in
 [FUTURE_IMPROVEMENTS.md](FUTURE_IMPROVEMENTS.md).
 
-- **Security.** Real secrets from a secret manager instead of defaults;
-  TLS terminated at a load balancer or ingress; a Content-Security-Policy
-  and HSTS in Nginx; rate limiting on the API; dependency and image
-  scanning in CI; a read-only database role for the API and a separate one
-  for migrations and the import.
+**Already in the repository**
+
+- `docker-compose.prod.yml` refuses to start without the database
+  secrets (no defaults), does not publish the API port (the API is only
+  reached through Nginx at `/api/`) and turns off the start-up tasks, so
+  migrations and the import run as one-off jobs and replicas never race:
+
+  ```bash
+  export POSTGRES_USER=... POSTGRES_PASSWORD=... POSTGRES_DB=...
+  export DATABASE_URL=postgresql+psycopg://USER:PASSWORD@HOST:5432/DB
+  docker compose -f docker-compose.yml -f docker-compose.prod.yml config     # fails if a secret is missing
+  docker compose -f docker-compose.yml -f docker-compose.prod.yml run --rm backend migrate
+  docker compose -f docker-compose.yml -f docker-compose.prod.yml run --rm backend seed    # exit code 1 if Fake Store is down
+  docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build --wait
+  ```
+
+- Nginx sends a Content-Security-Policy (scripts only from the same
+  origin; inline styles are allowed because MUI injects them),
+  `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy` and
+  `Permissions-Policy` on every response. `index.html` is never cached,
+  the hashed build files are cached for a year and images for a day.
+- TLS and HSTS belong to the load balancer or reverse proxy in front of
+  the frontend container: Nginx speaks plain HTTP behind it, and browsers
+  ignore HSTS sent over HTTP.
+- Images are stored as WebP of at most 1000 px (644 kB for the 20
+  products instead of 4.7 MB). Their URL comes from the API, so a CDN in
+  front of `/images/` needs no frontend change.
+
+**Next**
+
+- **Security.** Secrets from a secret manager; rate limiting on the API;
+  dependency and image scanning in CI; a read-only database role for the
+  API and a separate one for migrations and the import.
 - **Scalability.** The API is stateless, so it scales horizontally behind
-  the proxy. Migrations and the import move out of the container start
-  into one-off jobs, so replicas do not race. Images move to object
-  storage behind a CDN. Search moves to PostgreSQL full-text or trigram
-  indexes. A managed PostgreSQL with backups replaces the container.
+  the proxy. Images move to object storage behind a CDN. A managed
+  PostgreSQL with backups replaces the container.
 - **Monitoring.** The JSON logs and request ids are ready for a log
   platform. Next would be metrics (request rate, errors, latency), traces
   with OpenTelemetry, alerts on `/health` and error rate, and separate

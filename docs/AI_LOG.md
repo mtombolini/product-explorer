@@ -994,3 +994,55 @@ during the work, one section at a time.
     laptop and 6 times out of 6 in the container from a fresh clone.
   - Not verified: whether a navigation can wait that long in a real
     browser under load; the earlier Chrome sessions never showed it.
+
+## Delivery-day improvements
+
+- **Prompt or workflow.** The candidate asked to push the branch, to
+  implement the main items of the improvement plan (security, migrations
+  and import as jobs, end-to-end tests, images and bundle, price range
+  and rating order, indexed search), to review the responsive layout and
+  to publish on GitHub Pages. Two background sub-agents worked in their
+  own git worktrees: one wrote the Playwright tests and the CI steps, the
+  other the entrypoint subcommands, the production override and the
+  Nginx headers. They were told not to touch the shared Compose project
+  and to use their own project names and ports. The main agent did the
+  rest and merged their commits with `git cherry-pick`.
+- **Accepted.** The commits of both sub-agents as they were; the CSP
+  string; HSTS left to the edge; `e2e/` with its own `package.json`.
+- **Rejected or changed.**
+  - A first index test asserted on the plan of the whole search query;
+    PostgreSQL chose the primary key of the translations there, so the
+    test checks each searched column on its own instead.
+  - The price button cut the range at 360 px ("00 US$ – 60,00 U"). The
+    price and order controls now share a row on a phone and the range is
+    written with `Intl.NumberFormat.formatRange` ("10-60 US$").
+  - GitHub Pages was not set up: it serves static files only, and the
+    repository is private (see the reply to the candidate).
+- **Verification.**
+  - Backend through `docker-compose.test.yml`: "133 passed"; `ruff check`
+    and `ruff format --check` clean.
+  - Frontend: lint and typecheck clean; "78 passed".
+  - `docker compose up --build -d --wait` on the existing database ran
+    migration 0007. Through Nginx: `sort=rating_desc` started with
+    products 12 and 11 (both 4.8, 12 has more ratings) and 3 (4.7);
+    `min_price=10&max_price=20` returned 3 products priced 10.99, 12.99
+    and 15.99; `min_price=50&max_price=10` returned 422.
+  - After `docker compose down -v` and a new start, the 20 images were
+    WebP files of 644 kB in total (4.7 MB of PNG before);
+    `/images/13.webp` was served as `image/webp`, 58,120 bytes.
+  - `vite build`: application file 36.67 kB (12.60 kB compressed),
+    vendor file 723.40 kB (232.63 kB compressed); before, one file of
+    811.35 kB (259.59 kB compressed).
+  - The sub-agents' checks, reported by them: the CSP produced zero
+    violations in Chrome on the catalogue, a product, a search and the
+    language menu, and an injected inline script was blocked; the
+    production override refused to start without secrets and, with them,
+    ran `migrate`, `seed` and `up` with the API port unpublished. The main
+    agent checked the headers again with `curl -I` on the shared stack.
+  - Playwright: "11 passed" on the shared stack after every change.
+  - Responsive sweep at 320, 360, 390, 600, 768, 1024, 1280 and 1920 px:
+    no horizontal overflow on the catalogue (with a category and a price
+    range) and on a product page; screenshots at 320, 360, 768, 1024 and
+    1920 px were looked at.
+  - Not verified: TLS and HSTS at a real edge; Lighthouse after these
+    changes.
