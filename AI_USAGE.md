@@ -184,6 +184,28 @@ shared stack. Details are in `docs/AI_LOG.md`.
 
 ## Human review
 
-This section is for the candidate's own notes: what was read, questioned,
-tested by hand or changed after the agent's run. It was empty when the
-agent made its last commit.
+Throughout the development process, I regularly reviewed the application,
+tested changes, and provided feedback to improve both the UI and
+functionality.
+
+Most of my feedback focused on usability and consistency. I requested
+Spanish support, improved translations, a more compact toolbar, better
+product information, and clearer pricing and ratings. I also asked to
+confirm that we were importing all the product data the API provides.
+
+As the project progressed, I identified issues with localization, search,
+and some UI decisions. I also made sure the implementation stayed aligned
+with the original requirements, particularly around component sizing,
+testing, and infrastructure.
+
+For the final iteration, I prioritized improvements such as price
+filtering, rating-based sorting, database indexes, image optimization,
+bundle size reduction, and end-to-end testing.
+
+**What I checked myself:** I reviewed the application throughout
+development, tested the main user flows, and checked that the final
+changes matched the requirements.
+
+**What I would still question:** I'd like to further validate performance
+with a larger product catalog and test the experience across more devices
+and browsers.
