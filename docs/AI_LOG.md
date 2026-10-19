@@ -964,3 +964,33 @@ during the work, one section at a time.
     badges and the logo of the README were not seen rendered on GitHub;
     the CI badge shows nothing until the workflow runs there; the values
     of the taxonomy were not read by a second person.
+
+## Final check before delivery
+
+- **Prompt or workflow.** The candidate asked, on the day of delivery,
+  whether everything works. The main agent ran a check from a clean clone
+  of the last commit with no `.env`.
+- **Found.** The application was fine, but the frontend suite in the test
+  container failed now and then: 2 of 74 tests in one run, 3 in another,
+  passing in the next. A debug run showed the address already at
+  `?search=shirt` while the page still rendered the previous list and no
+  request had been made after 3 s. Each test file run alone passed six
+  times out of six, and the whole suite with one file at a time passed
+  three times out of three, so the cause was load from several files
+  rendering the whole application at once.
+- **Changed.** Test files run one at a time, Testing Library waits up to
+  3 s, the test timeout is 15 s, and the search flow test waits for its
+  result instead of for a product to disappear.
+- **Verification.**
+  - Clean clone, `docker-compose up --build -d --wait`: three healthy
+    services (`db`, `backend`, `frontend` only), 20 products, 20 images,
+    20 translations, 302 specification rows, the same counts after a
+    second seed; `search=algodon` with `lang=es` gave 4 products in price
+    order; `page_size=500` gave 422.
+  - Backend in the container: "122 passed", `ruff check` and
+    `ruff format --check` clean. Frontend: lint, typecheck, format and
+    build clean.
+  - After the change: the frontend suite passed 5 times out of 5 on the
+    laptop and 6 times out of 6 in the container from a fresh clone.
+  - Not verified: whether a navigation can wait that long in a real
+    browser under load; the earlier Chrome sessions never showed it.
