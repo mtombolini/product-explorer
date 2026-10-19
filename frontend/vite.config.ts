@@ -9,6 +9,23 @@ const BACKEND_URL = 'http://localhost:8000';
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
+  build: {
+    // The vendor file is about 720 kB before compression (230 kB sent),
+    // above Vite's default warning at 500 kB. It is one file the browser
+    // caches; shrinking it is in FUTURE_IMPROVEMENTS.md.
+    chunkSizeWarningLimit: 800,
+    rolldownOptions: {
+      output: {
+        codeSplitting: {
+          // The libraries go in their own file. They change much less
+          // often than the application code, so after a new release the
+          // browser keeps them from its cache and downloads only the
+          // application file again.
+          groups: [{ name: 'vendor', test: /node_modules/ }],
+        },
+      },
+    },
+  },
   server: {
     proxy: {
       '/api': BACKEND_URL,

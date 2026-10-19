@@ -1,5 +1,5 @@
 import Box from '@mui/material/Box';
-import { motion } from 'motion/react';
+import { m } from 'motion/react';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -58,7 +58,7 @@ export function ProductGrid({ products, listUrl }: ProductGridProps) {
       {products.map((product, index) => (
         // Each card fades in and rises a little the first time it enters
         // the viewport, slightly after its left neighbour.
-        <motion.li
+        <m.li
           key={product.id}
           initial={{ opacity: 0, y: motionTokens.revealOffset }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -70,7 +70,7 @@ export function ProductGrid({ products, listUrl }: ProductGridProps) {
           }}
         >
           <ProductCard product={product} listUrl={listUrl} />
-        </motion.li>
+        </m.li>
       ))}
     </GridList>
   );
