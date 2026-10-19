@@ -27,13 +27,13 @@ export class ApiError extends Error {
   }
 }
 
-type QueryValue = string | number | undefined;
+type QueryValue = string | number | null | undefined;
 
-/** Build "path?key=value", leaving out empty and undefined values. */
+/** Build "path?key=value", leaving out empty, null and undefined values. */
 function buildUrl(path: string, params: Record<string, QueryValue>): string {
   const query = new URLSearchParams();
   for (const [key, value] of Object.entries(params)) {
-    if (value !== undefined && value !== '') {
+    if (value !== undefined && value !== null && value !== '') {
       query.set(key, String(value));
     }
   }

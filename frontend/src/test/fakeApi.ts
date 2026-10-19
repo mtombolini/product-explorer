@@ -86,20 +86,28 @@ export function installFakeApi(
     if (url.pathname === '/api/products') {
       const search = (url.searchParams.get('search') ?? '').toLowerCase();
       const category = url.searchParams.get('category') ?? '';
+      const minPrice = Number(url.searchParams.get('min_price') ?? 0);
+      const maxPrice = Number(url.searchParams.get('max_price') ?? Infinity);
       const page = Number(url.searchParams.get('page') ?? 1);
       const matching = products
         .map((product) => localise(product, language))
         .filter(
           (product) =>
             (!search || product.title.toLowerCase().includes(search)) &&
-            (!category || product.category === category),
+            (!category || product.category === category) &&
+            product.price >= minPrice &&
+            product.price <= maxPrice,
         );
-      // Like the backend: by price when asked, and always by id last.
+      // Like the backend: by price or rating when asked, by id last.
       const sort = url.searchParams.get('sort');
-      const direction = sort === 'price_desc' ? -1 : 1;
-      const ordered = [...matching].sort((a, b) =>
-        sort ? direction * (a.price - b.price) || a.id - b.id : a.id - b.id,
-      );
+      const ordered = [...matching].sort((a, b) => {
+        if (sort === 'price_asc') return a.price - b.price || a.id - b.id;
+        if (sort === 'price_desc') return b.price - a.price || a.id - b.id;
+        if (sort === 'rating_desc') {
+          return (b.rating_rate ?? -1) - (a.rating_rate ?? -1) || a.id - b.id;
+        }
+        return a.id - b.id;
+      });
       const start = (page - 1) * PAGE_SIZE;
       return jsonResponse({
         items: ordered.slice(start, start + PAGE_SIZE),

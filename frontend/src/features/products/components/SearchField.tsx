@@ -62,9 +62,11 @@ export function SearchField() {
     }
   }
 
-  // Searching keeps the chosen category and order when the user is on the
-  // catalogue, and starts again from page 1.
+  // Searching keeps the chosen category, price range and order when the
+  // user is on the catalogue, and starts again from page 1.
   const category = isOnCatalogue ? query.category : '';
+  const minPrice = isOnCatalogue ? query.minPrice : null;
+  const maxPrice = isOnCatalogue ? query.maxPrice : null;
   const sort = isOnCatalogue ? query.sort : '';
 
   useEffect(() => {
@@ -75,22 +77,33 @@ export function SearchField() {
       // On the catalogue the current history entry is replaced, so "back"
       // does not step through every word typed. From another page it is
       // a normal navigation to the catalogue.
-      navigate(catalogueUrl({ search, category, sort, page: 1 }), {
-        replace: isOnCatalogue,
-      });
+      navigate(
+        catalogueUrl({ search, category, minPrice, maxPrice, sort, page: 1 }),
+        { replace: isOnCatalogue },
+      );
     }, SEARCH_DEBOUNCE_MS);
     // A new key press cancels the pending search.
     return () => clearTimeout(timer);
-  }, [text, appliedSearch, category, sort, isOnCatalogue, navigate]);
+  }, [
+    text,
+    appliedSearch,
+    category,
+    minPrice,
+    maxPrice,
+    sort,
+    isOnCatalogue,
+    navigate,
+  ]);
 
   function handleSubmit(event: FormEvent): void {
     // Enter searches at once instead of waiting for the pause.
     event.preventDefault();
     const search = text.trim();
     if (search !== appliedSearch) {
-      navigate(catalogueUrl({ search, category, sort, page: 1 }), {
-        replace: isOnCatalogue,
-      });
+      navigate(
+        catalogueUrl({ search, category, minPrice, maxPrice, sort, page: 1 }),
+        { replace: isOnCatalogue },
+      );
     }
   }
 

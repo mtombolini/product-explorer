@@ -69,7 +69,7 @@ export interface ApiErrorEnvelope {
 }
 
 /** The orders the API accepts in `sort`, in the order they are offered. */
-export const SORT_ORDERS = ['price_asc', 'price_desc'] as const;
+export const SORT_ORDERS = ['price_asc', 'price_desc', 'rating_desc'] as const;
 
 /** A sort order, or an empty string for the default order (by id). */
 export type SortOrder = (typeof SORT_ORDERS)[number] | '';
@@ -78,6 +78,9 @@ export type SortOrder = (typeof SORT_ORDERS)[number] | '';
 export interface CatalogueQuery {
   search: string;
   category: string;
+  /** Inclusive price bounds; null when there is none. */
+  minPrice: number | null;
+  maxPrice: number | null;
   sort: SortOrder;
   page: number;
 }

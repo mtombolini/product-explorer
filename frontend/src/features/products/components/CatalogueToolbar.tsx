@@ -8,6 +8,8 @@ import { motionTokens } from '../../../app/motion';
 import { layout } from '../../../app/theme';
 import { useIsScrolled } from '../../../app/useIsScrolled';
 import { CategoryFilter } from './CategoryFilter';
+import { PriceFilter } from './PriceFilter';
+import type { PriceRange } from './PriceFilter';
 import { ResultSummary } from './ResultSummary';
 import { SortSelect } from './SortSelect';
 
@@ -18,6 +20,7 @@ interface CatalogueToolbarProps {
   total: number | null | undefined;
   onSelectCategory: (category: string) => void;
   onSelectSort: (sort: SortOrder) => void;
+  onSelectPriceRange: (range: PriceRange) => void;
 }
 
 /**
@@ -33,6 +36,7 @@ export function CatalogueToolbar({
   total,
   onSelectCategory,
   onSelectSort,
+  onSelectPriceRange,
 }: CatalogueToolbarProps) {
   const { t } = useTranslation();
   const isScrolled = useIsScrolled();
@@ -119,6 +123,10 @@ export function CatalogueToolbar({
               ml: 'auto',
             }}
           >
+            <PriceFilter
+              value={{ min: query.minPrice, max: query.maxPrice }}
+              onChange={onSelectPriceRange}
+            />
             {/* Hidden on phones to leave room; it still names the select. */}
             <Typography
               id={sortLabelId}

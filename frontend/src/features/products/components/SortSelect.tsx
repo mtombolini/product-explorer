@@ -13,7 +13,8 @@ interface SortSelectProps {
 }
 
 /**
- * Chooses the order of the product list: the default order or by price.
+ * Chooses the order of the product list: the default order, by price or
+ * by rating.
  * It is MUI's select (not the browser's), which opens a list that works
  * with the keyboard and announces itself as a combobox.
  */
@@ -24,6 +25,7 @@ export function SortSelect({ value, onChange, labelledBy }: SortSelectProps) {
     { value: '', label: t('sort.default') },
     { value: 'price_asc', label: t('sort.priceAsc') },
     { value: 'price_desc', label: t('sort.priceDesc') },
+    { value: 'rating_desc', label: t('sort.ratingDesc') },
   ];
 
   return (

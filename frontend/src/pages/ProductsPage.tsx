@@ -35,7 +35,7 @@ export function ProductsPage() {
   const { t } = useTranslation();
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
-  const { query, setCategory, setSort, clearFilters, pageUrl } =
+  const { query, setCategory, setSort, setPriceRange, clearFilters, pageUrl } =
     useCatalogueQuery();
   const key = queryKey(query);
 
@@ -60,7 +60,11 @@ export function ProductsPage() {
   }, [dispatch]);
 
   const isLoading = page === undefined || page.status === 'loading';
-  const hasFilters = query.search !== '' || query.category !== '';
+  const hasFilters =
+    query.search !== '' ||
+    query.category !== '' ||
+    query.minPrice !== null ||
+    query.maxPrice !== null;
 
   /** Ask again for the page and for the categories, if they failed. */
   function retry(): void {
@@ -143,6 +147,7 @@ export function ProductsPage() {
           isLoading ? null : page.status === 'failed' ? undefined : page.total
         }
         onSelectCategory={setCategory}
+        onSelectPriceRange={setPriceRange}
         onSelectSort={setSort}
       />
       {renderContent()}

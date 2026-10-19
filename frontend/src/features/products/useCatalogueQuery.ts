@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 
 import type { SortOrder } from '../../api/types';
+import type { PriceRange } from './components/PriceFilter';
 import { catalogueUrl, parseCatalogueQuery } from './catalogueUrl';
 
 /**
@@ -28,9 +29,30 @@ export function useCatalogueQuery() {
     navigate(catalogueUrl({ ...query, sort, page: 1 }));
   }
 
-  /** Remove search and category and go back to the first page. */
+  /** A new price range starts again from the first page. */
+  function setPriceRange(range: PriceRange): void {
+    navigate(
+      catalogueUrl({
+        ...query,
+        minPrice: range.min,
+        maxPrice: range.max,
+        page: 1,
+      }),
+    );
+  }
+
+  /** Remove every filter and go back to the first page. */
   function clearFilters(): void {
-    navigate(catalogueUrl({ ...query, search: '', category: '', page: 1 }));
+    navigate(
+      catalogueUrl({
+        ...query,
+        search: '',
+        category: '',
+        minPrice: null,
+        maxPrice: null,
+        page: 1,
+      }),
+    );
   }
 
   /** The address of another page of the same search, category and order. */
@@ -38,5 +60,5 @@ export function useCatalogueQuery() {
     return catalogueUrl({ ...query, page });
   }
 
-  return { query, setCategory, setSort, clearFilters, pageUrl };
+  return { query, setCategory, setSort, setPriceRange, clearFilters, pageUrl };
 }

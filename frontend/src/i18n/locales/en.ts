@@ -26,6 +26,18 @@ export const en = {
     default: 'Default order',
     priceAsc: 'Price: low to high',
     priceDesc: 'Price: high to low',
+    ratingDesc: 'Best rated',
+  },
+  price: {
+    title: 'Price',
+    min: 'Min',
+    max: 'Max',
+    from: 'From {{amount}}',
+    upTo: 'Up to {{amount}}',
+    apply: 'Apply',
+    clear: 'Clear',
+    invalid:
+      'Enter amounts like 10 or 10.50, with the minimum not above the maximum.',
   },
   catalogue: {
     title: 'Products',
