@@ -428,7 +428,7 @@ describe('catalogue: rating order and price range', () => {
       '/api/products?page=1&page_size=12&min_price=5&max_price=20&lang=en',
     );
     expect(
-      screen.getByRole('button', { name: 'Price: $5.00 – $20.00' }),
+      screen.getByRole('button', { name: /^Price: \$5\s?–\s?\$20$/ }),
     ).toBeInTheDocument();
   });
 

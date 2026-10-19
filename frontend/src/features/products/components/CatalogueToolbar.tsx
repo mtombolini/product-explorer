@@ -121,12 +121,17 @@ export function CatalogueToolbar({
               minWidth: 0,
               // Keeps the order at the right end while the count loads.
               ml: 'auto',
+              // On a phone the price and the order share a full row, half
+              // each; from 480 px they take the width of their content.
+              width: { xs: '100%', sm: 'auto' },
             }}
           >
-            <PriceFilter
-              value={{ min: query.minPrice, max: query.maxPrice }}
-              onChange={onSelectPriceRange}
-            />
+            <Box sx={{ flex: { xs: '1 1 0', sm: '0 0 auto' }, minWidth: 0 }}>
+              <PriceFilter
+                value={{ min: query.minPrice, max: query.maxPrice }}
+                onChange={onSelectPriceRange}
+              />
+            </Box>
             {/* Hidden on phones to leave room; it still names the select. */}
             <Typography
               id={sortLabelId}
@@ -137,11 +142,13 @@ export function CatalogueToolbar({
             >
               {t('sort.title')}
             </Typography>
-            <SortSelect
-              value={query.sort}
-              onChange={onSelectSort}
-              labelledBy={sortLabelId}
-            />
+            <Box sx={{ flex: { xs: '1 1 0', sm: '0 0 auto' }, minWidth: 0 }}>
+              <SortSelect
+                value={query.sort}
+                onChange={onSelectSort}
+                labelledBy={sortLabelId}
+              />
+            </Box>
           </Box>
         </Box>
       </Box>

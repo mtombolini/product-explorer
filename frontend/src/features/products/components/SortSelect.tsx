@@ -36,6 +36,8 @@ export function SortSelect({ value, onChange, labelledBy }: SortSelectProps) {
       displayEmpty
       labelId={labelledBy}
       onChange={(event) => onChange(event.target.value)}
+      // As wide as its place in the toolbar allows.
+      sx={{ width: '100%' }}
     >
       {options.map((option) => (
         <MenuItem key={option.value} value={option.value}>

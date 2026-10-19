@@ -14,6 +14,34 @@ export function formatPrice(price: number, language: string): string {
   }).format(price);
 }
 
+/**
+ * A short price for a filter label: no cents when there are none.
+ * 10 -> "$10", 10.5 -> "$10.50".
+ */
+function shortPriceFormat(amounts: number[], language: string) {
+  const whole = amounts.every((amount) => Number.isInteger(amount));
+  return new Intl.NumberFormat(language, {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: whole ? 0 : 2,
+    maximumFractionDigits: whole ? 0 : 2,
+  });
+}
+
+/** 10 -> "$10" in English, "10 US$" in Spanish. */
+export function formatShortPrice(price: number, language: string): string {
+  return shortPriceFormat([price], language).format(price);
+}
+
+/** 10 and 60 -> "$10 – $60" in English, "10-60 US$" in Spanish. */
+export function formatPriceRange(
+  min: number,
+  max: number,
+  language: string,
+): string {
+  return shortPriceFormat([min, max], language).formatRange(min, max);
+}
+
 /** One piece of a formatted price: the currency sign or the rest. */
 export interface PricePart {
   text: string;
