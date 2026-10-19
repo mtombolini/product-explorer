@@ -14,7 +14,14 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-const firstPage = { search: '', category: '', sort: '', page: 1 } as const;
+const firstPage = {
+  search: '',
+  category: '',
+  minPrice: null,
+  maxPrice: null,
+  sort: '',
+  page: 1,
+} as const;
 
 describe('products slice: caching', () => {
   it('stores a page by query key and its products by id', async () => {

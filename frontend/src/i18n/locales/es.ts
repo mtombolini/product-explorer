@@ -22,6 +22,18 @@ export const es: Messages = {
     default: 'Orden predeterminado',
     priceAsc: 'Precio: de menor a mayor',
     priceDesc: 'Precio: de mayor a menor',
+    ratingDesc: 'Mejor valorados',
+  },
+  price: {
+    title: 'Precio',
+    min: 'Mínimo',
+    max: 'Máximo',
+    from: 'Desde {{amount}}',
+    upTo: 'Hasta {{amount}}',
+    apply: 'Aplicar',
+    clear: 'Quitar',
+    invalid:
+      'Escribe montos como 10 o 10,50, con el mínimo no mayor que el máximo.',
   },
   catalogue: {
     title: 'Productos',

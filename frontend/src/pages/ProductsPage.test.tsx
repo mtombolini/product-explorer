@@ -388,3 +388,62 @@ describe('catalogue: states', () => {
     expect(currentAddress(router)).toBe('/products');
   });
 });
+
+describe('catalogue: rating order and price range', () => {
+  const products = [
+    makeProduct(1, { title: 'Middle', price: 20, rating_rate: 3.1 }),
+    makeProduct(2, { title: 'Cheap', price: 5, rating_rate: 4.8 }),
+    makeProduct(3, { title: 'Expensive', price: 100, rating_rate: null }),
+  ];
+
+  it('orders by rating, best first and unrated last', async () => {
+    installFakeApi(products);
+    const { user, router } = renderApp('/products');
+    await screen.findByRole('heading', { name: 'Middle' });
+
+    await chooseOrder(user, 'Best rated');
+
+    await waitFor(() =>
+      expect(shownTitles()).toEqual(['Cheap', 'Middle', 'Expensive']),
+    );
+    expect(currentAddress(router)).toBe('/products?sort=rating_desc');
+  });
+
+  it('applies a price range from its form and shows it on the button', async () => {
+    const api = installFakeApi(products);
+    const { user, router } = renderApp('/products');
+    await screen.findByRole('heading', { name: 'Middle' });
+
+    await user.click(screen.getByRole('button', { name: 'Price' }));
+    const form = await screen.findByRole('dialog', { name: 'Price' });
+    await user.type(within(form).getByRole('textbox', { name: 'Min' }), '5');
+    await user.type(within(form).getByRole('textbox', { name: 'Max' }), '20');
+    // Typing sends nothing: the range applies when the form is sent.
+    expect(api.requests.some((url) => url.includes('price'))).toBe(false);
+    await user.click(within(form).getByRole('button', { name: 'Apply' }));
+
+    await waitFor(() => expect(shownTitles()).toEqual(['Middle', 'Cheap']));
+    expect(currentAddress(router)).toBe('/products?min_price=5&max_price=20');
+    expect(api.requests).toContain(
+      '/api/products?page=1&page_size=12&min_price=5&max_price=20&lang=en',
+    );
+    expect(
+      screen.getByRole('button', { name: 'Price: $5.00 – $20.00' }),
+    ).toBeInTheDocument();
+  });
+
+  it('does not apply a minimum above the maximum', async () => {
+    installFakeApi(products);
+    const { user, router } = renderApp('/products');
+    await screen.findByRole('heading', { name: 'Middle' });
+
+    await user.click(screen.getByRole('button', { name: 'Price' }));
+    const form = await screen.findByRole('dialog', { name: 'Price' });
+    await user.type(within(form).getByRole('textbox', { name: 'Min' }), '50');
+    await user.type(within(form).getByRole('textbox', { name: 'Max' }), '10');
+
+    expect(within(form).getByRole('alert')).toBeInTheDocument();
+    expect(within(form).getByRole('button', { name: 'Apply' })).toBeDisabled();
+    expect(currentAddress(router)).toBe('/products');
+  });
+});

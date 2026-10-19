@@ -22,6 +22,8 @@ export function getProductPage(
     page_size: PAGE_SIZE,
     search: query.search,
     category: query.category,
+    min_price: query.minPrice,
+    max_price: query.maxPrice,
     sort: query.sort,
     lang: language,
   });
