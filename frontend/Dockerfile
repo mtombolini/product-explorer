@@ -27,8 +27,10 @@ RUN npm run build
 
 FROM nginx:1.30-alpine AS runtime
 
-# Replaces the default site of the base image.
+# Replaces the default site of the base image. The headers snippet is kept
+# out of conf.d, whose files Nginx loads on their own at http level.
 COPY nginx/default.conf /etc/nginx/conf.d/default.conf
+COPY nginx/security-headers.conf /etc/nginx/snippets/security-headers.conf
 COPY --from=build /app/dist /usr/share/nginx/html
 
 EXPOSE 80
