@@ -8,7 +8,7 @@ import { useId, useState } from 'react';
 import type { FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { formatPrice } from '../format';
+import { formatPriceRange, formatShortPrice } from '../format';
 
 /** The price range of the list: each bound is optional. */
 export interface PriceRange {
@@ -48,14 +48,18 @@ export function PriceFilter({ value, onChange }: PriceFilterProps) {
     (min !== null && max !== null && min > max);
 
   const isActive = value.min !== null || value.max !== null;
-  const format = (amount: number) => formatPrice(amount, i18n.language);
+  const language = i18n.language;
   let buttonLabel = t('price.title');
   if (value.min !== null && value.max !== null) {
-    buttonLabel = `${format(value.min)} – ${format(value.max)}`;
+    buttonLabel = formatPriceRange(value.min, value.max, language);
   } else if (value.min !== null) {
-    buttonLabel = t('price.from', { amount: format(value.min) });
+    buttonLabel = t('price.from', {
+      amount: formatShortPrice(value.min, language),
+    });
   } else if (value.max !== null) {
-    buttonLabel = t('price.upTo', { amount: format(value.max) });
+    buttonLabel = t('price.upTo', {
+      amount: formatShortPrice(value.max, language),
+    });
   }
 
   function open(target: HTMLElement): void {
@@ -91,14 +95,23 @@ export function PriceFilter({ value, onChange }: PriceFilterProps) {
           isActive ? `${t('price.title')}: ${buttonLabel}` : t('price.title')
         }
         onClick={(event) => open(event.currentTarget)}
+        fullWidth
         sx={{
+          justifyContent: 'space-between',
           whiteSpace: 'nowrap',
           fontWeight: isActive ? 700 : 400,
           bgcolor: 'background.paper',
           borderColor: 'grey.600',
         }}
       >
-        {buttonLabel}
+        {/* Cut with an ellipsis if a phone has no room for it all; the
+            accessible name always has the whole range. */}
+        <Box
+          component="span"
+          sx={{ overflow: 'hidden', textOverflow: 'ellipsis' }}
+        >
+          {buttonLabel}
+        </Box>
       </Button>
       <Popover
         open={anchor !== null}
