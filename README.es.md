@@ -67,7 +67,7 @@ docker compose down -v     # detener y borrar los datos
 
 | Método y ruta | Qué devuelve |
 | --- | --- |
-| `GET /api/products` | Una página de productos. Parámetros: `page`, `page_size`, `search`, `category`, `sort`, `lang` |
+| `GET /api/products` | Una página de productos. Parámetros: `page`, `page_size`, `search`, `category`, `min_price`, `max_price`, `sort`, `lang` |
 | `GET /api/products/{id}` | Un producto. Parámetro: `lang` |
 | `GET /api/categories` | Las categorías |
 | `GET /health` | Estado de la API y de la base de datos |
@@ -78,10 +78,10 @@ Los errores tienen siempre la misma forma:
 ## Tests
 
 ```bash
-# Backend: 122 tests (pytest) contra PostgreSQL
+# Backend: 133 tests (pytest) contra PostgreSQL
 docker compose -f docker-compose.yml -f docker-compose.test.yml run --rm --build backend-test
 
-# Frontend: 74 tests (Vitest + React Testing Library)
+# Frontend: 78 tests (Vitest + React Testing Library)
 docker compose -f docker-compose.yml -f docker-compose.test.yml run --rm --build frontend-test
 ```
 

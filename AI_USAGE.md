@@ -131,7 +131,8 @@ A selection; the log has all of them.
 - **Static checks.** `ruff` and `pycodestyle` at 79 characters for Python;
   ESLint with accessibility rules, strict TypeScript and Prettier for the
   frontend.
-- **Tests.** 122 backend tests against PostgreSQL and 74 frontend tests,
+- **Tests.** 133 backend tests against PostgreSQL, 78 frontend tests and
+  11 end-to-end tests in a real browser,
   both run in containers. None calls the real Fake Store API.
 - **A clean clone.** With no `.env` file, `docker-compose up` gave three
   healthy containers, 20 products and 20 images. The import was run again
@@ -170,6 +171,16 @@ of the main Compose file and a README header. The agent made these
 changes without sub-agents. They were checked with the tests and in
 headless Chrome, not by an independent reviewer, and Lighthouse was not
 run again. Details are in `docs/AI_LOG.md`.
+
+## Delivery-day improvements
+
+On the day of delivery the candidate asked for the main items of the
+improvement plan. The main agent built the price range, the rating order,
+the search indexes, the WebP images, the smaller bundle and the phone
+layout of the toolbar; two sub-agents, each in its own git worktree, built
+the end-to-end tests and the production hardening, and the main agent
+reviewed and merged their commits and ran their checks again on the
+shared stack. Details are in `docs/AI_LOG.md`.
 
 ## Human review
 

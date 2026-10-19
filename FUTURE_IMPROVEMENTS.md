@@ -39,6 +39,18 @@ Complexity is a rough estimate: S (hours), M (days), L (a week or more).
 | 11 | Money as integer minor units with a currency code | Correct arithmetic once there is a basket or tax | M | A data migration and a contract change for every client |
 | 12 | A content workflow (translations and specifications) and right-to-left layout | Translations and specifications are loaded from files in the repository. A real catalogue needs them managed as data: reviewed by people, added when a product appears, and covering category names too | L | Needs an editing interface or a translation service, and a rule for products whose source text changes after they were translated |
 
+### Done on the day of delivery
+
+| Item | What was done | What is still open |
+| --- | --- | --- |
+| 1 | Production override with required secrets and no published API port; CSP and security headers in Nginx | TLS and HSTS at a real edge, a secret manager, rate limiting |
+| 2 | `migrate` and `seed` run as one-off jobs in production | — |
+| 3 | Playwright tests in `e2e/`, run in CI | Error states (they need the API to be down) |
+| 5 | `sort=rating_desc`, `min_price`, `max_price` | — |
+| 7 | Trigram indexes for the substring search | Ranking by relevance |
+| 8 | Images resized and stored as WebP (4.7 MB to 644 kB) | Object storage and a CDN |
+| 9 | Lazy pages, lazy motion features, a vendor file | A cache lifetime in the store; the vendor file is still 230 kB compressed |
+
 ## 3. Suggested order
 
 **Short term (before a first production release)**

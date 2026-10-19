@@ -797,3 +797,91 @@ trade-off that was accepted. New entries are appended as the work advances.
 - **Alternatives.** A full translation; no Spanish file.
 - **Trade-off.** A full translation of 500 lines would drift from the
   original. The summary repeats only what rarely changes.
+
+## Delivery-day improvements
+
+### D-060 Search reads trigram indexes through an immutable unaccent
+
+- **Context.** A search for text anywhere in a column ("%cotton%") cannot
+  use a B-tree index, so it read the whole table.
+- **Decision.** Migration 0007 adds `pg_trgm`, a function
+  `immutable_unaccent` (unaccent with its dictionary named, declared
+  IMMUTABLE so it can be indexed) and a GIN trigram index on each
+  searched column. The search compares that same expression with ILIKE,
+  and reads translations and originals in two subqueries, so each can
+  use its own table's index.
+- **Alternatives.** Full-text search with `tsvector`: ranked and faster,
+  but it matches words, not parts of words, and needs a dictionary per
+  language.
+- **Trade-off.** Four indexes to maintain on writes, which are rare here.
+  With 20 rows PostgreSQL still scans the table; a test disables
+  sequential scans to show the indexes can serve the query.
+
+### D-061 A price range and a rating order
+
+- **Context.** The most likely next product request, and the follow-up
+  of the price sort.
+- **Decision.** `min_price` and `max_price` (inclusive) and
+  `sort=rating_desc` (score, then number of ratings, unrated last). In
+  the interface the range is a small form behind a "Price" button, sent
+  as a whole, so typing makes no request; it lives in the address and in
+  the cache key like every other filter.
+- **Alternatives.** A slider: imprecise with a keyboard and on a phone.
+- **Trade-off.** A minimum above the maximum is a 422 from the API, a
+  disabled button in the form, and swapped when it comes from a
+  hand-edited address.
+
+### D-062 Images are stored as resized WebP
+
+- **Context.** The 20 source images were 4.7 MB of PNG, and a page of 12
+  products downloaded most of that.
+- **Decision.** The import decodes each image with Pillow, shrinks it to
+  at most 1000 px and stores it as WebP at quality 80: 644 kB in total.
+  Decoding also rejects a file that only claims to be an image.
+- **Alternatives.** Resizing on request; several sizes with `srcset`.
+- **Trade-off.** One more dependency and a little CPU during the import.
+  Installations from before keep their PNG files until their data is
+  reset, because the import does not download an image it already has.
+
+### D-063 Less JavaScript on the first visit
+
+- **Context.** The frontend was one file of 811 kB (260 kB compressed).
+- **Decision.** Motion loads only its DOM animation features
+  (`LazyMotion`, strict), the product and not-found pages are loaded when
+  first opened, and the libraries go to a vendor file.
+- **Alternatives.** Replacing MUI, which is most of the weight.
+- **Trade-off.** 246 kB compressed instead of 260 kB: a small gain,
+  because MUI and React are most of the vendor file. The application file
+  is now 13 kB compressed, and a new release only invalidates that file.
+
+### D-064 Migrations and import as jobs in production
+
+- **Context.** With several backend replicas, each one would migrate and
+  import on start.
+- **Decision.** The entrypoint has `serve`, `migrate` and `seed`.
+  `RUN_STARTUP_TASKS` (default `true`) keeps the one-command local start;
+  `docker-compose.prod.yml` sets it to `false`, requires the secrets with
+  `${VAR:?}` and does not publish the API port.
+- **Alternatives.** A separate `migrate` service in `docker-compose.yml`,
+  which the statement's three-service rule does not allow.
+- **Trade-off.** Two commands before `up` in production, in exchange for
+  starts that never race.
+
+### D-065 Security headers in Nginx, TLS at the edge
+
+- **Decision.** One snippet with the Content-Security-Policy and the
+  other security headers, included in every location so Nginx's
+  `add_header` inheritance cannot drop them. HSTS is left to the TLS
+  terminator.
+- **Trade-off.** `style-src` allows inline styles because MUI's Emotion
+  injects style tags; a nonce would remove that at the cost of
+  server-side rendering of the nonce.
+
+### D-066 End-to-end tests in the repository and in CI
+
+- **Context.** The browser checks were throwaway scripts.
+- **Decision.** `e2e/` holds Playwright tests with their own
+  `package.json`, run in CI after the stack starts, with the report
+  uploaded only on failure. No retries, so a flaky test is seen.
+- **Trade-off.** A slower CI job, and the tests need the real import, so
+  they depend on Fake Store being up when CI runs.
